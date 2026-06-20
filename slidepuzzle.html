@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スライドパズル</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        #status { font-size: 18px; color: #d4a373; font-weight: bold; margin-bottom: 20px; height: 24px; }
+        .board { display: grid; grid-template-columns: repeat(4, 70px); grid-template-rows: repeat(4, 70px); gap: 8px; background-color: #0c120f; padding: 12px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .tile { background: linear-gradient(135deg, #d4a373 0%, #aa7c4e 100%); color: #352110; font-size: 22px; font-weight: bold; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.1s ease; }
+        .tile:active { transform: scale(0.95); }
+        .tile.empty { background: transparent; cursor: default; box-shadow: none; pointer-events: none; }
+        .controls { display: flex; gap: 15px; margin-top: 25px; }
+        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="status">数字を1〜15の順に並べてください</div>
+    <div class="board" id="board"></div>
+    <div class="controls">
+        <button onclick="shuffleTiles()">シャッフル</button>
+    </div>
+
+    <script>
+        let tiles = [];
+        const boardEl = document.getElementById('board');
+        const statusEl = document.getElementById('status');
+
+        function initGame() {
+            tiles = Array.from({ length: 15 }, (_, i) => i + 1);
+            tiles.push(0); // 0を空きマスとする
+            shuffleTiles();
+        }
+
+        function drawBoard() {
+            boardEl.innerHTML = '';
+            tiles.forEach((val, idx) => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                if (val === 0) {
+                    tile.classList.add('empty');
+                } else {
+                    tile.innerText = val;
+                    tile.addEventListener('click', () => moveTile(idx));
+                }
+                boardEl.appendChild(tile);
+            });
+            checkWin();
+        }
+
+        function moveTile(idx) {
+            const emptyIdx = tiles.indexOf(0);
+            const r = Math.floor(idx / 4), c = idx % 4;
+            const er = Math.floor(emptyIdx / 4), ec = emptyIdx % 4;
+
+            // 隣接判定
+            const isAdjacent = (Math.abs(r - er) + Math.abs(c - ec)) === 1;
+            if (isAdjacent) {
+                tiles[emptyIdx] = tiles[idx];
+                tiles[idx] = 0;
+                drawBoard();
+            }
+        }
+
+        function shuffleTiles() {
+            // スライドのみで解ける盤面を作るため、実際にランダムスライドを繰り返す
+            for (let i = 0; i < 200; i++) {
+                const emptyIdx = tiles.indexOf(0);
+                const r = Math.floor(emptyIdx / 4), c = emptyIdx % 4;
+                const possibles = [];
+
+                if (r > 0) possibles.push(emptyIdx - 4); // 上
+                if (r < 3) possibles.push(emptyIdx + 4); // 下
+                if (c > 0) possibles.push(emptyIdx - 1); // 左
+                if (c < 3) possibles.push(emptyIdx + 1); // 右
+
+                const randomTarget = possibles[Math.floor(Math.random() * possibles.length)];
+                tiles[emptyIdx] = tiles[randomTarget];
+                tiles[randomTarget] = 0;
+            }
+            statusEl.innerText = "数字を1〜15の順に並べてください";
+            drawBoard();
+        }
+
+        function checkWin() {
+            const isWon = tiles.slice(0, 15).every((val, idx) => val === idx + 1);
+            if (isWon) {
+                statusEl.innerText = "🎉 パズル完成！おめでとうございます！";
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
