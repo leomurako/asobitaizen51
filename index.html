@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLUBHOUSE WEB CLONE - アソビコレクション</title>
+    <style>
+        :root {
+            --bg-color: #0f1612;
+            --card-bg: #1a241f;
+            --card-hover: #26352d;
+            --accent-color: #d4a373;
+            --text-color: #f4ede4;
+            --text-muted: #8e9a93;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        /* ヘッダーデザイン */
+        header {
+            text-align: center;
+            padding: 60px 20px 40px;
+        }
+
+        header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            margin: 0 0 10px;
+            color: var(--text-color);
+            text-transform: uppercase;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            letter-spacing: 1px;
+            margin: 0;
+        }
+
+        /* ゲーム選択グリッド */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 30px 100px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        /* ゲームカード */
+        .game-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease, background-color 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.03);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .game-card:hover {
+            transform: translateY(-6px);
+            background-color: var(--card-hover);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--accent-color);
+        }
+
+        .card-banner {
+            height: 140px;
+            background: linear-gradient(135deg, #2d3f35 0%, #151e19 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            position: relative;
+        }
+
+        /* ゲームごとのアイコンの背景演出 */
+        .card-banner::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(212,163,115,0.15) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .game-card:hover .card-banner::after {
+            opacity: 1;
+        }
+
+        .card-info {
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0 0 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* 動的ゲームローダー（オーバーレイ） */
+        #game-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #game-overlay.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        /* ゲーム操作バー */
+        .game-bar {
+            background-color: #090e0b;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            justify-content: space-between;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .back-btn:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--accent-color);
+        }
+
+        .game-iframe-container {
+            flex-grow: 1;
+            width: 100%;
+            background-color: #000;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Clubhouse Classics</h1>
+        <p>洗練された世界のテーブルゲームコレクション</p>
+    </header>
+
+    <div class="container">
+        <div class="game-grid">
+            <!-- リバーシ -->
+            <div class="game-card" onclick="launchGame('reversi.html')">
+                <div class="card-banner">⚪⚫</div>
+                <div class="card-info">
+                    <h3 class="card-title">リバーシ</h3>
+                    <p class="card-desc">おなじみの定番ボードゲーム。美しく滑らかな裏返し演出とガイド表示機能を完備。</p>
+                </div>
+            </div>
+
+            <!-- マンカラ -->
+            <div class="game-card" onclick="launchGame('mancala.html')">
+                <div class="card-banner">🪵🔮</div>
+                <div class="card-info">
+                    <h3 class="card-title">マンカラ</h3>
+                    <p class="card-desc">最古の知略ゲーム。ガラスビーズが器の中で転がる、手触りの良いビジュアルを再現。</p>
+                </div>
+            </div>
+
+            <!-- 開発中プレースホルダー（将来的に追加可能） -->
+            <div class="game-card" style="opacity: 0.5; cursor: not-allowed;">
+                <div class="card-banner">🧩</div>
+                <div class="card-info">
+                    <h3 class="card-title">スライドパズル</h3>
+                    <p class="card-desc">（近日追加予定）1枚の絵を完成させる、直感的なスライドパズル。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲームプレイ用オーバーレイ -->
+    <div id="game-overlay">
+        <div class="game-bar">
+            <button class="back-btn" onclick="closeGame()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                ロビーに戻る
+            </button>
+            <div style="font-weight: 600; font-size: 14px; letter-spacing: 1px; color: var(--text-muted);">PLAYING</div>
+            <div style="width: 100px;"></div> <!-- バランス調整用スペース -->
+        </div>
+        <div class="game-iframe-container">
+            <iframe id="game-frame" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        const overlay = document.getElementById('game-overlay');
+        const iframe = document.getElementById('game-frame');
+
+        function launchGame(url) {
+            iframe.src = url;
+            overlay.style.display = 'flex';
+            // フェードイン用のディレイ
+            setTimeout(() => {
+                overlay.classList.add('active');
+            }, 10);
+            document.body.style.overflow = 'hidden'; // 背後のスクロール防止
+        }
+
+        function closeGame() {
+            overlay.classList.remove('active');
+            setTimeout(() => {
+                overlay.style.display = 'none';
+                iframe.src = ''; // メモリ解放・リセット
+            }, 300);
+            document.body.style.overflow = 'auto';
+        }
+    </script>
+</body>
+</html>
