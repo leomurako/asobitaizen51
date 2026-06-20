@@ -5,95 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ドミノ - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #f5f7fb; --table-color: #1e3a2b; --text-color: #2d3748; --accent: #4a90e2; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
-
-        .game-layout { background: var(--table-color); width: 620px; height: 440px; border-radius: 24px; border: 8px solid #3d2516; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
         
-        .hud { display: flex; justify-content: space-between; width: 100%; color: #fff; font-size: 13px; font-weight: bold; background: rgba(0,0,0,0.2); padding: 6px 15px; border-radius: 12px; box-sizing: border-box; }
-        .turn-text { color: var(--accent); }
+        .hud { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .turn-text { color: var(--accent-color); }
 
-        /* スクロール可能な中央の繋がれたドミノ場 */
-        .board-zone { width: 100%; height: 160px; display: flex; align-items: center; justify-content: center; overflow-x: auto; background-color: rgba(0,0,0,0.3); border-radius: 16px; border: 1.5px dashed rgba(255,255,255,0.1); padding: 10px; box-sizing: border-box; scrollbar-width: none; }
+        /* ドミノチェーンを美しく配置するスクロールボード */
+        .board-zone { width: 500px; height: 160px; display: flex; align-items: center; justify-content: center; overflow-x: auto; background-color: rgba(0,0,0,0.03); border: 2.5px dashed #cbd5e1; border-radius: 20px; padding: 15px; box-sizing: border-box; scrollbar-width: none; position: relative; }
         .board-zone::-webkit-scrollbar { display: none; }
         .board-chain { display: inline-flex; gap: 8px; align-items: center; }
 
-        /* ドミノ牌（手札および場札共通） */
+        /* ドミノ牌 */
         .domino {
-            width: 42px; height: 80px; background: #fdfaf2; color: #111;
-            border-radius: 6px; border: 1.5px solid #d4c59d;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3); display: flex; flex-direction: column;
-            justify-content: space-between; padding: 5px; box-sizing: border-box;
+            width: 44px; height: 84px; background: #fcf9f2; color: #111;
+            border-radius: 8px; border: 1.5px solid #d4c59d;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15); display: flex; flex-direction: column;
+            justify-content: space-between; padding: 4px; box-sizing: border-box;
             cursor: pointer; position: relative; transition: transform 0.15s, box-shadow 0.15s;
         }
-        .domino:hover:not(.unplayable) { transform: translateY(-8px); }
+        .domino:hover:not(.unplayable) { transform: translateY(-6px); }
         .domino.unplayable { opacity: 0.35; cursor: not-allowed; }
-        .domino.selected { border: 2.5px solid var(--accent); transform: translateY(-8px); box-shadow: 0 0 12px rgba(74, 144, 226, 0.6); }
+        .domino.selected { border: 2.5px solid var(--accent-color); transform: translateY(-6px); box-shadow: 0 0 10px rgba(74, 144, 226, 0.5); }
 
-        /* ドミノの目（ピップス） */
         .half-side { width: 100%; height: 46%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
         .divider { border-top: 1.5px solid #d4c59d; width: 100%; }
 
-        /* 横向き場札ドミノ */
-        .domino.rotated { width: 80px; height: 42px; flex-direction: row; align-items: center; }
+        /* 横向き配置ドミノ */
+        .domino.rotated { width: 84px; height: 44px; flex-direction: row; align-items: center; }
         .domino.rotated .half-side { width: 46%; height: 100%; }
         .domino.rotated .divider { border-top: none; border-left: 1.5px solid #d4c59d; height: 100%; width: auto; }
 
-        /* 各手札エリア */
-        .hand-container { display: flex; flex-direction: column; align-items: center; background: #fff; padding: 10px; border-radius: 16px; border: 1px solid #e2e8f0; width: 100%; box-sizing: border-box; }
+        .hand-container { display: flex; flex-direction: column; align-items: center; background: #fff; padding: 12px; border-radius: 16px; border: 1px solid #e2e8f0; width: 100%; max-width: 500px; box-sizing: border-box; margin-top: 15px; }
         .hand-label { font-size: 11px; opacity: 0.5; margin-bottom: 6px; letter-spacing: 1px; font-weight: bold; }
-        .hand { display: flex; gap: 8px; justify-content: center; min-height: 60px; }
+        .hand { display: flex; gap: 8px; justify-content: center; min-height: 65px; }
 
-        .controls { margin-top: 15px; display: flex; gap: 15px; }
-        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent); padding: 8px 24px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent-color); padding: 8px 24px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
         button:hover { background-color: rgba(74, 144, 226, 0.08); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
         .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
-        .btn-modal { background: var(--accent); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="hud">
-        <div>あなた手札: <span id="p1-hand-count">7</span>枚</div>
+        <div>あなた手札: <span id="p1-count">7</span>枚</div>
         <div class="turn-text" id="status-text">あなたのターン</div>
-        <div id="p2-hand-hud">相手手札: <span id="p2-hand-count">7</span>枚</div>
+        <div id="p2-hud">相手手札: <span id="p2-count">7</span>枚</div>
     </div>
 
-    <div class="game-layout">
-        <!-- 相手手札（CPU：目隠し） -->
-        <div class="hand-container" id="opponent-container">
-            <div class="hand-label" id="p2-label">OPPONENT (CPU) HAND</div>
-            <div class="hand" id="p2-hand"></div>
+    <!-- 横長ドミノ接続ボード -->
+    <div class="board-zone" id="board-zone">
+        <div class="board-chain" id="board-chain">
+            <!-- 繋がれたドミノが動的追加されます -->
         </div>
+    </div>
 
-        <!-- 捨て場（接続ツリー） -->
-        <div class="board-wrapper">
-            <!-- 左右の接続目標 -->
-            <div style="position: absolute; left: 15px; color: rgba(255,255,255,0.4); font-size: 12px; font-weight: bold; z-index: 100;" id="left-goal-label">左: ?</div>
-            <div class="board-zone" id="board-zone">
-                <div class="board-chain" id="board-chain">
-                    <!-- ドミノチェーンがここに並びます -->
-                </div>
-            </div>
-            <div style="position: absolute; right: 15px; color: rgba(255,255,255,0.4); font-size: 12px; font-weight: bold; z-index: 100;" id="right-goal-label">右: ?</div>
-        </div>
-
-        <!-- あなた手札 -->
-        <div class="hand-container">
-            <div class="hand-label">YOUR HAND (タップで選択し、盤面の左右いずれかの目標をタップ)</div>
-            <div class="hand" id="p1-hand"></div>
-        </div>
+    <!-- 手札 -->
+    <div class="hand-container">
+        <div class="hand-label">YOUR HAND (出せるドミノをタップし、上の目標に繋ぎます)</div>
+        <div class="hand" id="hand"></div>
     </div>
 
     <div class="controls">
-        <button id="draw-btn" onclick="drawFromBoneyard()">ボーンヤードから引く</button>
+        <button id="draw-btn" onclick="drawFromStock()" disabled>山札から引く</button>
         <button id="pass-btn" onclick="passTurn()" style="display:none;">パスする</button>
-        <button onclick="resetGame()">リセット</button>
+        <button class="btn-modal" onclick="resetGame()" style="border:none;">リセット</button>
     </div>
 
     <!-- カスタム通知ダイアログ -->
@@ -115,34 +99,34 @@
     </div>
 
     <script {nonce}>
-        // 0-0 から 6-6 までの28枚
-        let pool = [];
-        let centerChain = []; // { left, right, isRed }
+        // ダブルシックスドミノ（計28枚のタイル）
+        let boneyard = []; // 山札
         let p1Hand = [];
         let p2Hand = []; // CPU
+        let boardChain = []; // { left, right, id }
         let currentPlayer = 1;
-        let selectedHandIdx = null;
+        let selectedIdx = null;
         let gameOver = false;
 
         const urlParams = new URLSearchParams(window.location.search);
         const gameMode = urlParams.get('mode') || 'vs_player';
 
-        const p1HandEl = document.getElementById('p1-hand');
+        const boardChainEl = document.getElementById('board-chain');
+        const boardZoneEl = document.getElementById('board-zone');
+        const handEl = document.getElementById('hand');
         const p2HandEl = document.getElementById('p2-hand');
-        const boardEl = document.getElementById('board-svg');
         const statusText = document.getElementById('status-text');
 
         function initGame() {
-            pool = []; centerPile = []; penalties = [0, 0]; currentPlayer = 1; gameOver = false;
-            centerPile = [];
-            centerPile = null;
-            p1Hand = []; p2Hand = []; centerChain = []; selectedHandIdx = null;
-            document.getElementById('p2-label').innerText = gameMode === 'vs_cpu' ? "CPU" : "PLAYER 2";
-            document.getElementById('p2-hand-label').innerText = gameMode === 'vs_cpu' ? "OPPONENT (CPU) HAND" : "PLAYER 2 HAND";
+            boneyard = []; p1Hand = []; p2Hand = []; boardChain = []; selectedIdx = null; gameOver = false; currentPlayer = 1;
+            document.getElementById('p1-count').innerText = 7;
+            document.getElementById('p2-count').innerText = 7;
+            document.getElementById('p2-hud').innerText = gameMode === 'vs_cpu' ? "CPU手札: 7枚" : "相手手札: 7枚";
             document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('pass-btn').style.display = 'none';
             closeAlert();
 
-            // 28枚のドミノタイルを生成
+            // 28枚のドミノタイルをシャッフル生成
             let tempPool = [];
             for (let i = 0; i <= 6; i++) {
                 for (let j = i; j <= 6; j++) {
@@ -153,93 +137,277 @@
 
             // 7枚ずつ配る
             p1Hand = tempPool.slice(0, 7);
-            p2Hand = poolFiller(tempPool.slice(7, 14));
-            pool = tempPool.slice(14); // 残り26枚は山札（ストック）
-
-            // 最初の1枚を場に配置
-            const initCard = p1Hand.pop(); // Player1が最初の1手とする
-            centerChain = [{ left: initCard.left, right: initGameVal(initCard.right) }]; // 最初のベース
-            piles = [initGameVal(initGameValP(initGameVal(initGameVal)))]; // 捨て場構築用に配列を作成
-            piles = [initGameVal(initGameVal)];
-            
-            piles = [{ left: initGameVal(initGameVal), right: initGameVal }]; // 最終的には配列で管理
-
-            piles = [drawnDomino(initGameVal)];
-            // 新設計
-            piles = [drawnCardObj(initGameVal())];
-        }
-
-        // 簡素化された綺麗なゲーム進行ロジック
-        let lastLanded = null;
-        let lastLeftVal = null;
-        let lastRightVal = null;
-
-        function initGame() {
-            pool = [];
-            centerChain = [];
-            p1Hand = [];
-            p2Hand = [];
-            currentPlayer = 1;
-            gameOver = false;
-            selectedHandIdx = null;
-            document.getElementById('result-overlay').style.display = 'none';
-            closeAlert();
-
-            // ドミノ生成
-            let tempPool = [];
-            for (let i = 0; i <= 6; i++) {
-                for (let j = i; j <= 6; j++) {
-                    tempPool.push({ side1: i, side2: j });
-                }
-            }
-            tempPool.sort(() => Math.random() - 0.5);
-
-            p1Hand = tempPool.slice(0, 7);
             p2Hand = tempPool.slice(7, 14);
-            pool = tempPool.slice(14);
+            boneyard = tempPool.slice(14);
 
-            // 初期配置
-            const first = p2Hand.pop(); // 1枚目を捨て場にする
-            centerChain = [first];
+            // 最初のベースとなる1枚を配置（山札から1枚）
+            boardChain.push(boneyard.pop());
 
             updateUI();
         }
 
-        // 現在中央チェーンの両端の数値
+        // チェーンの両端の値を取得する
         function getEndpoints() {
-            if (centerChain.length === 0) return { left: -1, right: -1 };
-            const leftEnd = centerPile[0].leftSide; // 向きを考慮した左端
-            const rightEnd = centerPile[centerPile.length - 1].rightSide;
-            return { leftEnd, rightEnd };
+            if (boardChain.length === 0) return { left: -1, right: -1 };
+            const leftVal = boardChain[0].left;
+            const rightVal = boardChain[boardChain.length - 1].right;
+            return { leftVal, rightVal };
         }
 
-        let centerChain = [];
+        // タイルが配置可能か判定
+        function canPlayTile(tile) {
+            const { leftVal, rightVal } = getEndpoints();
+            return tile.left === leftVal || tile.right === leftVal || tile.left === rightVal || tile.right === rightVal;
+        }
 
-        function updateUI() {
-            document.getElementById('score-p1').innerText = p1Hand.length;
-            document.getElementById('score-p2').innerText = p2Hand.length;
+        function handleCardClick(idx) {
+            if (gameOver || currentPlayer !== 1) return;
 
-            const pileEl = document.getElementById('pile');
-            pileEl.innerHTML = '';
-
-            // 中央に積まれた現在のドミノを描画
-            if (centerChain.length > 0) {
-                pileEl.className = 'pile has-card';
-                const top = centerPile[centerPile.length - 1];
-                pile.innerText = `[${top.left}|${top.right}]`;
+            if (selectedIdx === idx) {
+                selectedIdx = null; // キャンセル
             } else {
-                pile.className = 'pile';
-                pile.innerText = '🌀';
+                const card = p1Hand[idx];
+                if (canPlayTile(card)) {
+                    selectedIdx = idx;
+                } else {
+                    showCustomAlert("選択不可", "このドミノは現在、場札の両端のいずれの数値ともマッチしません。");
+                    selectedIdx = null;
+                }
+            }
+            updateUI();
+        }
+
+        // 左側または右側にドミノを繋げる
+        function placeSelectedTile(side) {
+            if (selectedIdx === null || gameOver) return;
+
+            const card = p1Hand[selectedIdx];
+            const { leftVal, rightVal } = getEndpoints();
+
+            let success = false;
+
+            if (side === 'left') {
+                if (card.right === leftVal) {
+                    boardChain.unshift(card); success = true;
+                } else if (card.left === leftVal) {
+                    // 反転させて繋げる
+                    boardChain.unshift({ left: card.right, right: card.left }); success = true;
+                }
+            } else if (side === 'right') {
+                if (card.left === rightVal) {
+                    boardChain.push(card); success = true;
+                } else if (card.right === rightVal) {
+                    // 反転
+                    boardChain.push({ left: card.right, right: card.left }); success = true;
+                }
             }
 
-            // 手札
-            // （おなじみのカード描画ルーチンをドミノ用に変更）
+            if (success) {
+                p1Hand.splice(selectedIdx, 1);
+                selectedIdx = null;
+                endTurn();
+            } else {
+                showCustomAlert("無効なアクション", "選択したドミノは指定した方向には接続できません。");
+            }
         }
 
-        // ※ 3つのドミノ、ナインメンズモリス、スパイダーソリティアを安全に出力するために、
-        // 開発フローのルール（安全に1ファイルずつ、またはコンパクトにまとめる）を適用します。
-        // 上記2つのボードゲームがデプロイされた上で、まずはこれらを保存して動作することを確認してください！
+        function endTurn() {
+            checkGameOver();
+            if (gameOver) return;
 
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusText.innerText = currentPlayer === 1 ? "あなたのターン" : "相手のターン...";
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1200);
+            }
+        }
+
+        function drawFromStock() {
+            if (gameOver || currentPlayer !== 1 || boneyard.length === 0) return;
+
+            const card = boneyard.pop();
+            p1Hand.push(card);
+            updateUI();
+
+            // 引いたことによって置ける手が増えたかチェック
+            const hasPlayable = p1Hand.some(c => canPlayTile(c));
+            if (!hasPlayable && boneyard.length === 0) {
+                // 山札もなく、出せる手もない場合はパス
+                document.getElementById('pass-btn').style.display = 'inline-block';
+                document.getElementById('draw-btn').disabled = true;
+            }
+        }
+
+        function passTurn() {
+            document.getElementById('pass-btn').style.display = 'none';
+            endTurn();
+        }
+
+        // CPUのAIロジック
+        function cpuMove() {
+            if (gameOver) return;
+
+            // 1. 出せる手をスキャン
+            let playableIdx = p2Hand.findIndex(c => canPlayTile(c));
+
+            if (playableIdx !== -1) {
+                const card = p2Hand.splice(playableIdx, 1)[0];
+                const { leftVal, rightVal } = getEndpoints();
+
+                // 合致する側へ自動接続
+                if (card.right === leftVal) {
+                    boardChain.unshift(card);
+                } else if (card.left === leftVal) {
+                    boardChain.unshift({ left: card.right, right: card.left });
+                } else if (card.left === rightVal) {
+                    boardChain.push(card);
+                } else if (card.right === rightVal) {
+                    boardChain.push({ left: card.right, right: card.left });
+                }
+
+                showCustomAlert("相手のプレイ", "相手（CPU）がドミノを1枚接続しました。");
+                endTurn();
+            } else {
+                // 2. なければ山札から引く
+                if (boneyard.length > 0) {
+                    p2Hand.push(boneyard.pop());
+                    setTimeout(cpuMove, 800); // 引き直して再試行
+                } else {
+                    // CPUも山札がなくパス
+                    showCustomAlert("相手パス", "相手が山札切れのため、パスしました。あなたのターンになります。");
+                    currentPlayer = 1;
+                    statusText.innerText = "あなたのターン";
+                    updateUI();
+                }
+            }
+        }
+
+        function checkGameOver() {
+            const p1Empty = p1Hand.length === 0;
+            const p2Empty = p2Hand.length === 0;
+
+            if (p1Empty || p2Empty) {
+                gameOver = true;
+                showFinalResult(p1Empty ? 1 : 2);
+                return;
+            }
+
+            // お互いに手詰まり（ブロック状態）か
+            const p1HasPlayable = p1Hand.some(c => canPlayTile(c));
+            const p2HasPlayable = p2Hand.some(c => canPlayTile(c));
+
+            if (!p1HasPlayable && !p2HasPlayable && boneyard.length === 0) {
+                gameOver = true;
+                // 手元に残ったドミノの目の合計値（ドット総数）が少ない方が勝ち
+                const p1Sum = p1Hand.reduce((a,b) => a + b.left + b.right, 0);
+                const p2Sum = p2Hand.reduce((a,b) => a + b.left + b.right, 0);
+
+                if (p1Sum === p2Sum) showFinalResult(0);
+                else showFinalResult(p1Sum < p2Sum ? 1 : 2, `お互い手詰まりとなったため、残りドット数の少ない方の勝利です。(あなた:${p1Sum}点 / 相手:${p2Sum}点)`);
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('p1-count').innerText = p1Hand.length;
+            document.getElementById('p2-count').innerText = p2Hand.length;
+
+            // 1. 場札（ドミノチェーン）の描画
+            boardChainEl.innerHTML = '';
+            boardChain.forEach(tile => {
+                const el = document.createElement('div');
+                el.className = 'domino rotated';
+                el.innerHTML = `
+                    <div class="half-side">${tile.left}</div>
+                    <div class="divider"></div>
+                    <div class="half-side">${tile.right}</div>
+                `;
+                boardChainEl.appendChild(el);
+            });
+
+            // 左右接続ガイド値の更新
+            const { leftVal, rightVal } = getEndpoints();
+            document.getElementById('left-goal-label').innerText = `左: ${leftVal}`;
+            document.getElementById('right-goal-label').innerText = `右: ${rightVal}`;
+
+            // 自動スクロールで常に最新の端にフォーカス
+            boardZoneEl.scrollLeft = boardZoneEl.scrollWidth / 4;
+
+            // 2. あなたの手札の描画
+            handEl.innerHTML = '';
+            const hasPlayable = p1Hand.some(c => canPlayTile(c));
+            document.getElementById('draw-btn').disabled = hasPlayable || boneyard.length === 0 || currentPlayer !== 1;
+
+            p1Hand.forEach((card, idx) => {
+                const playable = canPlayTile(card) && currentPlayer === 1 && !gameOver;
+                const el = document.createElement('div');
+                el.className = 'domino';
+                if (!playable) el.classList.add('unplayable');
+                if (selectedIdx === idx) el.classList.add('selected');
+
+                el.innerHTML = `
+                    <div class="half-side">${card.left}</div>
+                    <div class="divider"></div>
+                    <div class="half-side">${card.right}</div>
+                `;
+
+                if (playable) {
+                    el.addEventListener('click', () => handleCardClick(idx));
+                }
+                handEl.appendChild(el);
+            });
+
+            // 接続支援ボタンの活性化（選択されている場合）
+            if (selectedIdx !== null) {
+                const selCard = p1Hand[selectedIdx];
+                const leftOk = (selCard.left === leftVal || selCard.right === leftVal);
+                const rightOk = (selCard.left === rightVal || selCard.right === rightVal);
+
+                // 仮のトーストやアクションガイドを表示する
+                if (leftOk && rightOk) {
+                    statusText.innerText = "場札の『左端』か『右端』をタップするか、ここを押してください：";
+                    // 簡易接続
+                    statusText.innerHTML += `
+                        <button onclick="placeSelectedTile('left')" style="padding:2px 8px; font-size:10px;">左に繋ぐ</button>
+                        <button onclick="placeSelectedTile('right')" style="padding:2px 8px; font-size:10px;">右に繋ぐ</button>
+                    `;
+                } else if (leftOk) {
+                    placeSelectedTile('left'); // 1箇所しか繋げない場合はオートで接続して快適に！
+                } else if (rightOk) {
+                    placeSelectedTile('right');
+                }
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner, detail = "") {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = detail || (winner === 1 ? "手札をすべて綺麗に出し切りました！" : "相手が一足早く出し切りました。");
+
+            if (winner === 0) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (winner === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
         initGame();
     </script>
 </body>

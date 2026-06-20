@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Clubhouse Games Web - Ultimate Launcher</title>
+    <title>Clubhouse Games Web - Deluxe Launcher</title>
     <style>
         :root {
             --bg-color: #f5f7fb;
@@ -242,6 +242,7 @@
 
         .action-group { display: flex; gap: 12px; margin-top: auto; }
 
+        /* ボタン共通 */
         .btn-primary {
             background-color: var(--accent-color);
             color: #ffffff;
@@ -498,7 +499,7 @@
             }
         }
 
-        // 全30ゲームの完全メタデータ配列（不足していたスパイダー、モリス、ドミノ、および新ゲーム3作を完全統合）
+        // 全34ゲームの超デラックスメタデータ配列（表示漏れのあったスパイダー、モリス、ドミノ、および新ゲーム3作を完全統合）
         const gamesData = {
             reversi: { 
                 title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
@@ -523,7 +524,7 @@
             connectfour: { 
                 title: 'コネクトフォー', icon: '🟡🔴', file: 'connectfour.html', supports2P: true, 
                 desc: '格子状のボードに上からチップを交互に落としていき、自分の色のチップを縦・横・斜めのいずれかで「4枚」一直線に並べたプレイヤーの勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="75" cy="30" r="10" fill="#ff4d4d"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/><circle cx="75" cy="60" r="10" fill="#fffb00"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/></svg>`,
                 steps: [
                     "縦7列・横6行の青いグリッドボードに、イエローとレッドが交互に上からチップをスライドして落とします。",
                     "チップはグリッドの一番下に自重でスライド落下して積み重なっていきます。",
@@ -533,7 +534,7 @@
             hitandblow: { 
                 title: 'ヒット＆ブロー', icon: '🎨🔍', file: 'hitandblow.html', supports2P: false, 
                 desc: '相手が隠した4つの異なる色の配置を推測して当てるパズル。位置と色が合っていれば「ヒット」、色だけが合っていれば「ブロー」としてヒントが得られます。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#2b1d0c" stroke="#482a10" stroke-width="2"/><circle cx="30" cy="35" r="11" fill="#ff4d4d"/><circle cx="70" cy="35" r="11" fill="#3399ff"/><circle cx="30" cy="65" r="6" fill="#d9534f"/><circle cx="50" cy="65" r="6" fill="#f0ad4e"/><circle cx="70" cy="65" r="6" fill="#f0ad4e"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#2b1d0c" stroke="#482a10" stroke-width="2"/><circle cx="30" cy="35" r="11" fill="#ff4d4d"/><circle cx="70" cy="35" r="11" fill="#3399ff"/><circle cx="30" cy="65" r="6" fill="#d9534f"/></svg>`,
                 steps: [
                     "コンピュータが背後で重複のない4色のピンを秘密の順序で作成します。プレイヤーはそれを推測します。",
                     "色ピンを予測して配置すると、結果として「Hit（色も位置も正解）」と「Blow（色は正解だが位置が不一致）」の個数が表示されます。",
@@ -543,7 +544,7 @@
             gomoku: { 
                 title: '五目ならべ', icon: '🪵⚫', file: 'gomoku.html', supports2P: true, 
                 desc: '15x15の碁盤の交点に、交互に自分の石を配置。縦・横・斜めのいずれかで先に隙間なく自分の石を「5枚」一直線に並べた方が勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><line x1="50" y1="5" x2="50" y2="95" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "美しい木製の碁盤の上で、黒（先手）と白（後手）が格子状の『線の交点』に交互に石を置きます。",
                     "どこに置くかは制限はありません。お互いに攻撃を組み立てつつ、相手の防御をかいくぐって5並びを狙います。",
@@ -555,7 +556,7 @@
                 desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="37" cy="45" r="4" fill="#000"/><rect x="54" y="44" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
                 steps: [
-                    "5個のサイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
+                    "サイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
                     "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
                     "すべてのカテゴリを埋め終えた時点で、合計得点が一番高いプレイヤーが優勝となります。"
                 ]
@@ -646,7 +647,7 @@
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 28 49)"/><rect x="56" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 72 49)"/><text x="36" y="56" font-size="22">⚔️</text></svg>`,
                 steps: [
                     "トランプ52枚が均等にお互い（各26枚）に配られ、見えない山札としてセットします。",
-                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強、2が最弱です。",
+                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強, 2が最弱です。",
                     "数字の大きかったプレイヤーが、その勝負で出されたすべてのカード（スコア）を獲得します。最終的に獲得枚数が多い方が勝ちです。"
                 ]
             },
@@ -657,7 +658,7 @@
                 steps: [
                     "3匹の猟犬（赤）と1匹のウサギ（白）に分かれて移動。猟犬は左から右方向（前進）のみ、ウサギは全方向移動できます。",
                     "猟犬側はウサギをじわじわと前進で挟み込み、1マスに閉じ込めて移動不能な包囲状態にハメれば勝利です。",
-                    "ウサギ側は猟犬の隙間をすり抜け、猟犬のラインよりも左端へ脱出することができれば勝利です。"
+                    "ウサギ側は猟犬の隙間をすり抜け、猟犬의ラインよりも左端へ脱出することができれば勝利です。"
                 ]
             },
             dotsandboxes: { 
@@ -735,13 +736,11 @@
                 desc: '星型の盤面（チャイニーズチェッカー）の上で、10枚の自分のピンを対面にある相手の陣地へといち早く全員移動させるジャンプゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><polygon points="50,5 65,35 95,35 70,55 80,85 50,65 20,85 30,55 5,35 35,35" fill="none" stroke="#6d4218" stroke-width="3"/><circle cx="50" cy="20" r="5" fill="#ff4d4d"/><circle cx="50" cy="80" r="5" fill="#4a90e2"/></svg>`,
                 steps: [
-                    "自陣のスタート位置に並んだ10個の自分のピンを、交互に移動させていきます。",
+                    "自陣のスタート位置に並んだ10個 of a kind! の自分のピンを、交互に移動させていきます。",
                     "ピンは隣接する空いている交点に1歩進むか、他のピン（自分・敵問わず）を飛び越えてその先の空いている交点にジャンプすることができます。さらに、ジャンプは連続して行うことが可能です。",
                     "盤面の最も対岸にある『相手のスタート陣地（10マス分）』へと、自分のすべてのピンを誰よりも早く移動させ終えたプレイヤーの勝利です。"
                 ]
             },
-            
-            // --- 漏れていた3つのゲームの登録を完全復旧 ---
             spider: { 
                 title: 'スパイダー', icon: '🃏🕷️', file: 'spider.html', supports2P: false, 
                 desc: '同じスート（スペード）のカードをキングからエースまで順番に重ねて1組の山（ラン）を完成させていく定番ソリティアパズル。', 
@@ -772,40 +771,6 @@
                     "最初にすべての手札を出し切ったプレイヤーの勝利。お互いに手詰まりとなった場合は、手札の残り目の合計（ドット数）が少ない方が勝利です。"
                 ]
             },
-
-            // --- 新規追加のアクション・上級ゲーム（3タイトル）のメタデータ登録 ---
-            ludo: { 
-                title: 'ルドー', icon: '🎲🏆', file: 'ludo.html', supports2P: true, 
-                desc: 'ダイスの出目に従って4つのコマをボード上で一周させ、誰よりも早く中央のゴールへ全てのコマを届ける競争ゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#f5f7fb" stroke="#cbd5e1" stroke-width="2"/><rect x="10" y="10" width="35" height="35" fill="#ff4d4d"/><rect x="55" y="55" width="35" height="35" fill="#4a90e2"/><polygon points="45,45 55,45 50,55" fill="#ffca28"/></svg>`,
-                steps: [
-                    "手元にある4つの自分のコマを、ダイスを振ってスタート位置から出発させ、ボードの外周トラックを時計回りに一周させます。",
-                    "ダイスで最高値の『6』が出ると、待機エリアから新しいコマを出発させることができます。さらに、もう一度ダイスを振るチャンスが得られます。",
-                    "トラックを一周したコマは中央のゴールへと上っていきます。4つの自分のコマすべてを誰よりも早くゴールに届けたプレイヤーの勝利です。"
-                ]
-            },
-            backgammon: { 
-                title: 'バックギャモン', icon: '🎲📐', file: 'backgammon.html', supports2P: true, 
-                desc: '2個のダイスを振って、15枚のチェッカーを盤上の24のポイントを巡らせて移動し、いち早くすべてのチェッカーを回収する双六ゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#8b5a2b" stroke="#563313" stroke-width="2"/><polygon points="15,10 25,10 20,40" fill="#fff" stroke="#ccc" stroke-width="0.5"/><polygon points="25,10 35,10 30,40" fill="#111"/><circle cx="20" cy="20" r="5" fill="#ff4d4d"/><circle cx="20" cy="30" r="5" fill="#ff4d4d"/></svg>`,
-                steps: [
-                    "2個 of a kind! のダイスを振り、出た目に従って自分のチェッカー（コマ）を移動させます。お互いのコマは逆方向に進行します。",
-                    "自分のコマが2個以上あるポイント（マス）は安全地帯ですが、1個しか置かれていないポイントに敵のコマが着地すると、そのコマは中央のバー（捕獲エリア）に送られます。",
-                    "15枚すべての自分のコマを最深部のインナーボードまで集めると、ボード外へ回収（ベアリングオフ）が可能になり、先にすべて回収したプレイヤーの勝利です。"
-                ]
-            },
-            chinesecheckers: { 
-                title: 'ダイヤゲーム', icon: '🎯🌟', file: 'chinesecheckers.html', supports2P: true, 
-                desc: '星型の盤面（チャイニーズチェッカー）の上で、10枚の自分のピンを対面にある相手の陣地へといち早く全員移動させるジャンプゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><polygon points="50,5 65,35 95,35 70,55 80,85 50,65 20,85 30,55 5,35 35,35" fill="none" stroke="#6d4218" stroke-width="3"/><circle cx="50" cy="20" r="5" fill="#ff4d4d"/><circle cx="50" cy="80" r="5" fill="#4a90e2"/></svg>`,
-                steps: [
-                    "自陣のスタート位置に並んだ10個の自分のピンを、交互に移動させていきます。",
-                    "ピンは隣接する空いている交点に1歩進むか、他のピン（自分・敵問わず）を飛び越えてその先の空いている交点にジャンプすることができます。さらに、ジャンプは連続して行うことが可能です。",
-                    "盤面の最も対岸にある『相手のスタート陣地（10マス分）』へと、自分のすべてのピンを誰よりも早く移動させ終えたプレイヤーの勝利です。"
-                ]
-            },
-
-            // --- 新規リクエスト：アクション・Canvas系3タイトルのメタデータ登録 ---
             tanks: { 
                 title: 'VSタンク', icon: '🚀🛡️', file: 'tanks.html', supports2P: true, 
                 desc: '戦車を操縦し、障害物の跳ね返り（クッション）を応用した弾を射出して相手戦車を狙撃して破壊するアクション対決。', 
@@ -818,7 +783,7 @@
             },
             sixball: { 
                 title: '6ボールパズル', icon: '🔵✨', file: 'sixball.html', supports2P: false, 
-                desc: '（準備中）上から落ちてくるカラーボールを積み重ねていき、同じ色のボールを6個隣接させて消去する2D物理落ちものパズル。', 
+                desc: '上から落ちてくるカラーボールを積み重ねていき、同じ色のボールを6個隣接させて消去する2D物理落ちものパズル。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#1e293b"/><circle cx="35" cy="35" r="10" fill="#ff595e"/><circle cx="65" cy="35" r="10" fill="#4a90e2"/><circle cx="50" cy="65" r="10" fill="#ffca28"/></svg>`,
                 steps: [
                     "上部から落下してくる異なる色のカラーボールを、重力に逆らわずにスタックして積み重ねていきます。",
@@ -828,12 +793,74 @@
             },
             curling: { 
                 title: 'トイカーリング', icon: '🥌🏆', file: 'curling.html', supports2P: true, 
-                desc: '（準備中）氷上の摩擦係数を計算しながら、フリックの強さでストーンを滑らせ、円（ハウス）の中心に最も近づけるスポーツ。', 
+                desc: '氷上の摩擦係数を計算しながら、フリックの強さでストーンを滑らせ、円（ハウス）の中心に最も近づけるスポーツ。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="40" fill="none" stroke="#e53e3e" stroke-width="6"/><circle cx="50" cy="50" r="25" fill="none" stroke="#4a90e2" stroke-width="6"/><circle cx="50" cy="50" r="10" fill="#ffca28"/><rect x="40" y="30" width="20" height="10" rx="2" fill="#718096"/></svg>`,
                 steps: [
                     "自分のストーンをフリック（またはマウスドラッグ＆リリース）することで、強さと方向を調整して氷上に滑らせます。",
                     "氷の滑らかな摩擦抵抗（徐々に減速する減衰挙動）を計算し、中央の円（ハウス）にぴったり残るように調整します。",
                     "相手のストーンを自分のストーンをぶつけて弾き出すのも有効です。最終的にハウスの中心に最も近いストーンを持っていた方の勝利です。"
+                ]
+            },
+            
+            // --- 今回リクエスト：上級4作品 ＋ 的あて・ドミノ（34ゲーム）のメタデータ完全追加 ---
+            target: { 
+                title: '的あて', icon: '🎯🏹', file: 'target.html', supports2P: true, 
+                desc: '横にスライド移動する色々な的を、タイミング良くタップ（射撃）して撃ち抜くシューティングゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="42" fill="none" stroke="#e53e3e" stroke-width="8"/><circle cx="50" cy="50" r="24" fill="none" stroke="#4a90e2" stroke-width="8"/><circle cx="50" cy="50" r="8" fill="#ffca28"/><line x1="15" y1="50" x2="85" y2="50" stroke="#1e293b" stroke-width="2"/><line x1="50" y1="15" x2="50" y2="85" stroke="#1e293b" stroke-width="2"/></svg>`,
+                steps: [
+                    "画面上を横方向に異なる速度でスライド移動するターゲットを、マウスドラッグ（照準）してクリックで射撃します。",
+                    "動くターゲットの中心（黄色い的）を正確に撃ち抜くほど、高得点が獲得できます（連射に制限があります）。",
+                    "制限時間（30秒）以内に的を多く仕留め、合計得点を競い合います。素早く正確なエイムが攻略のポイントです。"
+                ]
+            },
+            fishing: { 
+                title: 'フィッシング', icon: '🎣🐠', file: 'fishing.html', supports2P: true, 
+                desc: '（準備中）水中で自律移動する魚の群れを見極め、釣り糸を垂らして大物を釣り上げるタイミングゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><path d="M10,80 Q40,30 90,10" fill="none" stroke="#718096" stroke-width="3"/><path d="M40,55 C55,45 75,55 85,50 C75,60 55,50 40,55" fill="#ff9933" stroke="#e67e22"/><polygon points="85,50 95,43 95,57" fill="#ff9933"/></svg>`,
+                steps: [
+                    "画面をクリックして釣り針を水中に投下します。タッチ（ドラッグ）で針の位置（深さ）を微調整できます。",
+                    "水中の魚が針に完全に食いついた（HIT！）瞬間に、タイミング良くタップして引き上げます。",
+                    "魚の大きさや種類によって異なる点数が獲得できます。制限時間内に大物を狙いましょう。"
+                ]
+            },
+            airhockey: { 
+                title: 'エアホッケー', icon: '🏒🥅', file: 'airhockey.html', supports2P: true, 
+                desc: '（準備中）エアーで浮いた高速のパックをマレットで打ち合い、相手のゴールに叩き込む爽快アクション。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="6" fill="#1a202c" stroke="#4a90e2" stroke-width="3"/><line x1="50" y1="10" x2="50" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><circle cx="25" cy="50" r="10" fill="#ff595e"/><circle cx="75" cy="50" r="10" fill="#4a90e2"/></svg>`,
+                steps: [
+                    "マウス操作（ドラッグ）でマレット（自分のラケット）を動かし、テーブル上を滑るパックを打ち返します。",
+                    "パックは壁やマレットに当たると、リアルに『弾性衝突（反射）』して超高速で跳ね返ります。バウンドを利用したスマッシュが強力です。",
+                    "相手のゴールにパックを叩き込むと1ポイント。制限時間内に目標ポイントを先取したプレイヤーの勝利です。"
+                ]
+            },
+            carrom: { 
+                title: 'キャロム', icon: '🪙🏁', file: 'carrom.html', supports2P: true, 
+                desc: '（準備中）木製の正方形ボード上で、ディスクを指で弾いて四隅のポケットに落とし合う『盤上のビリヤード』。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#e2ae6c" stroke="#8b5a2b" stroke-width="4"/><circle cx="18" cy="18" r="6" fill="#3c2009"/><circle cx="82" cy="18" r="6" fill="#3c2009"/><circle cx="18" cy="82" r="6" fill="#3c2009"/><circle cx="82" cy="82" r="6" fill="#3c2009"/><circle cx="50" cy="50" r="10" fill="none" stroke="#8b5a2b" stroke-width="2"/></svg>`,
+                steps: [
+                    "フリック操作（引いて離す）で、ストライカー（親駒）を任意の強さ・角度で弾きます。",
+                    "弾いたストライカーを、ボードの中央に並ぶ赤・白のターゲット（子駒）にぶつけて弾き飛ばします。",
+                    "ボードの四隅にあるポケットに、自分のターゲットディスクをすべて先に落としたプレイヤーの勝利です。"
+                ]
+            },
+            billiards: { 
+                title: 'ビリヤード', icon: '🎱🎱', file: 'billiards.html', supports2P: true, 
+                desc: '（準備中）キューを引く強さと角度を調整して手球を撞き、テーブル上の的球をクッション反射等を利用してポケットに落とす定番ゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="15" width="90" height="70" rx="8" fill="#1b4332" stroke="#563313" stroke-width="3"/><circle cx="35" cy="50" r="10" fill="#fff" stroke="#ccc"/><circle cx="65" cy="50" r="10" fill="#111"/></svg>`,
+                steps: [
+                    "マウスドラッグでキュー（棒）の角度と引く強さを微調整して、白い手球を撞（つ）きます。",
+                    "撞いた手球をカラー的球にぶつけ、クッション反射や球同士の衝突物理を利用して四隅のポケットへ落とします。",
+                    "自分の的球をすべてポケットへ落とし、最後に『8番ボール（黒）』を落とすことができたプレイヤーの勝利となります。"
+                ]
+            },
+            darts: { 
+                title: 'ダーツ', icon: '🎯✨', file: 'darts.html', supports2P: true, 
+                desc: '（準備中）一定のリズムでスライドするメーターのタイミングを見極め、ダーツを投げて得点エリアを射抜くダーツゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="44" fill="none" stroke="#222" stroke-width="12" stroke-dasharray="14 10"/><circle cx="50" cy="50" r="28" fill="none" stroke="#e53e3e" stroke-width="4"/><circle cx="50" cy="50" r="14" fill="none" stroke="#4a90e2" stroke-width="4"/><circle cx="50" cy="50" r="4" fill="#ffca28"/></svg>`,
+                steps: [
+                    "画面上を左右・上下に激しくスライド移動するパワーと角度のゲージを見極めます。",
+                    "タイミング良くクリック（タップ）してダーツの矢をボードに向けて投げます。",
+                    "ダーツボードに刺さったエリア（トリプル、ダブル、インナーブル等）に応じて点数を加算し、ハイスコアを競います。"
                 ]
             }
         };
