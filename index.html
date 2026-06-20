@@ -15,170 +15,77 @@
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow-x: hidden;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            overflow-x: hidden; min-height: 100vh;
         }
 
-        header {
-            text-align: center;
-            padding: 60px 20px 40px;
-        }
+        header { text-align: center; padding: 50px 20px 30px; }
+        header h1 { font-size: 32px; font-weight: 700; letter-spacing: 4px; margin: 0 0 10px; text-transform: uppercase; }
+        header p { color: var(--text-muted); font-size: 14px; letter-spacing: 1px; margin: 0; }
 
-        header h1 {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: 4px;
-            margin: 0 0 10px;
-            color: var(--text-color);
-            text-transform: uppercase;
-        }
-
-        header p {
-            color: var(--text-muted);
-            font-size: 14px;
-            letter-spacing: 1px;
-            margin: 0;
-        }
-
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 0 30px 100px;
-        }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 25px 80px; }
+        .section-title { font-size: 16px; letter-spacing: 2px; color: var(--accent-color); margin: 40px 0 20px; text-transform: uppercase; border-left: 3px solid var(--accent-color); padding-left: 10px; }
 
         .game-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
         }
 
         .game-card {
             background-color: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease, background-color 0.3s;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            border-radius: 12px;
+            overflow: hidden; cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s, background-color 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             border: 1px solid rgba(255,255,255,0.03);
-            display: flex;
-            flex-direction: column;
-            position: relative;
+            display: flex; flex-direction: column;
         }
 
         .game-card:hover {
-            transform: translateY(-6px);
+            transform: translateY(-5px);
             background-color: var(--card-hover);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 0 2px var(--accent-color);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5), 0 0 0 2px var(--accent-color);
         }
 
         .card-banner {
-            height: 140px;
+            height: 110px;
             background: linear-gradient(135deg, #2d3f35 0%, #151e19 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-            position: relative;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; position: relative;
         }
 
-        .card-banner::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at center, rgba(212,163,115,0.15) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .game-card:hover .card-banner::after {
-            opacity: 1;
-        }
-
-        .card-info {
-            padding: 20px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin: 0 0 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .card-desc {
-            color: var(--text-muted);
-            font-size: 12px;
-            line-height: 1.5;
-            margin: 0;
-        }
+        .card-info { padding: 15px; }
+        .card-title { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+        .card-desc { color: var(--text-muted); font-size: 11px; line-height: 1.4; margin: 0; }
 
         #game-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: var(--bg-color);
-            z-index: 1000;
-            display: none;
-            flex-direction: column;
-            opacity: 0;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-color); z-index: 1000;
+            display: none; flex-direction: column; opacity: 0;
             transition: opacity 0.3s ease;
         }
 
-        #game-overlay.active {
-            display: flex;
-            opacity: 1;
-        }
-
+        #game-overlay.active { display: flex; opacity: 1; }
         .game-bar {
-            background-color: #090e0b;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            padding: 0 20px;
+            background-color: #090e0b; height: 50px;
+            display: flex; align-items: center; padding: 0 20px;
             border-bottom: 1px solid rgba(255,255,255,0.05);
             justify-content: space-between;
         }
 
         .back-btn {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 20px;
-            transition: background-color 0.2s, color 0.2s;
+            background: none; border: none; color: var(--text-color);
+            font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 20px; transition: background-color 0.2s;
         }
 
-        .back-btn:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-            color: var(--accent-color);
-        }
-
-        .game-iframe-container {
-            flex-grow: 1;
-            width: 100%;
-            background-color: #000;
-            position: relative;
-        }
-
-        iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            display: block;
-        }
+        .back-btn:hover { background-color: rgba(255, 255, 255, 0.08); color: var(--accent-color); }
+        .game-iframe-container { flex-grow: 1; width: 100%; background-color: #000; }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
     </style>
 </head>
 <body>
@@ -189,44 +96,37 @@
     </header>
 
     <div class="container">
+        <!-- 既存の中級ゲームセクション -->
+        <div class="section-title">定番ボードゲーム</div>
         <div class="game-grid">
-            <!-- リバーシ -->
             <div class="game-card" onclick="launchGame('reversi.html')">
                 <div class="card-banner">⚪⚫</div>
                 <div class="card-info">
                     <h3 class="card-title">リバーシ</h3>
-                    <p class="card-desc">おなじみの定番ボードゲーム。美しく滑らかな裏返し演出とガイド表示機能を完備。</p>
+                    <p class="card-desc">おなじみの定番ボードゲーム。美しく滑らかな裏返し演出を完備。</p>
                 </div>
             </div>
-
-            <!-- マンカラ -->
             <div class="game-card" onclick="launchGame('mancala.html')">
                 <div class="card-banner">🪵🔮</div>
                 <div class="card-info">
                     <h3 class="card-title">マンカラ</h3>
-                    <p class="card-desc">最古の知略ゲーム。ガラスビーズが器の中で転がる、手触りの良いビジュアルを再現。</p>
+                    <p class="card-desc">最古の知略ゲーム。ガラスビーズが器の中で転がるビジュアルを再現。</p>
                 </div>
             </div>
-
-            <!-- コネクトフォー -->
             <div class="game-card" onclick="launchGame('connectfour.html')">
                 <div class="card-banner">🟡🔴</div>
                 <div class="card-info">
                     <h3 class="card-title">コネクトフォー</h3>
-                    <p class="card-desc">重力を応用した立体四目並べ。上からチップがカシャンと滑り落ちる物理挙動を再現。</p>
+                    <p class="card-desc">重力を応用した立体四目並べ。上からチップがカシャンと滑り落ちます。</p>
                 </div>
             </div>
-
-            <!-- ヒット＆ブロー -->
             <div class="game-card" onclick="launchGame('hitandblow.html')">
                 <div class="card-banner">🎨🔍</div>
                 <div class="card-info">
                     <h3 class="card-title">ヒット＆ブロー</h3>
-                    <p class="card-desc">隠された4つの色と位置を推測する論理パズル。ボードゲームらしい木製パーツ風UI。</p>
+                    <p class="card-desc">隠された4つの色と位置を推測する論理パズルゲーム。</p>
                 </div>
             </div>
-
-            <!-- 五目ならべ -->
             <div class="game-card" onclick="launchGame('gomoku.html')">
                 <div class="card-banner">🪵⚫</div>
                 <div class="card-info">
@@ -235,16 +135,62 @@
                 </div>
             </div>
         </div>
+
+        <!-- 初級ゲームセクション -->
+        <div class="section-title">初級ゲームコレクション</div>
+        <div class="game-grid">
+            <div class="game-card" onclick="launchGame('matching.html')">
+                <div class="card-banner">🃏🎴</div>
+                <div class="card-info">
+                    <h3 class="card-title">神経衰弱</h3>
+                    <p class="card-desc">カードをめくって揃える記憶力ゲーム。美しく立体的な3Dめくり演出。</p>
+                </div>
+            </div>
+            <div class="game-card" onclick="launchGame('slidepuzzle.html')">
+                <div class="card-banner">🔢🧩</div>
+                <div class="card-info">
+                    <h3 class="card-title">スライドパズル</h3>
+                    <p class="card-desc">数字を1から15まで順番に並べる、直感的なスライド式パズル。</p>
+                </div>
+            </div>
+            <div class="game-card" onclick="launchGame('takoyaki.html')">
+                <div class="card-banner">🐙🎴</div>
+                <div class="card-info">
+                    <h3 class="card-title">たこやき</h3>
+                    <p class="card-desc">自分の手札10枚をいち早くめくり揃える、運と爽快感が特徴のカードゲーム。</p>
+                </div>
+            </div>
+            <div class="game-card" onclick="launchGame('pigstail.html')">
+                <div class="card-banner">🐷🌀</div>
+                <div class="card-info">
+                    <h3 class="card-title">ぶたのしっぽ</h3>
+                    <p class="card-desc">円状のカードをめくり、同じマークが出たらペナルティとなるハラハラゲーム。</p>
+                </div>
+            </div>
+            <div class="game-card" onclick="launchGame('war.html')">
+                <div class="card-banner">⚔️🃏</div>
+                <div class="card-info">
+                    <h3 class="card-title">戦争</h3>
+                    <p class="card-desc">配られたカードを同時に出し合い、数字の大きさで勝負する純粋なゲーム。</p>
+                </div>
+            </div>
+            <div class="game-card" onclick="launchGame('hareandhounds.html')">
+                <div class="card-banner">🐰🐕</div>
+                <div class="card-info">
+                    <h3 class="card-title">ウサギと猟犬</h3>
+                    <p class="card-desc">猟犬3匹がウサギを追いつめるか、ウサギが逃げ切るか。非対称の盤上パズル。</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- ゲームプレイ用オーバーレイ -->
     <div id="game-overlay">
         <div class="game-bar">
             <button class="back-btn" onclick="closeGame()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 ロビーに戻る
             </button>
-            <div style="font-weight: 600; font-size: 14px; letter-spacing: 1px; color: var(--text-muted);">PLAYING</div>
+            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: var(--text-muted);">PLAYING</div>
             <div style="width: 100px;"></div>
         </div>
         <div class="game-iframe-container">
@@ -259,9 +205,7 @@
         function launchGame(url) {
             iframe.src = url;
             overlay.style.display = 'flex';
-            setTimeout(() => {
-                overlay.classList.add('active');
-            }, 10);
+            setTimeout(() => { overlay.classList.add('active'); }, 10);
             document.body.style.overflow = 'hidden';
         }
 
