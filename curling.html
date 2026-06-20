@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>トイカーリング - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .hud span { font-size: 14px; }
+
+        .canvas-container { background: #e2e8f0; padding: 10px; border-radius: 24px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background-color: #eaf2f8; cursor: pointer; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; line-height: 1.5; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなた残: <span id="p1-stock">4</span>球</div>
+        <div style="color:var(--accent-color);" id="status-text">CURLING GAME</div>
+        <div class="score" id="p2-hud">CPU残: <span id="p2-stock">4</span>球</div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="300" height="420"></canvas>
+    </div>
+
+    <div class="instructions">
+        投射：手前のストーンを長押しして「手前側に引っ張って」方向と強さを調整し、離して発射します！<br>
+        ※全8球を投げ終えた際、中心（ハウス）に最も近いストーンを置いていたプレイヤーの勝利です。
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">中心に一番近いです！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ハウス（目標の円）中心座標
+        const houseX = 150;
+        const houseY = 85;
+
+        // ストーン配列 { x, y, vx, vy, r: 12, owner: 1(あなた)/2(CPU), isMoving: false }
+        let stones = [];
+        let p1Stock = 4;
+        let p2Stock = 4;
+
+        let currentPlayer = 1;
+        let isAiming = false;
+        let dragX = 0, dragY = 0;
+        let gameOver = false;
+        let physicalLock = false; // ストーンが運動している間、操作をロックする
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        function initGame() {
+            stones = [];
+            p1Stock = 4;
+            p2Stock = 4;
+            currentPlayer = 1;
+            gameOver = false;
+            isAiming = false;
+            physicalLock = false;
+
+            document.getElementById('p2-hud').innerHTML = gameMode === 'vs_cpu' ? `CPU残: <span id="p2-stock">4</span>球` : `相手残: <span id="p2-stock">4</span>球`;
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('status-text').innerText = "あなたの投射ターン";
+            closeAlert();
+
+            updateStockUI();
+            requestAnimationFrame(physicsLoop);
+        }
+
+        // ドラッグ・フリック発射処理
+        canvas.addEventListener('mousedown', e => {
+            if (gameOver || physicalLock) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // 発射位置（150, 380）のストーン付近をクリックしたかチェック
+            const dist = Math.hypot(clickX - 150, clickY - 380);
+            if (dist < 20) {
+                isAiming = true;
+                dragX = clickX;
+                dragY = clickY;
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!isAiming) return;
+            const rect = canvas.getBoundingClientRect();
+            dragX = e.clientX - rect.left;
+            dragY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (!isAiming) return;
+            isAiming = false;
+
+            // 引っ張ったベクトルの逆方向に投射
+            const dx = 150 - dragX;
+            const dy = 380 - dragY;
+
+            // 射出
+            launchStone(dx * 0.12, dy * 0.12);
+        });
+
+        function launchStone(vx, vy) {
+            physicalLock = true;
+            stones.push({
+                x: 150,
+                y: 380,
+                vx: vx,
+                vy: vy,
+                r: 11,
+                owner: currentPlayer,
+                isMoving: true
+            });
+
+            if (currentPlayer === 1) p1Stock--; else p2Stock--;
+            updateStockUI();
+        }
+
+        // 2D物理演算ループ（氷の摩擦、完全弾性衝突）
+        function physicsLoop() {
+            if (gameOver) return;
+
+            updateStonesPhysics();
+            drawCurlingSheet();
+
+            requestAnimationFrame(physicsLoop);
+        }
+
+        function updateStonesPhysics() {
+            let anyMoving = false;
+
+            // 1. 移動と摩擦減衰
+            stones.forEach(s => {
+                if (Math.hypot(s.vx, s.vy) > 0.05) {
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    // 氷の摩擦係数による線形減衰
+                    s.vx *= 0.982;
+                    s.vy *= 0.982;
+                    anyMoving = true;
+                    s.isMoving = true;
+                } else {
+                    s.vx = 0; s.vy = 0;
+                    s.isMoving = false;
+                }
+
+                // 壁衝突（減速・跳ね返り）
+                if (s.x < s.r || s.x > canvas.width - s.r) { s.vx = -s.vx * 0.5; s.x = s.x < s.r ? s.r : canvas.width - s.r; }
+                if (s.y < s.r || s.y > canvas.height - s.r) { s.vy = -s.vy * 0.5; s.y = s.y < s.r ? s.r : canvas.height - s.r; }
+            });
+
+            // 2. ストーン同士の弾性衝突チェック（2重ループ）
+            for (let i = 0; i < stones.length; i++) {
+                for (let j = i + 1; j < stones.length; j++) {
+                    const s1 = stones[i];
+                    const s2 = stones[j];
+                    const dist = Math.hypot(s1.x - s2.x, s1.y - s2.y);
+                    const minDist = s1.r + s2.r;
+
+                    if (dist < minDist) {
+                        // 衝突位置の補正（めり込み防止）
+                        const overlap = minDist - dist;
+                        const nx = (s2.x - s1.x) / dist;
+                        const ny = (s2.y - s1.y) / dist;
+                        s1.x -= nx * overlap * 0.5;
+                        s1.y -= ny * overlap * 0.5;
+                        s2.x += nx * overlap * 0.5;
+                        s2.y += ny * overlap * 0.5;
+
+                        // 弾性衝突（ベクトル運動量の交換）
+                        const kx = s1.vx - s2.vx;
+                        const ky = s1.vy - s2.vy;
+                        const p = 2 * (nx * kx + ny * ky) / 2;
+
+                        s1.vx -= p * nx;
+                        s1.vy -= p * ny;
+                        s2.vx += p * nx;
+                        s2.vy += p * ny;
+
+                        anyMoving = true;
+                    }
+                }
+            }
+
+            // 全員の移動が止まったら、次の手番へ交代判定
+            if (physicalLock && !anyMoving) {
+                physicalLock = false;
+                nextTurn();
+            }
+        }
+
+        function nextTurn() {
+            if (p1Stock === 0 && p2Stock === 0) {
+                // 終了判定
+                gameOver = true;
+                calculateFinalWinner();
+                return;
+            }
+
+            // 交互に投射
+            if (p1Stock > 0 && p2Stock > 0) {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+            } else if (p1Stock > 0) {
+                currentPlayer = 1;
+            } else {
+                currentPlayer = 2;
+            }
+
+            document.getElementById('status-text').innerText = currentPlayer === 1 ? "あなたの投射ターン" : "相手の投射ターン...";
+
+            if (gameMode === 'vs_cpu' && currentPlayer === 2 && !gameOver) {
+                setTimeout(cpuCurlMove, 1000); // CPU思考
+            }
+        }
+
+        // CPUのカーリングショットAI
+        function cpuCurlMove() {
+            if (gameOver || physicalLock) return;
+
+            // ハウスの中心(150, 85)を標準ターゲットとし、難易度別に応じた誤差を付与
+            let targetX = houseX;
+            let targetY = houseY;
+
+            if (difficulty === 'easy') {
+                targetX += (Math.random() - 0.5) * 60;
+                targetY += (Math.random() - 0.5) * 60;
+            } else if (difficulty === 'normal') {
+                targetX += (Math.random() - 0.5) * 30;
+                targetY += (Math.random() - 0.5) * 30;
+            }
+
+            // 射出ベクトル（150, 380）からターゲットへの必要初速逆算
+            const dy = targetY - 380;
+            const dx = targetX - 150;
+
+            // 摩擦減衰(0.982の何乗か)を考慮したマイルドな射出係数
+            const vy = dy * 0.038;
+            const vx = dx * 0.038;
+
+            launchStone(vx, vy);
+        }
+
+        // concentric円（ハウス）を持つカーリングシートの描画
+        function drawCurlingSheet() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. ハウスの描画（同心円）
+            // 赤円
+            ctx.fillStyle = '#ffccd5';
+            ctx.strokeStyle = '#e53e3e';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(houseX, houseY, 65, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // 白円
+            ctx.fillStyle = '#eaf2f8';
+            ctx.beginPath(); ctx.arc(houseX, houseY, 40, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // 青円（中心）
+            ctx.fillStyle = '#d6e4ff';
+            ctx.strokeStyle = '#4a90e2';
+            ctx.beginPath(); ctx.arc(houseX, houseY, 18, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // センターピップ
+            ctx.fillStyle = '#ffca28';
+            ctx.beginPath(); ctx.arc(houseX, houseY, 4, 0, Math.PI * 2); ctx.fill();
+
+            // 2. 引っ張りエイムガイドの描画
+            if (isAiming) {
+                ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(150, 380);
+                // 逆向きの方向をガイド線として描画
+                const guideX = 150 + (150 - dragX);
+                const guideY = 380 + (380 - dragY);
+                ctx.lineTo(guideX, guideY);
+                ctx.stroke();
+                ctx.setLineDash([]); // リセット
+            }
+
+            // 3. 発射台待機中のストーン
+            if (!physicalLock && !gameOver && (gameMode !== 'vs_cpu' || currentPlayer === 1)) {
+                drawStone(150, 380, currentPlayer, isAiming);
+            }
+
+            // 4. 運動中・配置済みのストーン群
+            stones.forEach(s => {
+                drawStone(s.x, s.y, s.owner, false);
+            });
+        }
+
+        function drawStone(x, y, owner, active) {
+            ctx.save();
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+
+            // ストーン底（外殻）
+            ctx.fillStyle = owner === 1 ? '#ff595e' : '#ffffff';
+            ctx.strokeStyle = owner === 1 ? '#c0242a' : '#b2b2b2';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(x, y, 11, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 持ち手（取っ手ハンドル）
+            ctx.fillStyle = active ? '#ffca28' : '#718096';
+            ctx.fillRect(x - 5, y - 2, 10, 4);
+
+            ctx.restore();
+        }
+
+        function updateStockUI() {
+            document.getElementById('p1-stock').innerText = p1Stock;
+            document.getElementById('p2-stock').innerText = p2Stock;
+        }
+
+        function calculateFinalWinner() {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (stones.length === 0) {
+                titleEl.innerText = "🤝 引き分け";
+                overlay.style.display = 'flex';
+                return;
+            }
+
+            // ハウス中心(150, 85)に一番近いストーンを探す
+            let closestStone = null;
+            let minDist = Infinity;
+
+            stones.forEach(s => {
+                const dist = Math.hypot(s.x - houseX, s.y - houseY);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestStone = s;
+                }
+            });
+
+            const winnerNum = closestStone.owner;
+            descEl.innerText = `ハウス中心から最も近いストーンとの距離: ${minDist.toFixed(1)}px`;
+
+            if (winnerNum === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

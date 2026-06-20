@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSタンク - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --board-color: #e2e8f0; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .life-heart { color: #e53e3e; }
+
+        /* ゲームキャンバス */
+        .canvas-container { background: #1a202c; padding: 10px; border-radius: 20px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+        canvas { display: block; border-radius: 12px; background-color: #2d3748; cursor: crosshair; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; line-height: 1.5; font-weight: bold; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなたLIFE: <span id="p1-life" class="life-heart">❤️❤️❤️</span></div>
+        <div style="color:var(--accent-color);" id="status-text">VS TANK BATTLE</div>
+        <div class="score" id="p2-hud">相手LIFE: <span id="p2-life" class="life-heart">❤️❤️❤️</span></div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="480" height="320"></canvas>
+    </div>
+
+    <div class="instructions">
+        操縦: W(前進), S(後退), A(左旋回), D(右旋回) ｜ 射撃: マウスクリック（マウスの向きに照準を合わせます）<br>
+        ※砲弾は壁に当たると1回だけリアルに跳ね返ります（1クッション反射狙撃！）
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let p1 = { x: 50, y: 160, angle: 0, turretAngle: 0, speed: 0, rotateSpeed: 0, life: 3, size: 24, lastShot: 0 };
+        let p2 = { x: 430, y: 160, angle: Math.PI, turretAngle: Math.PI, speed: 0, rotateSpeed: 0, life: 3, size: 24, lastShot: 0 }; // CPUまたはP2
+
+        let bullets = []; // { x, y, vx, vy, bounces, owner }
+        let obstacles = [
+            { x: 140, y: 60, w: 40, h: 80 },
+            { x: 300, y: 180, w: 40, h: 80 },
+            { x: 220, y: 130, w: 40, h: 60 }
+        ];
+
+        let keys = {};
+        let mouseX = 0, mouseY = 0;
+        let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        function initGame() {
+            p1 = { x: 50, y: 160, angle: 0, turretAngle: 0, speed: 0, rotateSpeed: 0, life: 3, size: 22, lastShot: 0 };
+            p2 = { x: 430, y: 160, angle: Math.PI, turretAngle: Math.PI, speed: 0, rotateSpeed: 0, life: 3, size: 22, lastShot: 0 };
+            bullets = [];
+            gameOver = false;
+
+            document.getElementById('p2-hud').innerHTML = gameMode === 'vs_cpu' ? `CPU LIFE: <span id="p2-life" class="life-heart">❤️❤️❤️</span>` : `相手 LIFE: <span id="p2-life" class="life-heart">❤️❤️❤️</span>`;
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+
+            updateHeartsUI();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // キーボード、マウスイベントリスナー設定
+        window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        canvas.addEventListener('mousedown', () => {
+            if (currentPlayerTurn() === 1) fireBullet(p1);
+        });
+
+        function currentPlayerTurn() { return 1; }
+
+        function fireBullet(tank) {
+            const now = Date.now();
+            if (now - tank.lastShot < 600) return; // 連射制限
+            tank.lastShot = now;
+
+            const speed = 4;
+            const vx = Math.cos(tank.turretAngle) * speed;
+            const vy = Math.sin(tank.turretAngle) * speed;
+
+            // 砲身先端から射出
+            const startX = tank.x + Math.cos(tank.turretAngle) * (tank.size + 4);
+            const startY = tank.y + Math.sin(tank.turretAngle) * (tank.size + 4);
+
+            bullets.push({ x: startX, y: startY, vx, vy, bounces: 0, owner: tank === p1 ? 1 : 2 });
+        }
+
+        // メイン物理＆描画ループ
+        function gameLoop() {
+            if (gameOver) return;
+
+            updatePhysics();
+            drawBattlefield();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePhysics() {
+            // 1. プレイヤー（P1）操作
+            if (keys['w']) p1.speed = 1.8;
+            else if (keys['s']) p1.speed = -1.5;
+            else p1.speed = 0;
+
+            if (keys['a']) p1.angle -= 0.04;
+            else if (keys['d']) p1.angle += 0.04;
+
+            // 照準（マウス追従）
+            p1.turretAngle = Math.atan2(mouseY - p1.y, mouseX - p1.x);
+
+            moveAndCollide(p1);
+
+            // 2. CPU（P2）自律操作
+            if (gameMode === 'vs_cpu') {
+                cpuTick();
+            } else {
+                // 2P対戦モード（ローカル：矢印キーとテンキーで操作）
+                if (keys['arrowup']) p2.speed = 1.8;
+                else if (keys['arrowdown']) p2.speed = -1.5;
+                else p2.speed = 0;
+
+                if (keys['arrowleft']) p2.angle -= 0.04;
+                else if (keys['arrowright']) p2.angle += 0.04;
+
+                p2.turretAngle = p2.angle; // 2Pは進行方向に向く
+                moveAndCollide(p2);
+                
+                // テンキー0（またはスペース）で射撃
+                if (keys[' ']) {
+                    fireBullet(p2);
+                }
+            }
+
+            // 3. 砲弾（バレット）物理演算（1クッション反射、衝突判定）
+            bullets.forEach((b, idx) => {
+                b.x += b.vx;
+                b.y += b.vy;
+
+                // 外壁反射
+                if (b.x < 4 || b.x > canvas.width - 4) {
+                    if (b.bounces >= 1) { bullets.splice(idx, 1); return; }
+                    b.vx = -b.vx; b.bounces++;
+                }
+                if (b.y < 4 || b.y > canvas.height - 4) {
+                    if (b.bounces >= 1) { bullets.splice(idx, 1); return; }
+                    b.vy = -b.vy; b.bounces++;
+                }
+
+                // 障害物（ブロック）反射
+                obstacles.forEach(obs => {
+                    if (b.x > obs.x && b.x < obs.x + obs.w && b.y > obs.y && b.y < obs.y + obs.h) {
+                        if (b.bounces >= 1) { bullets.splice(idx, 1); return; }
+                        
+                        // どの辺に衝突したかを幾何学的に判定して反射
+                        const fromLeft = Math.abs(b.x - obs.x);
+                        const fromRight = Math.abs(b.x - (obs.x + obs.w));
+                        const fromTop = Math.abs(b.y - obs.y);
+                        const fromBottom = Math.abs(b.y - (obs.y + obs.h));
+
+                        const min = Math.min(fromLeft, fromRight, fromTop, fromBottom);
+                        if (min === fromLeft || min === fromRight) b.vx = -b.vx;
+                        else b.vy = -b.vy;
+
+                        b.bounces++;
+                    }
+                });
+
+                // 戦車への命中判定（円の当たり判定）
+                const distToP1 = Math.hypot(b.x - p1.x, b.y - p1.y);
+                const distToP2 = Math.hypot(b.x - p2.x, b.y - p2.y);
+
+                if (distToP1 < p1.size) {
+                    bullets.splice(idx, 1);
+                    p1.life--; updateHeartsUI();
+                    checkGameOver();
+                } else if (distToP2 < p2.size) {
+                    bullets.splice(idx, 1);
+                    p2.life--; updateHeartsUI();
+                    checkGameOver();
+                }
+            });
+        }
+
+        // 戦車の移動＆障害物および外壁との衝突判定
+        function moveAndCollide(tank) {
+            const nextX = tank.x + Math.cos(tank.angle) * tank.speed;
+            const nextY = tank.y + Math.sin(tank.angle) * tank.speed;
+
+            let collides = false;
+
+            // 1. 外壁衝突
+            if (nextX < tank.size || nextX > canvas.width - tank.size || nextY < tank.size || nextY > canvas.height - tank.size) {
+                collides = true;
+            }
+
+            // 2. 障害物衝突（円と矩形の当たり判定）
+            obstacles.forEach(obs => {
+                const closestX = Math.max(obs.x, Math.min(nextX, obs.x + obs.w));
+                const closestY = Math.max(obs.y, Math.min(nextY, obs.y + obs.h));
+                const distance = Math.hypot(nextX - closestX, nextY - closestY);
+                if (distance < tank.size) {
+                    collides = true;
+                }
+            });
+
+            if (!collides) {
+                tank.x = nextX;
+                tank.y = nextY;
+            }
+        }
+
+        // CPUの自動戦車AI
+        function cpuTick() {
+            if (gameOver) return;
+
+            // あなたの位置に向かう
+            const angleToP1 = Math.atan2(p1.y - p2.y, p1.x - p2.x);
+            p2.angle = angleToP1;
+            p2.turretAngle = angleToP1;
+
+            if (difficulty === 'easy') {
+                p2.speed = 0.5; // 移動速度
+            } else {
+                p2.speed = difficulty === 'hard' ? 1.2 : 0.8;
+                
+                // 定期的な攻撃（一定の視野内に入ったら射撃）
+                const distance = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                if (distance < 280 && Math.random() < 0.02) {
+                    fireBullet(p2);
+                }
+            }
+            moveAndCollide(p2);
+        }
+
+        function drawBattlefield() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 障害物（ブロック）描画
+            ctx.fillStyle = '#4a5568';
+            ctx.strokeStyle = '#2d3748';
+            ctx.lineWidth = 3;
+            obstacles.forEach(obs => {
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+            });
+
+            // 2. 弾の描画
+            bullets.forEach(b => {
+                ctx.fillStyle = b.owner === 1 ? '#4a90e2' : '#ff595e';
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 3. プレイヤー戦車（青）
+            drawTank(p1.x, p1.y, p1.angle, p1.turretAngle, '#4a90e2', '#2f80ed');
+
+            // 4. 相手戦車（赤）
+            drawTank(p2.x, p2.y, p2.angle, p2.turretAngle, '#ff595e', '#c0242a');
+        }
+
+        function drawTank(x, y, bodyAngle, turretAngle, bodyColor, barrelColor) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(bodyAngle);
+
+            // キャタピラ
+            ctx.fillStyle = '#1a202c';
+            ctx.fillRect(-14, -13, 28, 5);
+            ctx.fillRect(-14, 8, 28, 5);
+
+            // 車体
+            ctx.fillStyle = bodyColor;
+            ctx.fillRect(-10, -9, 20, 18);
+
+            ctx.restore();
+
+            // 砲塔と砲身（車体角度に依存せず回転）
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(turretAngle);
+
+            ctx.fillStyle = barrelColor;
+            ctx.fillRect(0, -2.5, 18, 5); // 砲身
+            ctx.beginPath();
+            ctx.arc(0, 0, 7, 0, Math.PI*2); // 砲塔
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function updateHeartsUI() {
+            document.getElementById('p1-life').innerText = "❤️".repeat(Math.max(0, p1.life));
+            document.getElementById('p2-life').innerText = "❤️".repeat(Math.max(0, p2.life));
+        }
+
+        function checkGameOver() {
+            if (p1.life <= 0 || p2.life <= 0) {
+                gameOver = true;
+                showFinalResult(p1.life > 0 ? 1 : 2);
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = "CPU戦車を鮮やかに狙撃し、全ライフを削りました！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = "CPUの正確なエイムに敗北してしまいました。";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "激しい砲撃戦を制しました！";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

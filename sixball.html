@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6ボールパズル - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 45px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score { font-size: 16px; color: var(--text-color); }
+        .next-preview { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #718096; }
+        .preview-ball { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+        /* ボトルエリア */
+        .canvas-container { background: #1a202c; padding: 10px; border-radius: 20px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background-color: #1a202c; cursor: pointer; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">SCORE: <span id="score-val">0</span></div>
+        <div class="next-preview">
+            <span>NEXT:</span>
+            <div class="preview-ball" id="next-ball-el"></div>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="260" height="380"></canvas>
+    </div>
+
+    <div class="instructions">
+        落としたい列をクリック、またはタップしてください。<br>
+        同じ色のボールが縦・横・斜めに「6個」繋がると、一気に弾けて消え去ります！
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2>GAME OVER</h2>
+            <p id="result-desc">スコア: 0点</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ハニカムグリッド構造（列6、行10）
+        const cols = 6;
+        const rows = 10;
+        const radius = 17;
+        const spacingX = 38;
+        const spacingY = 32;
+        const offsetX = 35;
+        const offsetY = 50;
+
+        const colors = {
+            1: { name: 'red', grad: ['#ff6b6b', '#c92a2a'] },
+            2: { name: 'blue', grad: ['#4dabf7', '#1c7ed6'] },
+            3: { name: 'yellow', grad: ['#ffd43b', '#f59f00'] },
+            4: { name: 'green', grad: ['#69db7c', '#2b8a3e'] },
+            5: { name: 'purple', grad: ['#da77f2', '#9c36b5'] }
+        };
+
+        let grid = Array(rows).fill(null).map(() => Array(cols).fill(0));
+        let currentBallColor = 1;
+        let nextBallColor = 2;
+        let score = 0;
+        let gameOver = false;
+        let isAnimating = false; // 連鎖落下アニメーション中の入力ロック用
+
+        function initGame() {
+            grid = Array(rows).fill(null).map(() => Array(cols).fill(0));
+            score = 0;
+            gameOver = false;
+            isAnimating = false;
+            currentBallColor = Math.floor(Math.random() * 5) + 1;
+            nextBallColor = Math.floor(Math.random() * 5) + 1;
+
+            document.getElementById('score-val').innerText = score;
+            document.getElementById('result-overlay').style.display = 'none';
+
+            updateNextPreview();
+            drawBoard();
+        }
+
+        function updateNextPreview() {
+            const el = document.getElementById('next-ball-el');
+            el.style.background = `radial-gradient(circle at 35% 35%, ${colors[nextBallColor].grad[0]}, ${colors[nextBallColor].grad[1]})`;
+        }
+
+        // 描画ルーチン
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // ボトルの輪郭線の描画
+            ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+            // ボールの描画（3Dグラデーション）
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const colorId = grid[r][c];
+                    if (colorId > 0) {
+                        const pos = getBallCoords(r, c);
+                        
+                        // 球体グラデーション
+                        const grad = ctx.createRadialGradient(pos.x - 4, pos.y - 4, 1, pos.x, pos.y, radius);
+                        grad.addColorStop(0, colors[colorId].grad[0]);
+                        grad.addColorStop(1, colors[colorId].grad[1]);
+
+                        ctx.fillStyle = grad;
+                        ctx.beginPath();
+                        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 微細な光沢のハイライト
+                        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // ホバープレビュー（落下軌道のガイド）
+            if (!gameOver && !isAnimating) {
+                // マウス位置から列を割り出す
+                const rect = canvas.getBoundingClientRect();
+                // 簡易ホバーガイドはクリックイベント等で代用
+            }
+        }
+
+        function getBallCoords(r, c) {
+            // ハニカム特有の「奇数行ずらし」による美しいスタック配置
+            const x = offsetX + c * spacingX + (r % 2 === 1 ? spacingX / 2 : 0);
+            const y = offsetY + r * spacingY;
+            return { x, y };
+        }
+
+        // コラムタップによるボール投下
+        canvas.addEventListener('click', e => {
+            if (gameOver || isAnimating) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            
+            // X座標から最も近い列(c)を割り出す
+            let closestCol = 0;
+            let minDist = Infinity;
+            for (let c = 0; c < cols; c++) {
+                // 列の中心x
+                const cx = offsetX + c * spacingX;
+                const dist = Math.abs(clickX - cx);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestCol = c;
+                }
+            }
+
+            dropBall(closestCol);
+        });
+
+        function dropBall(col) {
+            // 最下部の空き行(r)を探す
+            let targetRow = -1;
+            for (let r = rows - 1; r >= 0; r--) {
+                if (grid[r][col] === 0) {
+                    targetRow = r;
+                    break;
+                }
+            }
+
+            if (targetRow === -1) {
+                // 溢れたらゲームオーバー
+                endGame();
+                return;
+            }
+
+            // ボール設置
+            grid[targetRow][col] = currentBallColor;
+            
+            // 色交代
+            currentBallColor = nextBallColor;
+            nextBallColor = Math.floor(Math.random() * 5) + 1;
+            updateNextPreview();
+
+            // 連鎖チェック開始
+            isAnimating = true;
+            processMatches();
+        }
+
+        // 連鎖マッチおよび落下（重力スライド）処理
+        function processMatches() {
+            const matchedSpots = findConnectedGroups();
+
+            if (matchedSpots.length > 0) {
+                // 一括消去アニメーション
+                score += matchedSpots.length * 10;
+                document.getElementById('score-val').innerText = score;
+
+                matchedSpots.forEach(pos => {
+                    grid[pos.r][pos.c] = 0; // 消去
+                });
+
+                drawBoard();
+
+                // 2. 重力によるスライド落下処理
+                setTimeout(() => {
+                    applyGravity();
+                    drawBoard();
+                    
+                    // 3. 落下後に再度連鎖が起きるか再帰チェック
+                    setTimeout(processMatches, 300);
+                }, 300);
+            } else {
+                isAnimating = false;
+                drawBoard();
+
+                // 設置後に上部をはみ出しているか最終ゲームオーバー判定
+                if (grid[0].some(cell => cell !== 0)) {
+                    endGame();
+                }
+            }
+        }
+
+        // ハニカム用の隣接グループスキャン (BFS法)
+        function findConnectedGroups() {
+            const visited = Array(rows).fill(null).map(() => Array(cols).fill(false));
+            let allMatched = [];
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const color = grid[r][c];
+                    if (color > 0 && !visited[r][c]) {
+                        const group = [];
+                        const queue = [[r, c]];
+                        visited[r][c] = true;
+
+                        while (queue.length > 0) {
+                            const [cr, cc] = queue.shift();
+                            group.push({ r: cr, c: cc });
+
+                            // ハニカムグリッドの隣接6方向（偶数行・奇数行で隣接関係が変化する）
+                            const neighbors = (cr % 2 === 1) ? 
+                                [[-1,0], [-1,1], [0,-1], [0,1], [1,0], [1,1]] : // 奇数行の隣接
+                                [[-1,-1], [-1,0], [0,-1], [0,1], [1,-1], [1,0]]; // 偶数行の隣接
+
+                            neighbors.forEach(([dr, dc]) => {
+                                const nr = cr + dr;
+                                const nc = cc + dc;
+                                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited[nr][nc]) {
+                                    if (grid[nr][nc] === color) {
+                                        visited[nr][nc] = true;
+                                        queue.push([nr, nc]);
+                                    }
+                                }
+                            });
+                        }
+
+                        // 6個以上繋がっていたら消去リストに結合
+                        if (group.length >= 6) {
+                            allMatched = allMatched.concat(group);
+                        }
+                    }
+                }
+            }
+            return allMatched;
+        }
+
+        // 重力による落とし込み（各列を上から下にスライド）
+        function applyGravity() {
+            for (let c = 0; c < cols; c++) {
+                let temp = [];
+                for (let r = 0; r < rows; r++) {
+                    if (grid[r][c] !== 0) {
+                        temp.push(grid[r][c]);
+                    }
+                }
+                // 空きを上に詰める
+                const emptyCount = rows - temp.length;
+                const newCol = Array(emptyCount).fill(0).concat(temp);
+                for (let r = 0; r < rows; r++) {
+                    grid[r][c] = newCol[r];
+                }
+            }
+        }
+
+        function endGame() {
+            gameOver = true;
+            document.getElementById('result-desc').innerText = `スコア: ${score}点`;
+            document.getElementById('result-overlay').style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
