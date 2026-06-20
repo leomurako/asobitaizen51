@@ -3,142 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>五目ならべ - Premium Clone</title>
+    <title>五目ならべ - Light Edition</title>
     <style>
         :root {
-            --bg-color: #121915;
-            --board-wood: radial-gradient(circle, #e2ae6c 60%, #b8813a 100%);
-            --board-border: #563313;
-            --grid-line: rgba(0, 0, 0, 0.4);
-            --text-color: #f4ede4;
+            --bg-color: #f5f7fb;
+            --board-wood: radial-gradient(circle, #fcf4e8 50%, #e2c092 100%);
+            --board-border: #7c5427;
+            --grid-line: rgba(0, 0, 0, 0.45);
+            --text-color: #1e293b;
+            --accent: #4a90e2;
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            user-select: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; user-select: none;
         }
 
         .header-panel {
-            display: flex;
-            align-items: center;
-            gap: 40px;
-            margin-bottom: 25px;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 12px 30px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; align-items: center; gap: 40px; margin-bottom: 25px;
+            background: #ffffff; padding: 12px 30px; border-radius: 30px;
+            border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.04);
         }
 
-        .score-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 18px;
-            font-weight: 700;
-        }
+        .score-box { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; }
+        .stone-preview { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .stone-preview.black { background: radial-gradient(circle at 35% 35%, #555, #111); }
+        .stone-preview.white { background: radial-gradient(circle at 35% 35%, #fff, #ccc); border: 1px solid #bbb; box-sizing: border-box; }
 
-        .stone-preview {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-        }
-        .stone-preview.black {
-            background: radial-gradient(circle at 35% 35%, #555, #111);
-        }
-        .stone-preview.white {
-            background: radial-gradient(circle at 35% 35%, #fff, #ccc);
-            border: 1px solid #999;
-            box-sizing: border-box;
-        }
+        .turn-text { font-size: 15px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
 
-        .turn-text {
-            font-size: 15px;
-            font-weight: 600;
-            color: #d4a373;
-            letter-spacing: 1px;
-        }
+        .board-wrapper { background-color: var(--board-border); padding: 12px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); }
+        .board { display: grid; grid-template-columns: repeat(15, 30px); grid-template-rows: repeat(15, 30px); background: var(--board-wood); border-radius: 4px; border: 1px solid rgba(0,0,0,0.25); }
 
-        /* 碁盤外枠 */
-        .board-wrapper {
-            background-color: var(--board-border);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-        }
+        .cell { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; background: linear-gradient(to right, transparent 48%, var(--grid-line) 48%, var(--grid-line) 52%, transparent 52%), linear-gradient(to bottom, transparent 48%, var(--grid-line) 48%, var(--grid-line) 52%, transparent 52%); }
+        .cell:not(.has-stone):hover::after { content: ''; position: absolute; width: 70%; height: 70%; border-radius: 50%; background-color: var(--preview-color, rgba(0, 0, 0, 0.2)); z-index: 2; }
 
-        /* 15x15 碁盤 */
-        .board {
-            display: grid;
-            grid-template-columns: repeat(15, 30px);
-            grid-template-rows: repeat(15, 30px);
-            background: var(--board-wood);
-            border-radius: 4px;
-            border: 1px solid rgba(0,0,0,0.3);
-        }
+        .stone { width: 88%; height: 88%; border-radius: 50%; box-shadow: 1px 3px 6px rgba(0,0,0,0.3); position: absolute; z-index: 5; animation: stonePlace 0.1s ease-out forwards; }
+        @keyframes stonePlace { from { transform: scale(1.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* 交点をクリック位置とするセルの描画 */
-        .cell {
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* 十字線をCSSグラデーションで正確に中央に引く */
-            background: 
-                linear-gradient(to right, transparent 48%, var(--grid-line) 48%, var(--grid-line) 52%, transparent 52%),
-                linear-gradient(to bottom, transparent 48%, var(--grid-line) 48%, var(--grid-line) 52%, transparent 52%);
-        }
+        .stone.black { background: radial-gradient(circle at 35% 35%, #4f4f4f 0%, #111111 80%); }
+        .stone.white { background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcdcdc 85%); border: 1px solid #aeaeae; box-sizing: border-box; }
 
-        /* 碁石デザイン */
-        .stone {
-            width: 88%;
-            height: 88%;
-            border-radius: 50%;
-            box-shadow: 1px 3px 6px rgba(0,0,0,0.4);
-            position: absolute;
-            z-index: 5;
-            animation: stonePlace 0.1s ease-out forwards;
-        }
-
-        @keyframes stonePlace {
-            from { transform: scale(1.4); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .stone.black {
-            background: radial-gradient(circle at 35% 35%, #4f4f4f 0%, #111111 80%);
-        }
-
-        .stone.white {
-            background: radial-gradient(circle at 35% 35%, #ffffff 0%, #dcdcdc 85%);
-            border: 1px solid #aeaeae;
-            box-sizing: border-box;
-        }
-
-        /* 交点ホバーガイド（うっすらした石のプレビュー） */
-        .cell:not(.has-stone):hover::after {
-            content: '';
-            position: absolute;
-            width: 70%;
-            height: 70%;
-            border-radius: 50%;
-            background-color: var(--preview-color, rgba(0, 0, 0, 0.2));
-            z-index: 2;
-        }
-
-        .controls {
-            margin-top: 25px;
-        }
+        button { background-color: #ffffff; color: var(--text-color); border: 1px solid #e2e8f0; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        button:hover { background-color: #f1f5f9; }
     </style>
 </head>
 <body>
@@ -159,14 +70,16 @@
         <div class="board" id="board"></div>
     </div>
 
-    <div class="controls">
-        <button onclick="resetGame()">最初からやり直す</button>
-    </div>
+    <button onclick="resetGame()">最初からやり直す</button>
 
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; 
+        const cpuDifficulty = urlParams.get('diff') || 'normal';
+
         const size = 15;
         let board = [];
-        let currentPlayer = 1; // 1: 黒, 2: 白
+        let currentPlayer = 1; // 1: 黒(Player 1), 2: 白(Player 2 / CPU)
         let gameOver = false;
 
         const boardEl = document.getElementById('board');
@@ -177,7 +90,6 @@
             currentPlayer = 1;
             gameOver = false;
             statusText.innerText = "黒の手番 (先手)";
-
             createBoardDOM();
         }
 
@@ -187,8 +99,6 @@
                 for (let c = 0; c < size; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
                     cell.addEventListener('click', () => placeStone(r, c, cell));
                     boardEl.appendChild(cell);
                 }
@@ -197,63 +107,126 @@
 
         function placeStone(r, c, cellEl) {
             if (gameOver || board[r][c] !== 0) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPUターンは制限
 
+            executeMove(r, c, cellEl);
+        }
+
+        function executeMove(r, c, cellEl) {
             board[r][c] = currentPlayer;
             cellEl.classList.add('has-stone');
 
-            // 碁石DOMの生成
             const stone = document.createElement('div');
             stone.className = `stone ${currentPlayer === 1 ? 'black' : 'white'}`;
             cellEl.appendChild(stone);
 
-            // 5個並んだかの勝敗判定
             if (checkWin(r, c, currentPlayer)) {
                 gameOver = true;
                 statusText.innerText = `${currentPlayer === 1 ? '黒' : '白'}の勝ち！`;
                 return;
             }
 
-            // プレイヤー交代とホバー色の切り替え
             currentPlayer = currentPlayer === 1 ? 2 : 1;
-            statusText.innerText = currentPlayer === 1 ? "黒の手番" : "白の手番";
+            statusText.innerText = currentPlayer === 1 ? "黒の手番" : (gameMode === 'vs_cpu' ? "CPUの番" : "白の手番");
             
-            // CSS変数でホバープレビューの色を変更
-            const previewColor = currentPlayer === 1 ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.4)';
+            const previewColor = currentPlayer === 1 ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.35)';
             boardEl.style.setProperty('--preview-color', previewColor);
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 800);
+            }
         }
 
-        function checkWin(r, c, player) {
-            const directions = [
-                [0, 1],   // 横
-                [1, 0],   // 縦
-                [1, 1],   // 斜め右下
-                [1, -1]   // 斜め左下
-            ];
+        // 指定の座標に石を置いた時の「ラインの連続数」を判定
+        function getLineStrength(r, c, player) {
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+            let maxCount = 0;
 
             for (let [dr, dc] of directions) {
                 let count = 1;
-
-                // 正方向へのカウント
                 let nr = r + dr, nc = c + dc;
                 while (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === player) {
                     count++; nr += dr; nc += dc;
                 }
-
-                // 逆方向へのカウント
                 nr = r - dr; nc = c - dc;
                 while (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === player) {
                     count++; nr -= dr; nc -= dc;
                 }
-
-                if (count >= 5) return true; // 五並び達成
+                if (count > maxCount) maxCount = count;
             }
-            return false;
+            return maxCount;
         }
 
-        function resetGame() {
-            initGame();
+        // 五目ならべCPU
+        function cpuMove() {
+            if (gameOver) return;
+
+            let bestMove = null;
+            let highestWeight = -1;
+
+            const emptyCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 0) emptyCells.push({ r, c });
+                }
+            }
+
+            if (emptyCells.length === 0) return;
+
+            if (cpuDifficulty === 'easy') {
+                bestMove = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            } else {
+                // 『ふつう』『つよい』は攻撃・守備のウェイトスコア評価
+                for (let cell of emptyCells) {
+                    let weight = 0;
+
+                    // 1. CPU(2)がここに置いた場合の強さ
+                    const attackStrength = getLineStrength(cell.r, cell.c, 2);
+                    // 2. プレイヤー(1)がここに置いた場合の強さ
+                    const defenseStrength = getLineStrength(cell.r, cell.c, 1);
+
+                    if (attackStrength >= 5) {
+                        weight += 10000; // 即勝利（攻撃最優先）
+                    } else if (defenseStrength >= 5) {
+                        weight += 5000;  // 相手の勝利をブロック（守備最優先）
+                    } else if (attackStrength === 4) {
+                        weight += 1000;  // 攻撃：リーチ作成
+                    } else if (defenseStrength === 4) {
+                        weight += 500;   // 守備：リーチ阻止
+                    } else if (attackStrength === 3) {
+                        weight += 100;
+                    } else if (defenseStrength === 3) {
+                        weight += 50;
+                    }
+
+                    // 『つよい』の場合は中央に近いセルを微加点
+                    if (cpuDifficulty === 'hard') {
+                        const distToCenter = Math.abs(cell.r - 7) + Math.abs(cell.c - 7);
+                        weight += (20 - distToCenter);
+                    } else {
+                        // 『ふつう』は多少周囲を散らす
+                        weight += Math.random() * 5;
+                    }
+
+                    if (weight > highestWeight) {
+                        highestWeight = weight;
+                        bestMove = cell;
+                    }
+                }
+            }
+
+            if (bestMove) {
+                const cellIdx = bestMove.r * size + bestMove.c;
+                const cellEl = boardEl.children[cellIdx];
+                executeMove(bestMove.r, bestMove.c, cellEl);
+            }
         }
 
+        function checkWin(r, c, player) {
+            return getLineStrength(r, c, player) >= 5;
+        }
+
+        function resetGame() { initGame(); }
         initGame();
     </script>
 </body>

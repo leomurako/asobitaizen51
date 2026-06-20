@@ -3,95 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>コネクトフォー - Premium Clone</title>
+    <title>コネクトフォー - Light Edition</title>
     <style>
         :root {
-            --bg-color: #121915;
-            --frame-color: radial-gradient(circle, #005f73 30%, #0a3d62 100%);
-            --text-color: #f4ede4;
+            --bg-color: #f5f7fb;
+            --text-color: #1e293b;
+            --accent: #4a90e2;
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            user-select: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; user-select: none;
         }
 
         .header-panel {
-            display: flex;
-            align-items: center;
-            gap: 40px;
-            margin-bottom: 25px;
-            background: rgba(255, 255, 255, 0.03);
-            padding: 12px 30px;
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex; align-items: center; gap: 40px; margin-bottom: 25px;
+            background: #ffffff; padding: 12px 30px; border-radius: 30px;
+            border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.04);
         }
 
-        .score-box {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-size: 20px;
-            font-weight: 700;
-        }
+        .score-box { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; }
+        .mini-chip { width: 22px; height: 22px; border-radius: 50%; }
+        .mini-chip.yellow { background: radial-gradient(circle at 35% 35%, #fffb00, #ff8c00); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+        .mini-chip.red { background: radial-gradient(circle at 35% 35%, #ff4d4d, #b30000); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
 
-        .mini-chip {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-        }
-        .mini-chip.yellow {
-            background: radial-gradient(circle at 35% 35%, #fffb00, #ff8c00);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .mini-chip.red {
-            background: radial-gradient(circle at 35% 35%, #ff4d4d, #b30000);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
+        .turn-indicator { font-size: 15px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
 
-        .turn-indicator {
-            font-size: 15px;
-            font-weight: 600;
-            color: #d4a373;
-            letter-spacing: 1px;
-        }
+        .board-wrapper { background: #e2e8f0; padding: 15px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); }
+        .board { display: grid; grid-template-columns: repeat(7, 60px); grid-template-rows: repeat(6, 60px); gap: 6px; background-color: #edf2f7; padding: 8px; border-radius: 12px; }
 
-        /* コネクトフォーのボード */
-        .board-wrapper {
-            background: #090e0b;
-            padding: 15px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-        }
+        .cell { position: relative; cursor: pointer; background: radial-gradient(circle, transparent 60%, #3182ce 61%); border-radius: 4px; }
+        .cell:hover::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.08); border-radius: 50%; pointer-events: none; }
 
-        .board {
-            display: grid;
-            grid-template-columns: repeat(7, 60px);
-            grid-template-rows: repeat(6, 60px);
-            gap: 6px;
-            background-color: #03141a; /* 枠の裏の暗い隙間 */
-            padding: 8px;
-            border-radius: 12px;
-        }
-
-        .cell {
-            position: relative;
-            cursor: pointer;
-            /* 穴あき効果を作るマスク処理 */
-            background: radial-gradient(circle, transparent 60%, #004e92 61%);
-            border-radius: 4px;
-        }
-
-        /* 落下アニメーション */
         @keyframes dropEffect {
             0% { transform: translateY(-400px); }
             60% { transform: translateY(10px); }
@@ -99,55 +46,12 @@
             100% { transform: translateY(0); }
         }
 
-        .chip {
-            position: absolute;
-            width: 82%;
-            height: 82%;
-            top: 9%;
-            left: 9%;
-            border-radius: 50%;
-            z-index: -1; /* 穴あきボードの奥に配置する */
-            animation: dropEffect 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
-            box-shadow: inset 1px 1px 4px rgba(255,255,255,0.4), 0 3px 6px rgba(0,0,0,0.4);
-        }
+        .chip { position: absolute; width: 82%; height: 82%; top: 9%; left: 9%; border-radius: 50%; z-index: -1; animation: dropEffect 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; box-shadow: inset 1px 1px 4px rgba(255,255,255,0.4), 0 3px 6px rgba(0,0,0,0.15); }
+        .chip.yellow { background: radial-gradient(circle at 35% 35%, #fffb00 0%, #ff8c00 80%); }
+        .chip.red { background: radial-gradient(circle at 35% 35%, #ff4d4d 0%, #b30000 80%); }
 
-        .chip.yellow {
-            background: radial-gradient(circle at 35% 35%, #fffb00 0%, #ff8c00 80%);
-        }
-
-        .chip.red {
-            background: radial-gradient(circle at 35% 35%, #ff4d4d 0%, #b30000 80%);
-        }
-
-        /* コラムホバー効果 */
-        .cell:hover::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-            pointer-events: none;
-        }
-
-        .controls {
-            margin-top: 25px;
-        }
-
-        button {
-            background-color: #26352d;
-            color: var(--text-color);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 10px 24px;
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 20px;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-
-        button:hover {
-            background-color: #32463b;
-        }
+        button { background-color: #ffffff; color: var(--text-color); border: 1px solid #e2e8f0; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        button:hover { background-color: #f1f5f9; }
     </style>
 </head>
 <body>
@@ -155,12 +59,12 @@
     <div class="header-panel">
         <div class="score-box">
             <div class="mini-chip yellow"></div>
-            <span id="p1-label">Player 1</span>
+            <span>Yellow</span>
         </div>
         <div class="turn-indicator" id="turn-text">イエローの手番</div>
         <div class="score-box">
             <div class="mini-chip red"></div>
-            <span id="p2-label">Player 2</span>
+            <span>Red</span>
         </div>
     </div>
 
@@ -168,11 +72,13 @@
         <div class="board" id="board"></div>
     </div>
 
-    <div class="controls">
-        <button onclick="resetGame()">最初からやり直す</button>
-    </div>
+    <button onclick="resetGame()">最初からやり直す</button>
 
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; 
+        const cpuDifficulty = urlParams.get('diff') || 'normal';
+
         const cols = 7;
         const rows = 6;
         let board = [];
@@ -187,7 +93,6 @@
             currentPlayer = 1;
             gameOver = false;
             turnTextEl.innerText = "イエローの手番";
-            
             createBoardDOM();
         }
 
@@ -197,9 +102,7 @@
                 for (let c = 0; c < cols; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
-                    cell.dataset.row = r;
-                    cell.dataset.col = c;
-                    cell.addEventListener('click', () => dropChip(c));
+                    cell.addEventListener('click', () => handleColumnClick(c));
                     boardEl.appendChild(cell);
                 }
             }
@@ -212,15 +115,19 @@
             return -1;
         }
 
-        function dropChip(col) {
+        function handleColumnClick(col) {
             if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPUターン中はプレイヤー操作を制限
 
+            executeMove(col);
+        }
+
+        function executeMove(col) {
             const targetRow = getLowestEmptyRow(col);
-            if (targetRow === -1) return; // 満杯
+            if (targetRow === -1) return;
 
             board[targetRow][col] = currentPlayer;
 
-            // アニメーション用チップ要素の追加
             const targetCellIdx = targetRow * cols + col;
             const targetCell = boardEl.children[targetCellIdx];
             
@@ -228,57 +135,96 @@
             chip.className = `chip ${currentPlayer === 1 ? 'yellow' : 'red'}`;
             targetCell.appendChild(chip);
 
-            // 勝敗判定
             if (checkWin(targetRow, col, currentPlayer)) {
                 gameOver = true;
                 turnTextEl.innerText = `${currentPlayer === 1 ? 'イエロー' : 'レッド'}の勝ち！`;
                 return;
             }
 
-            // 引き分け判定
             if (board.every(row => row.every(cell => cell !== 0))) {
                 gameOver = true;
                 turnTextEl.innerText = "引き分け！";
                 return;
             }
 
-            // プレイヤー交代
             currentPlayer = currentPlayer === 1 ? 2 : 1;
-            turnTextEl.innerText = currentPlayer === 1 ? "イエローの手番" : "レッドの手番";
+            turnTextEl.innerText = currentPlayer === 1 ? "イエローの手番" : (gameMode === 'vs_cpu' ? "CPUの番" : "レッドの手番");
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 700);
+            }
+        }
+
+        // コネクトフォーCPU
+        function cpuMove() {
+            if (gameOver) return;
+
+            const validCols = [];
+            for (let c = 0; c < cols; c++) {
+                if (getLowestEmptyRow(c) !== -1) validCols.push(c);
+            }
+
+            if (validCols.length === 0) return;
+
+            let chosenCol = null;
+
+            if (cpuDifficulty === 'easy') {
+                chosenCol = validCols[Math.floor(Math.random() * validCols.length)];
+            } else {
+                // 『ふつう』『つよい』は攻撃＆防御ロジック
+                // 1. まずCPU(2)が「即座に勝てる列」があるか判定
+                for (let c of validCols) {
+                    const r = getLowestEmptyRow(c);
+                    board[r][c] = 2; // シミュレート
+                    const isWin = checkWin(r, c, 2);
+                    board[r][c] = 0; // 戻す
+                    if (isWin) { chosenCol = c; break; }
+                }
+
+                // 2. なければ、プレイヤー(1)が「次の一手で四目並びになる列」を完全ブロック
+                if (chosenCol === null) {
+                    for (let c of validCols) {
+                        const r = getLowestEmptyRow(c);
+                        board[r][c] = 1; // シミュレート
+                        const isWin = checkWin(r, c, 1);
+                        board[r][c] = 0; // 戻す
+                        if (isWin) { chosenCol = c; break; }
+                    }
+                }
+
+                // 3. どちらもなければ、中央列付近を優先配置
+                if (chosenCol === null) {
+                    const centerOrder = [3, 2, 4, 1, 5, 0, 6];
+                    for (let c of centerOrder) {
+                        if (validCols.includes(c)) {
+                            chosenCol = c;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            executeMove(chosenCol);
         }
 
         function checkWin(r, c, player) {
-            const directions = [
-                [0, 1],   // 横
-                [1, 0],   // 縦
-                [1, 1],   // 斜め右下
-                [1, -1]   // 斜め左下
-            ];
-
+            const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
             for (let [dr, dc] of directions) {
                 let count = 1;
-
-                // 正方向の探索
                 let nr = r + dr, nc = c + dc;
                 while (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] === player) {
                     count++; nr += dr; nc += dc;
                 }
-
-                // 逆方向の探索
                 nr = r - dr; nc = c - dc;
                 while (nr >= 0 && nr < rows && nc >= 0 && nc < cols && board[nr][nc] === player) {
                     count++; nr -= dr; nc -= dc;
                 }
-
                 if (count >= 4) return true;
             }
             return false;
         }
 
-        function resetGame() {
-            initGame();
-        }
-
+        function resetGame() { initGame(); }
         initGame();
     </script>
 </body>

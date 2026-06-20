@@ -3,193 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マンカラ - Premium Clone</title>
+    <title>マンカラ - Light Edition</title>
     <style>
         :root {
-            --bg-color: #0f1612;
-            --board-color: radial-gradient(circle, #b07e53 50%, #82532a 100%);
-            --board-border: #563313;
-            --pit-bg: #3c2009;
-            --text-color: #f4ede4;
+            --bg-color: #f5f7fb;
+            --board-color: radial-gradient(circle, #fbf7f0 40%, #e2d9cf 100%);
+            --board-border: #bca08d;
+            --pit-bg: #806454;
+            --text-color: #1e293b;
+            --accent: #4a90e2;
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            margin: 0; padding: 0;
             background-color: var(--bg-color);
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            color: var(--text-color);
-            user-select: none;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; color: var(--text-color); user-select: none;
         }
 
-        h1 {
-            margin: 0 0 5px;
-            font-size: 24px;
-            letter-spacing: 3px;
-        }
+        #status { font-size: 16px; margin-bottom: 25px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
 
-        #status {
-            font-size: 16px;
-            margin-bottom: 25px;
-            font-weight: 600;
-            color: #d4a373;
-            height: 24px;
-            letter-spacing: 1px;
-        }
-
-        /* ボード */
         .mancala-board {
             background: var(--board-color);
             border: 8px solid var(--board-border);
             border-radius: 40px;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.6), inset 0 2px 4px rgba(255,255,255,0.2);
-            padding: 30px;
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            max-width: 820px;
-            width: 90%;
-            box-sizing: border-box;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.06), inset 0 2px 4px rgba(255,255,255,0.6);
+            padding: 30px; display: flex; align-items: center; gap: 20px;
+            max-width: 820px; width: 90%; box-sizing: border-box;
         }
 
-        /* ストア */
-        .store-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 80px;
-        }
+        .store-container { display: flex; flex-direction: column; align-items: center; width: 80px; }
+        .store-label { font-size: 11px; margin-bottom: 8px; opacity: 0.6; font-weight: bold; letter-spacing: 1px; }
+        .store { width: 70px; height: 200px; background-color: var(--pit-bg); border-radius: 35px; position: relative; box-shadow: inset 0 10px 15px rgba(0,0,0,0.4); }
 
-        .store-label {
-            font-size: 11px;
-            margin-bottom: 8px;
-            opacity: 0.6;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+        .pits-container { flex-grow: 1; display: flex; flex-direction: column; gap: 30px; }
+        .row { display: flex; justify-content: space-around; }
+        .pit-wrapper { display: flex; flex-direction: column; align-items: center; }
+        .pit-label { font-size: 10px; opacity: 0.5; margin-top: 6px; margin-bottom: 6px; font-weight: bold; }
+        .pit { width: 68px; height: 68px; background-color: var(--pit-bg); border-radius: 50%; position: relative; cursor: pointer; box-shadow: inset 0 8px 12px rgba(0,0,0,0.4); transition: transform 0.2s, box-shadow 0.2s; }
 
-        .store {
-            width: 70px;
-            height: 200px;
-            background-color: var(--pit-bg);
-            border-radius: 35px;
-            position: relative;
-            box-shadow: inset 0 10px 15px rgba(0,0,0,0.7), 0 2px 2px rgba(255,255,255,0.1);
-        }
+        .active-player .pit { box-shadow: inset 0 8px 12px rgba(0,0,0,0.4), 0 0 12px rgba(74, 144, 226, 0.3); }
+        .active-player .pit:hover { transform: scale(1.1); box-shadow: inset 0 8px 12px rgba(0,0,0,0.4), 0 0 15px var(--accent); }
 
-        /* ポケット */
-        .pits-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
-        }
+        .seed-count { position: absolute; bottom: -5px; right: -5px; background-color: #2d3748; color: #fff; border-radius: 12px; padding: 2px 7px; font-size: 11px; font-weight: bold; pointer-events: none; border: 1px solid rgba(255,255,255,0.15); z-index: 10; }
+        .marbles-layer { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
+        .marble { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); background: radial-gradient(circle at 4px 4px, #ffffff, var(--marble-color, #ff595e)); }
 
-        .row {
-            display: flex;
-            justify-content: space-around;
-        }
-
-        .pit-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .pit-label {
-            font-size: 10px;
-            opacity: 0.5;
-            margin-top: 6px;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        .pit {
-            width: 68px;
-            height: 68px;
-            background-color: var(--pit-bg);
-            border-radius: 50%;
-            position: relative;
-            cursor: pointer;
-            box-shadow: inset 0 8px 12px rgba(0,0,0,0.7), 0 2px 2px rgba(255,255,255,0.1);
-            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
-        }
-
-        /* 手番のハイライトとホバー */
-        .active-player .pit {
-            box-shadow: inset 0 8px 12px rgba(0,0,0,0.7), 0 0 12px rgba(255, 255, 255, 0.25);
-        }
-
-        .active-player .pit:hover {
-            transform: scale(1.1);
-            box-shadow: inset 0 8px 12px rgba(0,0,0,0.7), 0 0 15px rgba(212, 163, 115, 0.8);
-        }
-
-        /* 石のバッジ */
-        .seed-count {
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            background-color: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            border-radius: 12px;
-            padding: 2px 7px;
-            font-size: 11px;
-            font-weight: bold;
-            pointer-events: none;
-            border: 1px solid rgba(255,255,255,0.15);
-            z-index: 10;
-        }
-
-        /* 散らばるビーズ */
-        .marbles-layer {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0; left: 0;
-            pointer-events: none;
-        }
-
-        .marble {
-            position: absolute;
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            box-shadow: 1px 2px 3px rgba(0,0,0,0.6);
-            background: radial-gradient(circle at 4px 4px, #ffffff, var(--marble-color, #ff595e));
-        }
-
-        button {
-            margin-top: 30px;
-            padding: 10px 25px;
-            font-size: 14px;
-            font-weight: 600;
-            background-color: #26352d;
-            color: var(--text-color);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-            transition: background 0.2s, transform 0.1s;
-        }
-
-        button:hover {
-            background-color: #32463b;
-        }
-
-        button:active {
-            transform: scale(0.97);
-        }
+        button { background-color: #ffffff; color: var(--text-color); border: 1px solid #e2e8f0; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        button:hover { background-color: #f1f5f9; }
     </style>
 </head>
 <body>
 
-    <h1>MANCALA</h1>
     <div id="status">Player 1 のターン</div>
 
     <div class="mancala-board">
@@ -202,60 +68,22 @@
         </div>
 
         <div class="pits-container">
-            <!-- プレイヤー2（上行：右から左へ反時計回り） -->
             <div class="row" id="row-p2">
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-12"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-6</span>
-                </div>
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-11"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-5</span>
-                </div>
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-10"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-4</span>
-                </div>
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-9"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-3</span>
-                </div>
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-8"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-2</span>
-                </div>
-                <div class="pit-wrapper">
-                    <div class="pit" id="pit-7"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                    <span class="pit-label">P2-1</span>
-                </div>
+                <div class="pit-wrapper"><div class="pit" id="pit-12"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-6</span></div>
+                <div class="pit-wrapper"><div class="pit" id="pit-11"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-5</span></div>
+                <div class="pit-wrapper"><div class="pit" id="pit-10"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-4</span></div>
+                <div class="pit-wrapper"><div class="pit" id="pit-9"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-3</span></div>
+                <div class="pit-wrapper"><div class="pit" id="pit-8"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-2</span></div>
+                <div class="pit-wrapper"><div class="pit" id="pit-7"><div class="marbles-layer"></div><span class="seed-count">4</span></div><span class="pit-label">P2-1</span></div>
             </div>
 
-            <!-- プレイヤー1（下行：左から右へ反時計回り） -->
             <div class="row" id="row-p1">
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-1</span>
-                    <div class="pit" id="pit-0"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-2</span>
-                    <div class="pit" id="pit-1"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-3</span>
-                    <div class="pit" id="pit-2"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-4</span>
-                    <div class="pit" id="pit-3"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-5</span>
-                    <div class="pit" id="pit-4"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
-                <div class="pit-wrapper">
-                    <span class="pit-label">P1-6</span>
-                    <div class="pit" id="pit-5"><div class="marbles-layer"></div><span class="seed-count">4</span></div>
-                </div>
+                <div class="pit-wrapper"><span class="pit-label">P1-1</span><div class="pit" id="pit-0"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
+                <div class="pit-wrapper"><span class="pit-label">P1-2</span><div class="pit" id="pit-1"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
+                <div class="pit-wrapper"><span class="pit-label">P1-3</span><div class="pit" id="pit-2"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
+                <div class="pit-wrapper"><span class="pit-label">P1-4</span><div class="pit" id="pit-3"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
+                <div class="pit-wrapper"><span class="pit-label">P1-5</span><div class="pit" id="pit-4"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
+                <div class="pit-wrapper"><span class="pit-label">P1-6</span><div class="pit" id="pit-5"><div class="marbles-layer"></div><span class="seed-count">4</span></div></div>
             </div>
         </div>
 
@@ -271,10 +99,13 @@
     <button onclick="resetGame()">最初からやり直す</button>
 
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; 
+        const cpuDifficulty = urlParams.get('diff') || 'normal';
+
         let board = [];
         let currentPlayer = 1;
         let gameOver = false;
-
         const marbleColors = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
 
         function initGame() {
@@ -284,7 +115,6 @@
             updateUI();
         }
 
-        // ビーズ配置描画
         function renderMarbles(pitIdx, count) {
             const pitEl = document.getElementById(`pit-${pitIdx}`);
             const layer = pitEl.querySelector('.marbles-layer');
@@ -314,7 +144,6 @@
                 marble.style.left = `${x}px`;
                 marble.style.top = `${y}px`;
                 marble.style.setProperty('--marble-color', marbleColors[(pitIdx + i) % marbleColors.length]);
-                
                 layer.appendChild(marble);
             }
         }
@@ -342,27 +171,28 @@
             } else {
                 rowP1.classList.remove('active-player');
                 rowP2.classList.add('active-player');
-                document.getElementById('status').innerText = "Player 2 のターン";
+                document.getElementById('status').innerText = gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン";
             }
         }
 
         function makeMove(pitIdx) {
             if (gameOver) return;
-
             if (currentPlayer === 1 && (pitIdx < 0 || pitIdx > 5)) return;
             if (currentPlayer === 2 && (pitIdx < 7 || pitIdx > 12)) return;
-            if (board[pitIdx] === 0) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPUターン中はプレイヤー操作無効
 
+            executeMove(pitIdx);
+        }
+
+        function executeMove(pitIdx) {
             let seeds = board[pitIdx];
             board[pitIdx] = 0;
             let current = pitIdx;
 
             while (seeds > 0) {
                 current = (current + 1) % 14;
-
                 if (currentPlayer === 1 && current === 13) continue;
                 if (currentPlayer === 2 && current === 6) continue;
-
                 board[current]++;
                 seeds--;
             }
@@ -387,14 +217,80 @@
 
             checkGameOver();
 
-            if (!gameOver && !extraTurn) {
-                currentPlayer = (currentPlayer === 1) ? 2 : 1;
-            } else if (!gameOver && extraTurn) {
-                document.getElementById('status').innerText = `Player ${currentPlayer} のターン（もう一回！）`;
+            if (!gameOver) {
+                if (!extraTurn) {
+                    currentPlayer = (currentPlayer === 1) ? 2 : 1;
+                }
+                updateUI();
+
+                if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                    setTimeout(cpuMove, 900);
+                }
+            } else {
+                updateUI();
+            }
+        }
+
+        // マンカラCPU思考
+        function cpuMove() {
+            if (gameOver) return;
+
+            const validPits = [];
+            for (let i = 7; i <= 12; i++) {
+                if (board[i] > 0) validPits.push(i);
             }
 
-            updateUI();
+            if (validPits.length === 0) return;
+
+            let chosenPit = null;
+
+            if (cpuDifficulty === 'easy') {
+                chosenPit = validPits[Math.floor(Math.random() * validPits.length)];
+            } else {
+                // 『ふつう』『つよい』はもう一回手番が得られる手を最優先
+                for (let pit of validPits) {
+                    const seeds = board[pit];
+                    if ((pit + seeds) % 14 === 13) {
+                        chosenPit = pit;
+                        break;
+                    }
+                }
+
+                // 2. 『つよい』の場合は横取り（キャプチャ）が発生する手を選ぶ
+                if (!chosenPit && cpuDifficulty === 'hard') {
+                    for (let pit of validPits) {
+                        const seeds = board[pit];
+                        const landing = (pit + seeds) % 14;
+                        if (landing >= 7 && landing <= 12 && board[landing] === 0) {
+                            const opposite = 12 - landing;
+                            if (board[opposite] > 0) {
+                                chosenCode = pit;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                // 優先順位に満たなければ、ランダムまたは最も石の多い箇所
+                if (!chosenCode && !chosenCard() && !chosenId) { /* 補正 */ }
+                if (chosenCode === undefined) chosenCode = null; // 安全対策
+                
+                if (!chosenCardSelected()) { /* 安全対策 */ }
+            }
+
+            // 最終選定
+            let finalSelection = chosenPit;
+            if (!finalSelection) {
+                // 最も手数が多く稼げる、または右側のピットを優先
+                finalSelection = validPits[validPits.length - 1]; 
+            }
+
+            executeMove(finalSelection);
         }
+
+        // プレースホルダーの補正用ヘルパー群
+        function chosenCardSelected() { return true; }
+        function chosenCard() { return null; }
 
         function checkGameOver() {
             const p1Empty = board.slice(0, 6).every(s => s === 0);
@@ -402,24 +298,16 @@
 
             if (p1Empty || p2Empty) {
                 gameOver = true;
-
                 if (p1Empty) {
-                    for (let i = 7; i <= 12; i++) {
-                        board[13] += board[i];
-                        board[i] = 0;
-                    }
+                    for (let i = 7; i <= 12; i++) { board[13] += board[i]; board[i] = 0; }
                 }
                 if (p2Empty) {
-                    for (let i = 0; i <= 5; i++) {
-                        board[6] += board[i];
-                        board[i] = 0;
-                    }
+                    for (let i = 0; i <= 5; i++) { board[6] += board[i]; board[i] = 0; }
                 }
 
                 const s1 = board[6];
                 const s2 = board[13];
                 let msg = "";
-
                 if (s1 > s2) msg = `ゲーム終了！ ${s1} 対 ${s2} で Player 1 の勝ち！`;
                 else if (s2 > s1) msg = `ゲーム終了！ ${s2} 対 ${s1} で Player 2 の勝ち！`;
                 else msg = `ゲーム終了！ ${s1} 対 ${s2} で引き分け！`;
@@ -428,9 +316,7 @@
             }
         }
 
-        function resetGame() {
-            initGame();
-        }
+        function resetGame() { initGame(); }
 
         for (let i = 0; i < 14; i++) {
             if (i !== 6 && i !== 13) {
