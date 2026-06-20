@@ -75,7 +75,7 @@
             transform: scale(1);
         }
 
-        /* カルーセル */
+        /* 1. カルーセル */
         .carousel-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -242,6 +242,7 @@
 
         .action-group { display: flex; gap: 12px; margin-top: auto; }
 
+        /* ボタン共通 */
         .btn-primary {
             background-color: var(--accent-color);
             color: #ffffff;
@@ -274,7 +275,7 @@
         }
         .btn-secondary:hover { background-color: #e2e8f0; }
 
-        /* あそびかた全画面オーバーレイ */
+        /* 3. あそびかた全画面オーバーレイ */
         #tutorial-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(255,255,255,0.92);
@@ -332,7 +333,7 @@
         .tut-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #e2e8f0; transition: background-color 0.2s; }
         .tut-dot.active { background-color: var(--accent-color); }
 
-        /* ゲームプレイ画面 */
+        /* 4. ゲームプレイ画面 */
         #game-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.95); z-index: 2000;
@@ -368,7 +369,7 @@
     </header>
 
     <div class="screen-container">
-        <!-- カルーセル選択画面 -->
+        <!-- スクリーン1：カルーセル選択画面 -->
         <div class="screen active" id="screen-carousel">
             <div class="carousel-wrapper" id="game-carousel-wrapper">
                 <div class="carousel" id="game-carousel">
@@ -461,7 +462,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 ロビーに戻る
             </button>
-            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="current-game-title"></div>
+            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="overlay-title">PLAYING</div>
             <div style="width: 100px;"></div>
         </div>
         <div class="game-iframe-container">
@@ -498,6 +499,7 @@
             }
         }
 
+        // 全24ゲームのメタデータ配列
         const gamesData = {
             reversi: { 
                 title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
@@ -521,7 +523,7 @@
             },
             connectfour: { 
                 title: 'コネクトフォー', icon: '🟡🔴', file: 'connectfour.html', supports2P: true, 
-                desc: '格子状 of a kind! ボードに上からチップを交互に落としていき、自分の色のチップを縦・横・斜めのいずれかで「4枚」一直線に並べたプレイヤーの勝利となります。', 
+                desc: '格子状のボードに上からチップを交互に落としていき、自分の色のチップを縦・横・斜めのいずれかで「4枚」一直線に並べたプレイヤーの勝利となります。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/></svg>`,
                 steps: [
                     "縦7列・横6行の青いグリッドボードに、イエローとレッドが交互に上からチップをスライドして落とします。",
@@ -552,9 +554,9 @@
             yacht: { 
                 title: 'ヨット', icon: '🎲🗒️', file: 'yacht.html', supports2P: true, 
                 desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="37" cy="45" r="4" fill="#000"/><rect x="54" y="44" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
                 steps: [
-                    "サイコロを同時に振して開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
+                    "サイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
                     "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
                     "すべてのカテゴリを埋め終えた時点で、合計得点が一番高いプレイヤーが優勝となります。"
                 ]
@@ -604,7 +606,7 @@
                 desc: '2枚めくって同じ数字を揃える記憶力ゲーム。ペア成立時に難易度別のCPUによる高品位な対戦が特徴。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="21" y="58" font-size="24" fill="#d4a373">?</text><rect x="56" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="67" y="58" font-size="24" fill="#d4a373">?</text></svg>`,
                 steps: [
-                    "裏向きに配置された16枚の中から、自分のターンに2枚めくって表にします。",
+                    "裏向きに配置された16枚のカードの中から、自分のターンに2枚めくって表にします。",
                     "カードの数字が合致すればペア成立として獲得し、もう一度続けてめくることができます。",
                     "数字が合わなければ手番は交代。すべてのカードがペアとなった時点で、獲得枚数が多いプレイヤーの勝利です。"
                 ]
@@ -614,7 +616,7 @@
                 desc: '空いたスペースを活用して数字をスライドし、1から15まで順番に揃えて並び替える1人専用ロジックパズル。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#0c120f"/><rect x="10" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="34" font-size="20" font-weight="bold" fill="#352110">1</text><rect x="52" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="63" y="34" font-size="20" font-weight="bold" fill="#352110">2</text><rect x="10" y="52" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="76" font-size="20" font-weight="bold" fill="#352110">3</text></svg>`,
                 steps: [
-                    "4x4のパネルの中に、1〜15 of a kind! の数字と『空きスペース』がバラバラに配置されています。",
+                    "4x4のパネルの中に、1〜15の数字と『空きスペース』がバラバラに配置されています。",
                     "空きスペースに隣接する数字をスライドさせて移動させます。",
                     "左上から順番に『1, 2, 3... 15』の形に美しく整列させることができれば、見事パズルクリアです。"
                 ]
@@ -641,7 +643,7 @@
             },
             war: { 
                 title: '戦争', icon: '⚔️🃏', file: 'war.html', supports2P: true, 
-                desc: '配られた手札をお互いに1枚ずつ出し合い、純粋に数字の絶対的な大きさのみで勝負するシンプルなゲーム。', 
+                desc: '配られた手札をお互いに1枚ずつ出し合い、数字の絶対的な大きさのみで勝負するシンプルなゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 28 49)"/><rect x="56" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 72 49)"/><text x="36" y="56" font-size="22">⚔️</text></svg>`,
                 steps: [
                     "トランプ52枚が均等にお互い（各26枚）に配られ、見えない山札としてセットします。",
@@ -709,8 +711,6 @@
                     "最終的に、右上の4つの土台スロットに、ダイヤ・ハート・スペード・クラブのすべてをAからKまで完全に回収しきればゲームクリアです。"
                 ]
             },
-            
-            // --- 中級 残り3タイトルのメタデータ登録 ---
             ludo: { 
                 title: 'ルドー', icon: '🎲🏆', file: 'ludo.html', supports2P: true, 
                 desc: 'ダイスの出目に従って4つのコマをボード上で一周させ、誰よりも早く中央のゴールへ全てのコマを届ける競争ゲーム。', 
