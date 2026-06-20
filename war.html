@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>戦争</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 30px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .score { font-size: 16px; font-weight: bold; }
+        .battlefield { display: flex; gap: 40px; align-items: center; min-height: 160px; }
+        .player-side { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .card-slot { width: 80px; height: 115px; border-radius: 8px; border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .card-slot.has-card { background: #fff; color: #111; border: none; }
+        .card-slot.has-card.red { color: #d9534f; }
+        .status { font-size: 18px; color: #d4a373; font-weight: bold; margin-bottom: 25px; height: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .deck-info { font-size: 12px; opacity: 0.6; }
+        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 12px 36px; font-size: 15px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: background-color 0.2s; margin-top: 25px; }
+        button:hover { background-color: #32463b; }
+    </style>
+</head>
+<body>
+    <div class="score-panel">
+        <div class="score">Player 1 獲得枚数: <span id="p1-score">0</span>枚</div>
+        <div class="score">Player 2 獲得枚数: <span id="p2-score">0</span>枚</div>
+    </div>
+
+    <div class="status" id="status-text">カードを引いて戦闘を開始してください</div>
+
+    <div class="battlefield">
+        <div class="player-side">
+            <span class="deck-info">PLAYER 1</span>
+            <div class="card-slot" id="p1-slot">🎴</div>
+        </div>
+        <div style="font-size: 24px; opacity: 0.5; font-weight: bold;">VS</div>
+        <div class="player-side">
+            <span class="deck-info">PLAYER 2</span>
+            <div class="card-slot" id="p2-slot">🎴</div>
+        </div>
+    </div>
+
+    <button id="draw-btn" onclick="playRound()">カードを引く</button>
+    <button onclick="resetGame()" style="background: none; border: none; text-decoration: underline; color: #8e9a93; margin-top: 15px; font-size: 12px; padding: 0;">リセット</button>
+
+    <script>
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']; // 強さ順
+        const suits = ['❤️', '♠️', '♦️', '♣️'];
+        let p1Deck = [];
+        let p2Deck = [];
+        let p1Score = 0;
+        let p2Score = 0;
+        let pot = [];
+        let gameOver = false;
+
+        function initGame() {
+            p1Score = 0; p2Score = 0; pot = []; gameOver = false;
+            document.getElementById('p1-score').innerText = 0;
+            document.getElementById('p2-score').innerText = 0;
+            document.getElementById('status-text').innerText = "カードを引いて戦闘を開始してください";
+            document.getElementById('p1-slot').className = 'card-slot';
+            document.getElementById('p1-slot').innerText = '🎴';
+            document.getElementById('p2-slot').className = 'card-slot';
+            document.getElementById('p2-slot').innerText = '🎴';
+            document.getElementById('draw-btn').disabled = false;
+            document.getElementById('draw-btn').innerText = "カードを引く";
+
+            // デッキを均等に2等分配る
+            let initialDeck = [];
+            suits.forEach(suit => {
+                values.forEach(val => {
+                    initialDeck.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') });
+                });
+            });
+            initialDeck.sort(() => Math.random() - 0.5);
+
+            p1Deck = initialDeck.slice(0, 26);
+            p2Deck = initialDeck.slice(26, 52);
+        }
+
+        function playRound() {
+            if (gameOver) return;
+
+            if (p1Deck.length === 0 || p2Deck.length === 0) {
+                checkWinner();
+                return;
+            }
+
+            const c1 = p1Deck.pop();
+            const c2 = p2Deck.pop();
+
+            // スロット表示更新
+            const slot1 = document.getElementById('p1-slot');
+            const slot2 = document.getElementById('p2-slot');
+
+            slot1.className = `card-slot has-card ${c1.isRed ? 'red' : ''}`;
+            slot1.innerText = `${c1.val}${c1.suit}`;
+
+            slot2.className = `card-slot has-card ${c2.isRed ? 'red' : ''}`;
+            slot2.innerText = `${c2.val}${c2.suit}`;
+
+            pot.push(c1, c2);
+
+            const power1 = values.indexOf(c1.val);
+            const power2 = values.indexOf(c2.val);
+
+            if (power1 > power2) {
+                // P1勝利
+                document.getElementById('status-text').innerText = `Player 1 の勝ち！ (${pot.length}枚獲得)`;
+                p1Score += pot.length;
+                document.getElementById('p1-score').innerText = p1Score;
+                pot = [];
+            } else if (power2 > power1) {
+                // P2勝利
+                document.getElementById('status-text').innerText = `Player 2 の勝ち！ (${pot.length}枚獲得)`;
+                p2Score += pot.length;
+                document.getElementById('p2-score').innerText = p2Score;
+                pot = [];
+            } else {
+                // 引き分け -> 連鎖（戦争）へ
+                document.getElementById('status-text').innerText = "引き分け！場に溜まります！次のカードで勝負！";
+            }
+
+            if (p1Deck.length === 0 || p2Deck.length === 0) {
+                checkWinner();
+            }
+        }
+
+        function checkWinner() {
+            gameOver = true;
+            document.getElementById('draw-btn').disabled = true;
+            let msg = "";
+            if (p1Score > p2Score) msg = `ゲーム終了！ ${p1Score} 対 ${p2Score} で Player 1 の優勝！`;
+            else if (p2Score > p1Score) msg = `ゲーム終了！ ${p2Score} 対 ${p1Score} で Player 2 の優勝！`;
+            else msg = `引き分け！ 両者 ${p1Score}枚獲得`;
+
+            document.getElementById('status-text').innerText = msg;
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
