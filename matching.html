@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神経衰弱</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .score { font-size: 18px; font-weight: bold; }
+        .turn { color: #d4a373; font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(4, 80px); gap: 15px; perspective: 1000px; }
+        .card { width: 80px; height: 110px; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .card.flipped { transform: rotateY(180deg); }
+        .face { position: absolute; width: 100%; height: 100%; border-radius: 8px; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .back { background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 3px solid #d4a373; box-sizing: border-box; color: #d4a373; }
+        .front { background: #fff; color: #111; transform: rotateY(180deg); }
+        .front.red { color: #d9534f; }
+        .matched { opacity: 0.2; cursor: default; }
+        button { margin-top: 25px; background: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="score-panel">
+        <div class="score">P1 Score: <span id="p1-score">0</span></div>
+        <div class="turn" id="turn-text">Player 1 の番</div>
+        <div class="score">P2 Score: <span id="p2-score">0</span></div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <button onclick="resetGame()">リセット</button>
+
+    <script>
+        const symbols = ['A', '2', '3', '4', '5', '6', '7', '8'];
+        const suits = ['❤️', '♠️']; // 赤と黒の2ペアずつ作成
+        let cardsData = [];
+        let flippedCards = [];
+        let p1Score = 0, p2Score = 0;
+        let currentPlayer = 1;
+        let lockBoard = false;
+
+        function initGame() {
+            p1Score = 0; p2Score = 0; currentPlayer = 1; flippedCards = []; lockBoard = false;
+            document.getElementById('p1-score').innerText = 0;
+            document.getElementById('p2-score').innerText = 0;
+            document.getElementById('turn-text').innerText = "Player 1 の番";
+
+            // 8ペア(16枚)を生成
+            cardsData = [];
+            symbols.forEach(sym => {
+                cardsData.push({ symbol: sym, suit: '❤️', isRed: true });
+                cardsData.push({ symbol: sym, suit: '♠️', isRed: false });
+            });
+            cardsData.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            cardsData.forEach((data, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.index = index;
+                card.innerHTML = `
+                    <div class="face back">♠︎</div>
+                    <div class="face front ${data.isRed ? 'red' : ''}">${data.symbol}${data.suit}</div>
+                `;
+                card.addEventListener('click', () => flipCard(card, index));
+                grid.appendChild(card);
+            });
+        }
+
+        function flipCard(card, index) {
+            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.classList.add('flipped');
+            flippedCards.push({ card, index });
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            lockBoard = true;
+            const first = cardsData[flippedCards[0].index];
+            const second = cardsData[flippedCards[1].index];
+
+            if (first.symbol === second.symbol) {
+                // ペア成立
+                setTimeout(() => {
+                    flippedCards[0].card.classList.add('matched');
+                    flippedCards[1].card.classList.add('matched');
+                    if (currentPlayer === 1) {
+                        p1Score++; document.getElementById('p1-score').innerText = p1Score;
+                    } else {
+                        p2Score++; document.getElementById('p2-score').innerText = p2Score;
+                    }
+                    flippedCards = [];
+                    lockBoard = false;
+                    checkWin();
+                }, 600);
+            } else {
+                // ペア不成立 -> 元に戻す
+                setTimeout(() => {
+                    flippedCards[0].card.classList.remove('flipped');
+                    flippedCards[1].card.classList.remove('flipped');
+                    flippedCards = [];
+                    currentPlayer = currentPlayer === 1 ? 2 : 1;
+                    document.getElementById('turn-text').innerText = `Player ${currentPlayer} の番`;
+                    lockBoard = false;
+                }, 1000);
+            }
+        }
+
+        function checkWin() {
+            const matchedCount = document.querySelectorAll('.card.matched').length;
+            if (matchedCount === 16) {
+                let winMsg = "";
+                if (p1Score > p2Score) winMsg = "Player 1 の勝ち！";
+                else if (p2Score > p1Score) winMsg = "Player 2 の勝ち！";
+                else winMsg = "引き分け！";
+                document.getElementById('turn-text').innerText = "ゲーム終了! " + winMsg;
+            }
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
