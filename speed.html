@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スピード - Premium Clone</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; --accent: #d4a373; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .status { font-size: 18px; color: var(--accent); font-weight: bold; margin-bottom: 25px; height: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .arena { display: flex; flex-direction: column; gap: 40px; align-items: center; width: 100%; max-width: 500px; }
+
+        /* 行レイアウト */
+        .card-row { display: flex; gap: 12px; justify-content: center; width: 100%; }
+        .deck-indicator { font-size: 11px; opacity: 0.5; align-self: center; margin: 0 10px; font-weight: bold; text-align: center; }
+
+        /* 中央捨て場 */
+        .center-pile { width: 70px; height: 100px; border-radius: 8px; border: 2px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: inset 0 5px 10px rgba(0,0,0,0.5); cursor: pointer; position: relative; }
+        .center-pile.has-card { background: #fff; color: #111; border: none; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .center-pile.has-card.red { color: #d9534f; }
+
+        /* 手札用カードデザイン（動的） */
+        .card { width: 70px; height: 100px; background: #fff; color: #111; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; padding: 4px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); box-sizing: border-box; transition: transform 0.1s; }
+        .card:hover { transform: scale(1.05); }
+        .card.selected { transform: translateY(-12px) scale(1.05); border: 2px solid var(--accent); }
+        .card.red { color: #d9534f; }
+        .card.empty { background: transparent; border: 1px dashed rgba(255,255,255,0.05); box-shadow: none; cursor: default; }
+
+        .stuck-panel { margin-top: 25px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #32463b; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="status" id="status-text">手札（下の4枚）から、中央のカードと数字が前後するものを重ねてください</div>
+
+    <div class="arena">
+        <!-- 相手手札（CPU：非表示） -->
+        <div class="card-row">
+            <div class="deck-indicator">相手山札<br><span id="p2-deck-count">22</span>枚</div>
+            <div class="card empty" id="p2-card-0"></div>
+            <div class="card empty" id="p2-card-1"></div>
+            <div class="card empty" id="p2-card-2"></div>
+            <div class="card empty" id="p2-card-3"></div>
+        </div>
+
+        <!-- 台座（中央捨て場） -->
+        <div class="card-row" style="gap: 40px;">
+            <div class="center-pile" id="pile-0" onclick="tryPlaceCard(0)"></div>
+            <div class="center-pile" id="pile-1" onclick="tryPlaceCard(1)"></div>
+        </div>
+
+        <!-- あなた手札 -->
+        <div class="card-row">
+            <div class="deck-indicator">あなた山札<br><span id="p1-deck-count">22</span>枚</div>
+            <div class="card" id="p1-card-0" onclick="selectCard(0)"></div>
+            <div class="card" id="p1-card-1" onclick="selectCard(1)"></div>
+            <div class="card" id="p1-card-2" onclick="selectCard(2)"></div>
+            <div class="card" id="p1-card-3" onclick="selectCard(3)"></div>
+        </div>
+    </div>
+
+    <div class="stuck-panel">
+        <button id="stuck-btn" onclick="handleStuck()">詰まり（お互い出せない）</button>
+        <button onclick="resetGame()" style="background: none; border: none; text-decoration: underline; color: #8e9a93; padding: 0; font-size: 12px; margin-top: 10px;">リセット</button>
+    </div>
+
+    <script>
+        const suits = ['❤️', '♠️', '♦️', '♣️'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        let p1Deck = [];
+        let p2Deck = [];
+        let p1Hand = [null, null, null, null];
+        let p2Hand = [null, null, null, null];
+        let piles = [null, null];
+
+        let selectedHandIdx = null;
+        let gameOver = false;
+        let cpuInterval = null;
+
+        function initGame() {
+            p1Deck = []; p2Deck = []; p1Hand = [null, null, null, null]; p2Hand = [null, null, null, null]; piles = [null, null];
+            selectedHandIdx = null; gameOver = false;
+            document.getElementById('status-text').innerText = "スピード勝負！カードを繋げてください！";
+
+            // デッキ作成
+            let deck = [];
+            suits.forEach(s => {
+                values.forEach(v => {
+                    deck.push({ val: v, suit: s, isRed: (s === '❤️' || s === '♦️') });
+                });
+            });
+            deck.sort(() => Math.random() - 0.5);
+
+            // 26枚ずつ山分け
+            p1Deck = deck.slice(0, 26);
+            p2Deck = deck.slice(26, 52);
+
+            // 初期配置
+            piles[0] = p1Deck.pop();
+            piles[1] = p2Deck.pop();
+
+            for (let i = 0; i < 4; i++) {
+                p1Hand[i] = p1Deck.pop();
+                p2Hand[i] = p2Deck.pop();
+            }
+
+            updateUI();
+            
+            // リアルタイムCPU稼働（1.6秒ごとに判断）
+            if (cpuInterval) clearInterval(cpuInterval);
+            cpuInterval = setInterval(cpuTick, 1600);
+        }
+
+        // 差が1（KとAの循環含む）かチェックするロジック
+        function canConnect(val1, val2) {
+            const idx1 = values.indexOf(val1);
+            const idx2 = values.indexOf(val2);
+            const diff = Math.abs(idx1 - idx2);
+            return diff === 1 || diff === 12;
+        }
+
+        function selectCard(idx) {
+            if (gameOver || !p1Hand[idx]) return;
+            
+            if (selectedHandIdx === idx) {
+                selectedHandIdx = null; // 解除
+            } else {
+                selectedHandIdx = idx;
+            }
+            updateUI();
+        }
+
+        function tryPlaceCard(pileIdx) {
+            if (gameOver || selectedHandIdx === null) return;
+
+            const card = p1Hand[selectedHandIdx];
+            const pileCard = piles[pileIdx];
+
+            if (canConnect(card.val, pileCard.val)) {
+                // 投下成功
+                piles[pileIdx] = card;
+                p1Hand[selectedHandIdx] = p1Deck.length > 0 ? p1Deck.pop() : null;
+                selectedHandIdx = null;
+
+                checkWinCondition();
+                updateUI();
+            }
+        }
+
+        function cpuTick() {
+            if (gameOver) return;
+
+            // CPUの手札から出せる場所を探す
+            for (let i = 0; i < 4; i++) {
+                const card = p2Hand[i];
+                if (!card) continue;
+
+                for (let p = 0; p < 2; p++) {
+                    if (canConnect(card.val, piles[p].val)) {
+                        piles[p] = card;
+                        p2Hand[i] = p2Deck.length > 0 ? p2Deck.pop() : null;
+                        
+                        checkWinCondition();
+                        updateUI();
+                        return; // 1回につき1枚まで
+                    }
+                }
+            }
+        }
+
+        function handleStuck() {
+            if (gameOver) return;
+
+            // お互いの山札から1枚ずつ、中央に新たなカードを配る
+            if (p1Deck.length > 0 && p2Deck.length > 0) {
+                piles[0] = p1Deck.pop();
+                piles[1] = p2Deck.pop();
+                updateUI();
+            } else {
+                // 山札が切れて完全に詰まった場合は、手札を強制補充
+                alert("山札がありません。引き分けとしてゲームを終了します。");
+                endGame("引き分け");
+            }
+        }
+
+        function checkWinCondition() {
+            const p1Empty = p1Hand.every(c => c === null);
+            const p2Empty = p2Hand.every(c => c === null);
+
+            if (p1Empty) {
+                endGame("あなたの勝ち！");
+            } else if (p2Empty) {
+                endGame("相手（CPU）の勝ち！");
+            }
+        }
+
+        function endGame(msg) {
+            gameOver = true;
+            if (cpuInterval) clearInterval(cpuInterval);
+            document.getElementById('status-text').innerText = `ゲーム終了！ ${msg}`;
+        }
+
+        function updateUI() {
+            // あなたの山札
+            document.getElementById('p1-deck-count').innerText = p1Deck.length;
+            document.getElementById('p2-deck-count').innerText = p2Deck.length;
+
+            // 中央捨て場
+            for (let p = 0; p < 2; p++) {
+                const el = document.getElementById(`pile-${p}`);
+                const card = piles[p];
+                el.className = `center-pile has-card ${card.isRed ? 'red' : ''}`;
+                el.innerText = `${card.val}${card.suit}`;
+            }
+
+            // あなた手札
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`p1-card-${i}`);
+                const card = p1Hand[i];
+                if (card) {
+                    el.className = `card ${card.isRed ? 'red' : ''}`;
+                    if (selectedHandIdx === i) el.classList.add('selected');
+                    el.innerHTML = `
+                        <div>${card.val}</div>
+                        <div style="font-size:24px; text-align:center;">${card.suit}</div>
+                        <div style="text-align:right; transform:rotate(180deg);">${card.val}</div>
+                    `;
+                } else {
+                    el.className = 'card empty';
+                    el.innerHTML = '';
+                }
+            }
+
+            // 相手手札（ビジュアルのみ、裏面表示）
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`p2-card-${i}`);
+                if (p2Hand[i]) {
+                    el.className = 'card';
+                    el.style.background = 'linear-gradient(135deg, #1f4231 0%, #0d2117 100%)';
+                    el.style.border = '1px solid #d4a373';
+                    el.innerText = '🎴';
+                    el.style.color = '#d4a373';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                } else {
+                    el.className = 'card empty';
+                    el.style.background = '';
+                    el.style.border = '';
+                    el.innerHTML = '';
+                }
+            }
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
