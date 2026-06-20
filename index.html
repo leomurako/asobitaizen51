@@ -24,7 +24,6 @@
             min-height: 100vh;
         }
 
-        /* ヘッダーデザイン */
         header {
             text-align: center;
             padding: 60px 20px 40px;
@@ -46,7 +45,6 @@
             margin: 0;
         }
 
-        /* ゲーム選択グリッド */
         .container {
             max-width: 1000px;
             margin: 0 auto;
@@ -59,7 +57,6 @@
             gap: 25px;
         }
 
-        /* ゲームカード */
         .game-card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -89,7 +86,6 @@
             position: relative;
         }
 
-        /* ゲームごとのアイコンの背景演出 */
         .card-banner::after {
             content: '';
             position: absolute;
@@ -121,7 +117,6 @@
             margin: 0;
         }
 
-        /* 動的ゲームローダー（オーバーレイ） */
         #game-overlay {
             position: fixed;
             top: 0;
@@ -141,7 +136,6 @@
             opacity: 1;
         }
 
-        /* ゲーム操作バー */
         .game-bar {
             background-color: #090e0b;
             height: 60px;
@@ -214,12 +208,30 @@
                 </div>
             </div>
 
-            <!-- 開発中プレースホルダー（将来的に追加可能） -->
-            <div class="game-card" style="opacity: 0.5; cursor: not-allowed;">
-                <div class="card-banner">🧩</div>
+            <!-- コネクトフォー -->
+            <div class="game-card" onclick="launchGame('connectfour.html')">
+                <div class="card-banner">🟡🔴</div>
                 <div class="card-info">
-                    <h3 class="card-title">スライドパズル</h3>
-                    <p class="card-desc">（近日追加予定）1枚の絵を完成させる、直感的なスライドパズル。</p>
+                    <h3 class="card-title">コネクトフォー</h3>
+                    <p class="card-desc">重力を応用した立体四目並べ。上からチップがカシャンと滑り落ちる物理挙動を再現。</p>
+                </div>
+            </div>
+
+            <!-- ヒット＆ブロー -->
+            <div class="game-card" onclick="launchGame('hitandblow.html')">
+                <div class="card-banner">🎨🔍</div>
+                <div class="card-info">
+                    <h3 class="card-title">ヒット＆ブロー</h3>
+                    <p class="card-desc">隠された4つの色と位置を推測する論理パズル。ボードゲームらしい木製パーツ風UI。</p>
+                </div>
+            </div>
+
+            <!-- 五目ならべ -->
+            <div class="game-card" onclick="launchGame('gomoku.html')">
+                <div class="card-banner">🪵⚫</div>
+                <div class="card-info">
+                    <h3 class="card-title">五目ならべ</h3>
+                    <p class="card-desc">シンプルな碁盤に石を並べる知恵比べ。美しく描画された15x15の木製碁盤。</p>
                 </div>
             </div>
         </div>
@@ -233,7 +245,7 @@
                 ロビーに戻る
             </button>
             <div style="font-weight: 600; font-size: 14px; letter-spacing: 1px; color: var(--text-muted);">PLAYING</div>
-            <div style="width: 100px;"></div> <!-- バランス調整用スペース -->
+            <div style="width: 100px;"></div>
         </div>
         <div class="game-iframe-container">
             <iframe id="game-frame" src=""></iframe>
@@ -247,18 +259,17 @@
         function launchGame(url) {
             iframe.src = url;
             overlay.style.display = 'flex';
-            // フェードイン用のディレイ
             setTimeout(() => {
                 overlay.classList.add('active');
             }, 10);
-            document.body.style.overflow = 'hidden'; // 背後のスクロール防止
+            document.body.style.overflow = 'hidden';
         }
 
         function closeGame() {
             overlay.classList.remove('active');
             setTimeout(() => {
                 overlay.style.display = 'none';
-                iframe.src = ''; // メモリ解放・リセット
+                iframe.src = '';
             }, 300);
             document.body.style.overflow = 'auto';
         }
