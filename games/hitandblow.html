@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヒット＆ブロー - Premium Clone</title>
+    <style>
+        :root {
+            --bg-color: #121915;
+            --board-color: #2b1d0c;
+            --text-color: #f4ede4;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            user-select: none;
+        }
+
+        .game-title {
+            margin: 0 0 5px;
+            font-size: 24px;
+            letter-spacing: 2px;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #d4a373;
+            margin-bottom: 20px;
+            height: 20px;
+            font-weight: 600;
+        }
+
+        /* メインボード */
+        .board-wrapper {
+            background-color: var(--board-color);
+            border: 6px solid #482a10;
+            border-radius: 16px;
+            padding: 20px;
+            width: 320px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        }
+
+        /* 過去の解答履歴コンテナ */
+        .history-container {
+            height: 280px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .history-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            background-color: rgba(0, 0, 0, 0.25);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+
+        .pins-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .pin {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background-color: #1a1510;
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* ピンカラー定義 */
+        .pin.red { background: radial-gradient(circle at 35% 35%, #ff4d4d, #990000); }
+        .pin.blue { background: radial-gradient(circle at 35% 35%, #3399ff, #0044cc); }
+        .pin.yellow { background: radial-gradient(circle at 35% 35%, #ffff33, #cccc00); }
+        .pin.green { background: radial-gradient(circle at 35% 35%, #33cc33, #006600); }
+        .pin.orange { background: radial-gradient(circle at 35% 35%, #ff9933, #cc6600); }
+        .pin.purple { background: radial-gradient(circle at 35% 35%, #cc33ff, #660099); }
+
+        .result-indicators {
+            display: flex;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .result-badge {
+            padding: 2px 6px;
+            border-radius: 6px;
+            color: #fff;
+        }
+        .result-badge.hit { background-color: #d9534f; }
+        .result-badge.blow { background-color: #f0ad4e; }
+
+        /* 現在のインプット（解答作成中） */
+        .input-row {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px dashed rgba(255,255,255,0.1);
+        }
+
+        .input-pin {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #1a1510;
+            box-shadow: inset 0 3px 6px rgba(0,0,0,0.9);
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .input-pin.active {
+            border-color: #d4a373;
+        }
+
+        /* パレット */
+        .palette {
+            display: flex;
+            justify-content: space-around;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .palette-color {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+
+        .palette-color:hover {
+            transform: scale(1.12);
+        }
+
+        /* コントロール */
+        button {
+            width: 100%;
+            background-color: #26352d;
+            color: var(--text-color);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background-color: #32463b;
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .reset-btn {
+            background-color: transparent;
+            border: none;
+            color: #8e9a93;
+            text-decoration: underline;
+            margin-top: 15px;
+            font-size: 13px;
+            cursor: pointer;
+            width: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="game-title">ヒット＆ブロー</h1>
+    <div class="status" id="status-text">正解の4色を推測してください（色の重複なし）</div>
+
+    <div class="board-wrapper">
+        <!-- 履歴エリア -->
+        <div class="history-container" id="history-box"></div>
+
+        <!-- 解答作成スロット -->
+        <div class="input-row" id="input-slots">
+            <div class="input-pin active" data-index="0"></div>
+            <div class="input-pin" data-index="1"></div>
+            <div class="input-pin" data-index="2"></div>
+            <div class="input-pin" data-index="3"></div>
+        </div>
+
+        <!-- 色選択パレット -->
+        <div class="palette">
+            <div class="palette-color red" data-color="red"></div>
+            <div class="palette-color blue" data-color="blue"></div>
+            <div class="palette-color yellow" data-color="yellow"></div>
+            <div class="palette-color green" data-color="green"></div>
+            <div class="palette-color orange" data-color="orange"></div>
+            <div class="palette-color purple" data-color="purple"></div>
+        </div>
+
+        <button id="submit-btn" onclick="submitGuess()" disabled>決定</button>
+    </div>
+
+    <button class="reset-btn" onclick="resetGame()">新しくゲームを始める</button>
+
+    <script>
+        const colors = ['red', 'blue', 'yellow', 'green', 'orange', 'purple'];
+        let secretCode = [];
+        let currentGuess = [null, null, null, null];
+        let activeSlotIndex = 0;
+        let gameOver = false;
+        let attempts = 0;
+
+        const historyBox = document.getElementById('history-box');
+        const submitBtn = document.getElementById('submit-btn');
+        const statusText = document.getElementById('status-text');
+        const inputSlots = document.querySelectorAll('.input-pin');
+
+        function initGame() {
+            // 重複しない4つの正解コードをランダム作成
+            secretCode = [...colors].sort(() => Math.random() - 0.5).slice(0, 4);
+            currentGuess = [null, null, null, null];
+            activeSlotIndex = 0;
+            gameOver = false;
+            attempts = 0;
+
+            historyBox.innerHTML = '';
+            statusText.innerText = "正解の4色を推測してください（色の重複なし）";
+            submitBtn.disabled = true;
+
+            updateInputSlots();
+        }
+
+        // 入力スロットの表示更新
+        function updateInputSlots() {
+            inputSlots.forEach((slot, idx) => {
+                slot.className = 'input-pin';
+                if (idx === activeSlotIndex && !gameOver) {
+                    slot.classList.add('active');
+                }
+                
+                // 色が選択されている場合はクラス適用
+                if (currentGuess[idx]) {
+                    slot.classList.add(currentGuess[idx]);
+                }
+            });
+
+            // 4マスすべて埋まったらボタン有効化
+            const isFull = currentGuess.every(color => color !== null);
+            submitBtn.disabled = !isFull || gameOver;
+        }
+
+        // パレットカラー選択処理
+        document.querySelectorAll('.palette-color').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (gameOver) return;
+                const chosenColor = btn.dataset.color;
+
+                // 重複選択を防ぐ（アソビ大全標準ルール）
+                if (currentGuess.includes(chosenColor)) {
+                    // すでに選ばれている場合は元の位置をクリア
+                    const dupIdx = currentGuess.indexOf(chosenColor);
+                    currentGuess[dupIdx] = null;
+                }
+
+                currentGuess[activeSlotIndex] = chosenColor;
+
+                // 次の空スロットへ移動
+                findNextActiveSlot();
+                updateInputSlots();
+            });
+        });
+
+        // 空いてるスロットを探してアクティブにする
+        function findNextActiveSlot() {
+            for (let i = 0; i < 4; i++) {
+                const nextIdx = (activeSlotIndex + i) % 4;
+                if (currentGuess[nextIdx] === null) {
+                    activeSlotIndex = nextIdx;
+                    return;
+                }
+            }
+            // すべて埋まっている場合はクリックされた場所にとどまる
+        }
+
+        // 入力スロットをクリックしたらその位置をアクティブに
+        inputSlots.forEach(slot => {
+            slot.addEventListener('click', () => {
+                if (gameOver) return;
+                const idx = parseInt(slot.dataset.index);
+                activeSlotIndex = idx;
+                
+                // すでに色がある場所をクリックした場合は、その色をクリアする
+                if (currentGuess[idx]) {
+                    currentGuess[idx] = null;
+                }
+                updateInputSlots();
+            });
+        });
+
+        // 判定処理
+        function submitGuess() {
+            if (gameOver) return;
+            attempts++;
+
+            let hit = 0;
+            let blow = 0;
+
+            // Hit・Blow算出
+            for (let i = 0; i < 4; i++) {
+                if (currentGuess[i] === secretCode[i]) {
+                    hit++;
+                } else if (secretCode.includes(currentGuess[i])) {
+                    blow++;
+                }
+            }
+
+            // 履歴行を追加
+            addHistoryRow(currentGuess, hit, blow);
+
+            if (hit === 4) {
+                gameOver = true;
+                statusText.innerText = `ゲームクリア！ ${attempts}回目で正解を当てました！`;
+            } else if (attempts >= 8) {
+                gameOver = true;
+                statusText.innerText = `ゲームオーバー。正解は: ${secretCode.join(', ')}`;
+            } else {
+                statusText.innerText = `判定結果: ${hit}ヒット / ${blow}ブロー (残りの挑戦回数: ${8 - attempts}回)`;
+                // 次の推測のためにクリア
+                currentGuess = [null, null, null, null];
+                activeSlotIndex = 0;
+            }
+
+            updateInputSlots();
+        }
+
+        function addHistoryRow(guess, hit, blow) {
+            const row = document.createElement('div');
+            row.className = 'history-row';
+
+            let pinsHTML = '<div class="pins-group">';
+            guess.forEach(color => {
+                pinsHTML += `<div class="pin ${color}"></div>`;
+            });
+            pinsHTML += '</div>';
+
+            const resultHTML = `
+                <div class="result-indicators">
+                    <span class="result-badge hit">${hit} H</span>
+                    <span class="result-badge blow">${blow} B</span>
+                </div>
+            `;
+
+            row.innerHTML = pinsHTML + resultHTML;
+            historyBox.appendChild(row);
+
+            // 自動スクロール
+            historyBox.scrollTop = historyBox.scrollHeight;
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
