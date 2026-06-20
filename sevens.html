@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7ならべ - Premium Clone</title>
+    <style>
+        :root { --bg-color: #121915; --board-color: #163a2c; --accent: #d4a373; --text-color: #f4ede4; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 8px 30px; border-radius: 20px; font-weight: bold; }
+        .turn-text { color: var(--accent); }
+
+        /* 13x4 グリッドボード */
+        .board-wrapper { background: #0c120f; padding: 12px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        .board { display: grid; grid-template-rows: repeat(4, 55px); gap: 4px; }
+        .row { display: grid; grid-template-columns: repeat(13, 40px); gap: 4px; }
+        
+        /* 盤面上のカードスロット */
+        .slot { background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255,255,255,0.08); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; position: relative; box-sizing: border-box; }
+        .slot.has-card { background: #fff; color: #111; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .slot.has-card.red { color: #d9534f; }
+
+        /* 手札エリア */
+        .hand-wrapper { width: 100%; max-width: 600px; margin-top: 20px; display: flex; flex-direction: column; align-items: center; }
+        .hand-label { font-size: 11px; opacity: 0.5; margin-bottom: 8px; letter-spacing: 2px; }
+        .hand { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 80px; }
+        
+        /* 手札用カードデザイン */
+        .card { width: 40px; height: 55px; background: #fff; color: #111; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.3); box-sizing: border-box; transition: transform 0.1s; }
+        .card:hover { transform: translateY(-8px); }
+        .card.red { color: #d9534f; }
+        .card.unplayable { opacity: 0.4; cursor: not-allowed; }
+        .card.unplayable:hover { transform: none; }
+
+        .controls { margin-top: 15px; display: flex; gap: 15px; }
+        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 20px; font-size: 13px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background-color: #32463b; }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div>あなたパス: <span id="p1-pass">0</span> / 3</div>
+        <div class="turn-text" id="status-text">あなた（Player 1）の番です</div>
+        <div>相手パス: <span id="p2-pass">0</span> / 3</div>
+    </div>
+
+    <!-- 4スート x 13の場 -->
+    <div class="board-wrapper">
+        <div class="board" id="board"></div>
+    </div>
+
+    <!-- 手札 -->
+    <div class="hand-wrapper">
+        <div class="hand-label">YOUR HAND (出せるカードが光っています)</div>
+        <div class="hand" id="hand"></div>
+    </div>
+
+    <div class="controls">
+        <button id="pass-btn" onclick="playerPass()">パスする</button>
+        <button onclick="resetGame()">リセット</button>
+    </div>
+
+    <script>
+        const suits = ['❤️', '♦️', '♠️', '♣️']; // H(0), D(1), S(2), C(3)
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        let boardState = Array(4).fill(null).map(() => Array(13).fill(false));
+        let p1Hand = [];
+        let p2Hand = []; // CPU
+        let p1Pass = 0;
+        let p2Pass = 0;
+        let currentPlayer = 1; // 1: Player, 2: CPU
+        let gameOver = false;
+
+        const boardEl = document.getElementById('board');
+        const handEl = document.getElementById('hand');
+        const statusText = document.getElementById('status-text');
+
+        function initGame() {
+            boardState = Array(4).fill(null).map(() => Array(13).fill(false));
+            p1Hand = []; p2Hand = []; p1Pass = 0; p2Pass = 0; currentPlayer = 1; gameOver = false;
+
+            document.getElementById('p1-pass').innerText = 0;
+            document.getElementById('p2-pass').innerText = 0;
+            statusText.innerText = "あなた（Player 1）の番です";
+
+            // 全カード生成して「7」以外をシャッフル
+            let pool = [];
+            for (let s = 0; s < 4; s++) {
+                for (let v = 0; v < 13; v++) {
+                    if (v === 6) {
+                        boardState[s][v] = true; // 7は自動設置
+                    } else {
+                        pool.push({ s, v, isRed: (s < 2) });
+                    }
+                }
+            }
+            pool.sort(() => Math.random() - 0.5);
+
+            // 24枚ずつ配る
+            p1Hand = pool.slice(0, 24).sort((a,b) => a.s - b.s || a.v - b.v);
+            p2Hand = pool.slice(24, 48).sort((a,b) => a.s - b.s || a.v - b.v);
+
+            createBoardDOM();
+            updateUI();
+        }
+
+        function createBoardDOM() {
+            boardEl.innerHTML = '';
+            for (let s = 0; s < 4; s++) {
+                const row = document.createElement('div');
+                row.className = 'row';
+                for (let v = 0; v < 13; v++) {
+                    const slot = document.createElement('div');
+                    slot.className = 'slot';
+                    slot.id = `slot-${s}-${v}`;
+                    row.appendChild(slot);
+                }
+                boardEl.appendChild(row);
+            }
+        }
+
+        // カードが場に出せるか確認
+        function isPlayable(s, v) {
+            if (v > 0 && boardState[s][v - 1]) return true;
+            if (v < 12 && boardState[s][v + 1]) return true;
+            return false;
+        }
+
+        function updateUI() {
+            // 盤面の描画更新
+            for (let s = 0; s < 4; s++) {
+                for (let v = 0; v < 13; v++) {
+                    const slot = document.getElementById(`slot-${s}-${v}`);
+                    if (boardState[s][v]) {
+                        slot.className = `slot has-card ${s < 2 ? 'red' : ''}`;
+                        slot.innerText = `${values[v]}${suits[s]}`;
+                    } else {
+                        slot.className = 'slot';
+                        slot.innerText = '';
+                    }
+                }
+            }
+
+            // 手札の描画
+            handEl.innerHTML = '';
+            const p1HasPlayable = p1Hand.some(c => isPlayable(c.s, c.v));
+            document.getElementById('pass-btn').disabled = p1HasPlayable || gameOver || currentPlayer !== 1;
+
+            p1Hand.forEach((card, idx) => {
+                const cardEl = document.createElement('div');
+                const playable = isPlayable(card.s, card.v) && currentPlayer === 1 && !gameOver;
+                
+                cardEl.className = `card ${card.isRed ? 'red' : ''}`;
+                if (!playable) cardEl.classList.add('unplayable');
+                
+                cardEl.innerHTML = `
+                    <div>${values[card.v]}</div>
+                    <div style="font-size:16px; text-align:center;">${suits[card.s]}</div>
+                    <div style="text-align:right; transform:rotate(180deg);">${values[card.v]}</div>
+                `;
+
+                if (playable) {
+                    cardEl.addEventListener('click', () => playCard(idx));
+                }
+                handEl.appendChild(cardEl);
+            });
+        }
+
+        function playCard(handIdx) {
+            if (gameOver || currentPlayer !== 1) return;
+
+            const card = p1Hand.splice(handIdx, 1)[0];
+            boardState[card.s][card.v] = true;
+
+            if (p1Hand.length === 0) {
+                endGame("あなたの勝ち！手札がなくなりました！");
+                return;
+            }
+
+            currentPlayer = 2;
+            statusText.innerText = "相手（CPU）が思考中...";
+            updateUI();
+
+            setTimeout(cpuTurn, 800);
+        }
+
+        function playerPass() {
+            if (gameOver || currentPlayer !== 1) return;
+            p1Pass++;
+            document.getElementById('p1-pass').innerText = p1Pass;
+
+            if (p1Pass > 3) {
+                // 4回パスで脱落 -> 全カードを場に強制放出
+                alert("パス制限（3回）を超えたため、脱落しました。手札をすべて場に放出します。");
+                p1Hand.forEach(c => boardState[c.s][c.v] = true);
+                p1Hand = [];
+                endGame("相手（CPU）の不戦勝です...");
+                return;
+            }
+
+            currentPlayer = 2;
+            statusText.innerText = "相手（CPU）が思考中...";
+            updateUI();
+
+            setTimeout(cpuTurn, 800);
+        }
+
+        // 簡易CPUロジック
+        function cpuTurn() {
+            if (gameOver) return;
+
+            // 出せるカードを抽出
+            const playableIndices = [];
+            p2Hand.forEach((c, idx) => {
+                if (isPlayable(c.s, c.v)) playableIndices.push(idx);
+            });
+
+            if (playableIndices.length > 0) {
+                // 出せる中から適当に1枚出す（戦略的にAやKを出すAIに拡張も可能）
+                const choice = playableIndices[Math.floor(Math.random() * playableIndices.length)];
+                const card = p2Hand.splice(choice, 1)[0];
+                boardState[card.s][card.v] = true;
+
+                if (p2Hand.length === 0) {
+                    endGame("相手（CPU）の勝ちです。手札がなくなりました。");
+                    return;
+                }
+            } else {
+                // パス
+                p2Pass++;
+                document.getElementById('p2-pass').innerText = p2Pass;
+                alert(`相手（CPU）がパスしました。 (相手パス数: ${p2Pass}/3)`);
+
+                if (p2Pass > 3) {
+                    alert("相手（CPU）が脱落したため、あなたの勝ちです！");
+                    p2Hand.forEach(c => boardState[c.s][c.v] = true);
+                    p2Hand = [];
+                    endGame("あなたの不戦勝です！");
+                    return;
+                }
+            }
+
+            currentPlayer = 1;
+            statusText.innerText = "あなた（Player 1）の番です";
+            updateUI();
+        }
+
+        function endGame(msg) {
+            gameOver = true;
+            statusText.innerText = `ゲーム終了！ ${msg}`;
+            updateUI();
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
