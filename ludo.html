@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ルドー - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        
+        .hud { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; }
+        .turn-text { color: var(--accent-color); }
+
+        .board-wrapper { background: #fff; padding: 15px; border-radius: 24px; border: 1px solid #cbd5e1; box-shadow: 0 12px 30px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; position: relative; }
+        
+        /* 15x15グリッド相当を美しくベクター描画したボード */
+        svg { width: 330px; height: 330px; display: block; }
+        rect.track { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; cursor: pointer; transition: fill 0.2s; }
+        rect.track:hover { fill: #f1f5f9; }
+        
+        rect.start-p1 { fill: #ffccd5; stroke: #ff4d4d; }
+        rect.start-p2 { fill: #d6e4ff; stroke: #4a90e2; }
+        polygon.goal { stroke: #cbd5e1; stroke-width: 1.5; }
+
+        /* コマデザイン */
+        .piece { width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.35); cursor: pointer; border: 1px solid rgba(0,0,0,0.1); position: absolute; transform: translate(-50%, -50%); transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1); z-index: 100; }
+        .piece.p1 { background: radial-gradient(circle at 35% 35%, #ff595e, #c0242a); }
+        .piece.p2 { background: radial-gradient(circle at 35% 35%, #56ccf2, #2f80ed); }
+
+        /* サイコロエリア */
+        .dice-area { display: flex; align-items: center; gap: 15px; margin-top: 20px; }
+        .die { width: 44px; height: 44px; background: #fff; color: #111; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; border: 1.5px solid #cbd5e1; box-shadow: 0 3px 6px rgba(0,0,0,0.15); cursor: pointer; }
+        .die.rolling { animation: shuffle 0.15s infinite; }
+        @keyframes shuffle { 0% { transform: rotate(0deg) scale(0.95); } 50% { transform: rotate(10deg) scale(1.05); } 100% { transform: rotate(-10deg) scale(0.95); } }
+
+        .controls { margin-top: 25px; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div>あなた(赤)ゴール: <span id="p1-score">0</span>/2</div>
+        <div class="turn-text" id="status-text">あなたの番です：サイコロを振ってください</div>
+        <div id="p2-hud">相手(青)ゴール: <span id="p2-score">0</span>/2</div>
+    </div>
+
+    <!-- 15x15のマス盤面（SVG） -->
+    <div class="board-wrapper" id="board-container">
+        <svg id="board-svg">
+            <!-- 外周トラックマス、スタート、ホーム、ゴールなどを動的に描画 -->
+        </svg>
+        <!-- 動的なコマ群がここに絶対配置されます -->
+    </div>
+
+    <div class="dice-area">
+        <div class="die" id="die" onclick="rollDie()">⚀</div>
+        <div style="font-size:12px; color:var(--text-color); font-weight:bold;" id="roll-status"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-modal" onclick="resetGame()">リセット</button>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        // 2等分にデフォルメしたコンパクトなルドー（各プレイヤー コマ数2個）
+        // ルートパス座標定義（15x15のグリッドインデックス）
+        const gridW = 15;
+        const cellS = 22; // 1マスのサイズ
+
+        // トラック（外周周回ルート：全40マス）
+        const trackCoords = [
+            {r:6,c:1}, {r:6,c:2}, {r:6,c:3}, {r:6,c:4}, {r:6,c:5},
+            {r:5,c:6}, {r:4,c:6}, {r:3,c:6}, {r:2,c:6}, {r:1,c:6},
+            {r:1,c:8}, {r:2,c:8}, {r:3,c:8}, {r:4,c:8}, {r:5,c:8},
+            {r:6,c:9}, {r:6,c:10}, {r:6,c:11}, {r:6,c:12}, {r:6,c:13},
+            {r:8,c:13}, {r:8,c:12}, {r:8,c:11}, {r:8,c:10}, {r:8,c:9},
+            {r:9,c:8}, {r:10,c:8}, {r:11,c:8}, {r:12,c:8}, {r:13,c:8},
+            {r:13,c:6}, {r:12,c:6}, {r:11,c:6}, {r:10,c:6}, {r:9,c:6},
+            {r:8,c:5}, {r:8,c:4}, {r:8,c:3}, {r:8,c:2}, {r:8,c:1}
+        ];
+
+        // 各陣営の進行ルート・待機座標の定数定義
+        const startIdx = { 1: 0, 2: 20 }; // 赤は0、青は20からスタート
+        const homePath = {
+            1: [{r:7,c:1}, {r:7,c:2}, {r:7,c:3}, {r:7,c:4}, {r:7,c:5}, {r:7,c:6}], // ゴールは(7, 7)
+            2: [{r:7,c:13}, {r:7,c:12}, {r:7,c:11}, {r:7,c:10}, {r:7,c:9}, {r:7,c:8}]
+        };
+        const yardCoords = {
+            1: [{r:3,c:3}, {r:3,c:4}],
+            2: [{r:11,c:11}, {r:11,c:12}]
+        };
+
+        const diceGlyphs = { 1: '⚀', 2: '⚁', 3: '⚂', 4: '⚃', 5: '⚄', 6: '⚅' };
+        let pieces = {
+            1: [{ id: 0, pos: -1, stepCount: -1 }, { id: 1, pos: -1, stepCount: -1 }], // pos -1: ヤード、>=0: トラック/ホーム
+            2: [{ id: 0, pos: -1, stepCount: -1 }, { id: 1, pos: -1, stepCount: -1 }]
+        };
+
+        let currentRoll = 0;
+        let hasRolled = false;
+        let currentPlayer = 1;
+        let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+
+        const svgEl = document.getElementById('board-svg');
+        const container = document.getElementById('board-container');
+        const statusText = document.getElementById('status-text');
+
+        function initGame() {
+            pieces = {
+                1: [{ id: 0, pos: -1, stepCount: -1 }, { id: 1, pos: -1, stepCount: -1 }],
+                2: [{ id: 0, pos: -1, stepCount: -1 }, { id: 1, pos: -1, stepCount: -1 }]
+            };
+            currentRoll = 0;
+            hasRolled = false;
+            currentPlayer = 1;
+            gameOver = false;
+
+            document.getElementById('p1-score').innerText = 0;
+            document.getElementById('p2-score').innerText = 0;
+            document.getElementById('p2-hud').innerText = gameMode === 'vs_cpu' ? "CPUゴール: 0/2" : "相手(青)ゴール: 0/2";
+            document.getElementById('die').innerText = '⚀';
+            document.getElementById('roll-status').innerText = "";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+
+            buildBoardDOM();
+            updateUI();
+        }
+
+        function buildBoardDOM() {
+            svgEl.innerHTML = '';
+            // 背景マスの描画
+            trackCoords.forEach((pt, idx) => {
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", pt.c * cellS);
+                rect.setAttribute("y", pt.r * cellS);
+                rect.setAttribute("width", cellS);
+                rect.setAttribute("height", cellS);
+                if (idx === 0) rect.setAttribute("class", "track start-p1");
+                else if (idx === 20) rect.setAttribute("class", "track start-p2");
+                else rect.setAttribute("class", "track");
+                svgEl.appendChild(rect);
+            });
+
+            // ゴール(7,7)付近の描画
+            const goal = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+            goal.setAttribute("points", `${7*cellS},${7*cellS} ${8*cellS},${7*cellS} ${7.5*cellS},${8*cellS}`);
+            goal.setAttribute("fill", "#ffca28");
+            svgEl.appendChild(goal);
+        }
+
+        function rollDie() {
+            if (gameOver || hasRolled) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            executeRoll();
+        }
+
+        function executeRoll() {
+            hasRolled = true;
+            const dieEl = document.getElementById('die');
+            dieEl.classList.add('rolling');
+
+            setTimeout(() => {
+                currentRoll = Math.floor(Math.random() * 6) + 1;
+                dieEl.innerText = diceGlyphs[currentRoll];
+                dieEl.classList.remove('rolling');
+
+                // 動かせるコマをハイライト
+                const validPieces = getMovablePieces(currentPlayer, currentRoll);
+                if (validPieces.length === 0) {
+                    document.getElementById('roll-status').innerText = "動かせるコマがありません。手番交代です。";
+                    setTimeout(endTurn, 1200);
+                } else {
+                    document.getElementById('roll-status').innerText = `${currentRoll} が出ました。コマを動かしてください。`;
+                    highlightMovablePieces(validPieces);
+                }
+            }, 500);
+        }
+
+        function getMovablePieces(player, roll) {
+            const list = pieces[player];
+            const movable = [];
+            list.forEach(p => {
+                if (p.pos === -1 && roll === 6) {
+                    movable.push(p); // 待機エリア：6が出たら出発可能
+                } else if (p.pos >= 0 && p.stepCount + roll <= 46) {
+                    movable.push(p); // 既にトラック：ゴールを超過しなければ移動可能
+                }
+            });
+            return movable;
+        }
+
+        function highlightMovablePieces(list) {
+            list.forEach(p => {
+                const el = document.getElementById(`piece-${currentPlayer}-${p.id}`);
+                if (el) {
+                    el.style.border = "3px solid #ffca28";
+                    el.style.transform = "translate(-50%, -50%) scale(1.3)";
+                    el.onclick = () => movePiece(p.id);
+                }
+            });
+        }
+
+        function clearHighlights() {
+            for (let playerNum = 1; playerNum <= 2; playerNum++) {
+                pieces[playerNum].forEach(p => {
+                    const el = document.getElementById(`piece-${playerNum}-${p.id}`);
+                    if (el) {
+                        el.style.border = "1px solid rgba(0,0,0,0.1)";
+                        el.style.transform = "translate(-50%, -50%) scale(1)";
+                        el.onclick = null;
+                    }
+                });
+            }
+        }
+
+        function movePiece(pieceId) {
+            if (!hasRolled) return;
+            clearHighlights();
+
+            const p = pieces[currentPlayer][pieceId];
+            if (p.pos === -1) {
+                // 出発
+                p.pos = startIdx[currentPlayer];
+                p.stepCount = 0;
+            } else {
+                p.stepCount += currentRoll;
+                if (p.stepCount < 40) {
+                    p.pos = (startIdx[currentPlayer] + p.stepCount) % 40;
+                } else {
+                    // ホームパス進入
+                    p.pos = p.stepCount; // 40以上のインデックスをホームパスの指標にする
+                }
+            }
+
+            // 同一マス内の敵のコマを蹴落とす（ヤードへ戻す）
+            checkCapture(p);
+
+            checkWinCondition();
+            updateUI();
+
+            if (!gameOver) {
+                // 6が出た場合はもう一度手番を得られる
+                if (currentRoll === 6) {
+                    showCustomAlert("手番継続", "『6』が出たため、あなたの手番がもう一度続きます！");
+                    hasRolled = false;
+                    document.getElementById('roll-status').innerText = "もう一度サイコロを振ってください";
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(executeRoll, 1000);
+                    }
+                } else {
+                    endTurn();
+                }
+            }
+        }
+
+        function checkCapture(movingPiece) {
+            const opponent = currentPlayer === 1 ? 2 : 1;
+            pieces[opponent].forEach(opp => {
+                if (opp.pos === movingPiece.pos && opp.stepCount < 40 && opp.pos >= 0) {
+                    opp.pos = -1;
+                    opp.stepCount = -1;
+                    showCustomAlert("キャプチャ！", `${currentPlayer === 1 ? 'あなた' : 'CPU'}が相手のコマを蹴落としてヤードに戻しました！`);
+                }
+            });
+        }
+
+        function endTurn() {
+            clearHighlights();
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            hasRolled = false;
+            document.getElementById('roll-status').innerText = "";
+            document.getElementById('status-text').innerText = currentPlayer === 1 ? "あなたの番です：サイコロを振ってください" : "相手の番です...";
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(executeRoll, 1000); // CPU自動ダイスロール
+            }
+        }
+
+        // CPUのAI思考ロジック
+        function cpuTurn() {
+            if (gameOver) return;
+            // CPUのコマ移動の選択肢決定
+            const valid = getMovablePieces(2, currentRoll);
+            if (valid.length > 0) {
+                // 1. 最優先で敵をキャプチャできる手を選ぶ
+                let choice = valid[0];
+                let maxCaptureVal = -1;
+                valid.forEach(p => {
+                    let nextPos = p.pos === -1 ? startIdx[2] : (p.stepCount + currentRoll < 40 ? (startIdx[2] + p.stepCount + currentRoll) % 40 : -1);
+                    if (nextPos !== -1) {
+                        const hasEnemy = pieces[1].some(opp => opp.pos === nextPos);
+                        if (hasEnemy) maxCaptureVal = 100;
+                    }
+                });
+
+                if (maxCaptureVal === -1) {
+                    // それ以外はゴールに近い、または最も進んでいるコマを優先
+                    valid.sort((a,b) => b.stepCount - a.stepCount);
+                    choice = valid[0];
+                }
+
+                setTimeout(() => movePiece(choice.id), 800);
+            }
+        }
+
+        function checkWinCondition() {
+            const p1GoalCount = pieces[1].filter(p => p.stepCount === 46).length;
+            const p2GoalCount = pieces[2].filter(p => p.stepCount === 46).length;
+
+            document.getElementById('p1-score').innerText = p1GoalCount;
+            document.getElementById('p2-score').innerText = p2GoalCount;
+
+            if (p1GoalCount === 2) {
+                gameOver = true;
+                showFinalResult(1);
+            } else if (p2GoalCount === 2) {
+                gameOver = true;
+                showFinalResult(2);
+            }
+        }
+
+        function updateUI() {
+            // 動的に配置されるコマのDOM更新
+            for (let playerNum = 1; playerNum <= 2; playerNum++) {
+                pieces[playerNum].forEach(p => {
+                    const id = `piece-${playerNum}-${p.id}`;
+                    let el = document.getElementById(id);
+                    if (!el) {
+                        el = document.createElement('div');
+                        el.className = `piece p${playerNum}`;
+                        el.id = id;
+                        container.appendChild(el);
+                    }
+
+                    // 座標算出
+                    let coords = { r: 0, c: 0 };
+                    if (p.pos === -1) {
+                        // ヤード内
+                        coords = yardCoords[playerNum][p.id];
+                    } else if (p.stepCount >= 40) {
+                        // ホームパス & ゴール
+                        const homeIdx = p.stepCount - 40;
+                        coords = homePath[playerNum][homeIdx];
+                    } else {
+                        // 通常周回トラック上
+                        coords = trackCoords[p.pos];
+                    }
+
+                    // ピクセル配置
+                    const left = coords.c * cellS + (cellS / 2) + 15;
+                    const top = coords.r * cellS + (cellS / 2) + 15;
+                    el.style.left = `${left}px`;
+                    el.style.top = `${top}px`;
+
+                    if (p.stepCount === 46) {
+                        el.style.display = 'none'; // ゴールに入ったら非表示
+                    } else {
+                        el.style.display = 'block';
+                    }
+                });
+            }
+
+            if (gameMode === 'vs_cpu' && currentPlayer === 2 && hasRolled && !gameOver) {
+                // CPUの思考自動誘導
+                setTimeout(cpuTurn, 1000);
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (winner === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                descEl.innerText = "すべてのコマを誰よりも早くゴールに届けました！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "対戦相手のコマがすべて中央のゴールに入りました。";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
