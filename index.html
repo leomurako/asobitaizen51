@@ -3,339 +3,938 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>クロンダイク - Deluxe Edition</title>
+    <title>Clubhouse Games Web - Deluxe Launcher</title>
     <style>
-        :root { --bg-color: #f5f7fb; --table-color: #1e3a2b; --text-color: #2d3748; --accent: #4a90e2; }
-        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        :root {
+            --bg-color: #f5f7fb;
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --card-bg: #ffffff;
+            --card-border: #e8ecef;
+            --card-selected: #4a90e2;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --accent-color: #4a90e2;
+            --accent-hover: #357abd;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 15px 45px rgba(0, 0, 0, 0.12);
+        }
 
-        .game-layout { background: var(--table-color); width: 620px; height: 440px; border-radius: 24px; border: 8px solid #3d2516; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            background-color: var(--header-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: fixed; top: 0; left: 0; z-index: 100;
+            box-sizing: border-box;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        header h1 { font-size: 24px; font-weight: 800; letter-spacing: 3px; margin: 0 0 4px; text-transform: uppercase; }
+        header p { color: var(--text-muted); font-size: 11px; margin: 0; letter-spacing: 0.5px; }
+
+        .screen-container {
+            width: 100%;
+            height: calc(100vh - 80px);
+            margin-top: 80px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            box-sizing: border-box;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 1. カルーセル */
+        .carousel-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 50px 0;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+        }
+        .carousel-wrapper::-webkit-scrollbar { display: none; }
+
+        .carousel {
+            display: inline-flex;
+            gap: 30px;
+            padding: 0 calc(50vw - 110px);
+        }
+
+        .game-icon-card {
+            width: 160px;
+            height: 190px;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            border: 2px solid var(--card-border);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.3s;
+            cursor: pointer;
+            padding: 25px 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: center;
+        }
+
+        .game-icon-card:hover {
+            transform: translateY(-8px);
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-md);
+        }
+
+        .game-icon-card.selected {
+            border-color: var(--card-selected);
+            box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), var(--shadow-lg);
+            transform: scale(1.06) translateY(-4px);
+        }
+
+        .game-icon { font-size: 54px; margin-bottom: 14px; line-height: 1; }
+        .game-title { font-size: 13px; font-weight: 800; color: var(--text-color); margin: 0; }
+
+        .lobby-action-bar {
+            position: fixed; bottom: 40px; width: 100%; text-align: center; z-index: 90;
+        }
+
+        /* 2. 設定・説明画面 */
+        .setup-panel {
+            background-color: #ffffff;
+            width: 90%;
+            max-width: 820px;
+            height: 85%;
+            max-height: 520px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--card-border);
+            display: flex;
+            overflow: hidden;
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .setup-left {
+            width: 50%;
+            background-color: #f8fafc;
+            border-right: 1px solid var(--card-border);
+            padding: 35px 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .illustration-container {
+            width: 100%;
+            height: 180px;
+            background-color: #edf2f7;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .illustration-container svg, .tut-visual svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .rule-text-box { width: 100%; text-align: left; }
+        .rule-title { font-size: 24px; font-weight: 900; margin: 0 0 10px; color: var(--text-color); }
+        .rule-desc { font-size: 13px; line-height: 1.6; color: var(--text-muted); margin: 0; white-space: normal; }
+
+        .btn-read-tutorial {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 1.5px solid var(--accent-color);
+            font-size: 12px;
+            font-weight: 800;
+            padding: 8px 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .btn-read-tutorial:hover {
+            background-color: rgba(74, 144, 226, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .setup-right {
+            width: 50%;
+            padding: 35px 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .config-title { font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 1.5px; margin-bottom: 12px; text-transform: uppercase; }
+        .config-group { margin-bottom: 25px; }
+        .option-buttons { display: flex; gap: 10px; }
         
-        .top-row { display: flex; justify-content: space-between; width: 100%; height: 80px; }
-        .deck-zone { display: flex; gap: 10px; }
-        .foundation-zone { display: flex; gap: 10px; }
+        .opt-btn {
+            flex: 1;
+            background-color: #f1f5f9;
+            border: 2px solid transparent;
+            color: var(--text-color);
+            padding: 12px 10px;
+            font-size: 13px;
+            font-weight: 800;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
 
-        .tableau-zone { display: flex; justify-content: space-between; width: 100%; height: 280px; margin-top: 15px; }
-        .tableau-col { width: 52px; height: 100%; position: relative; border-radius: 6px; border: 1.5px dashed rgba(255,255,255,0.1); box-sizing: border-box; }
+        .opt-btn:hover:not(:disabled) { background-color: #e2e8f0; }
+        .opt-btn.active {
+            background-color: #eff6ff;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        .opt-btn:disabled { opacity: 0.35; cursor: not-allowed; background-color: #f8fafc; }
 
-        .slot { width: 52px; height: 74px; border-radius: 6px; border: 1.5px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; color: rgba(255,255,255,0.25); box-sizing: border-box; cursor: pointer; position: relative; }
-        .slot.has-card { border: none; background: #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+        .action-group { display: flex; gap: 12px; margin-top: auto; }
 
-        .card { width: 52px; height: 74px; background: #fff; color: #111; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 12px; font-weight: bold; cursor: pointer; box-sizing: border-box; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.25); position: absolute; }
-        .card.red { color: #d9534f; }
-        .card.back { background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1.5px solid #d4a373; box-shadow: 0 2px 4px rgba(0,0,0,0.3); color: #d4a373; }
-        .card.selected { border: 2px solid var(--accent); transform: scale(1.05); box-shadow: 0 0 10px rgba(74, 144, 226, 0.6); z-index: 100 !important; }
+        /* ボタン共通 */
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 14px 35px;
+            font-size: 15px;
+            font-weight: 800;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.35);
+        }
+        .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
 
-        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent); padding: 8px 24px; font-size: 13px; font-weight: 700; border-radius: 20px; cursor: pointer; transition: all 0.2s; margin-top: 15px; }
-        button:hover { background-color: rgba(74, 144, 226, 0.08); }
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: var(--text-color);
+            border: none;
+            padding: 14px 25px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-secondary:hover { background-color: #e2e8f0; }
 
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent); }
-        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
-        .btn-modal { background: var(--accent); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+        /* 3. あそびかた全画面オーバーレイ */
+        #tutorial-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255,255,255,0.92);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            z-index: 3000;
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        #tutorial-overlay.active { display: flex; opacity: 1; }
+
+        .tutorial-card {
+            background: #ffffff;
+            width: 90%; max-width: 580px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--card-border);
+            padding: 35px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .close-tut-btn {
+            position: absolute; top: 20px; right: 25px;
+            background: none; border: none; font-size: 28px;
+            color: var(--text-muted); cursor: pointer; line-height: 1;
+        }
+        .close-tut-btn:hover { color: var(--text-color); }
+
+        .tut-title { font-size: 22px; font-weight: 900; margin: 0 0 5px; text-align: center; }
+        .tut-step-num { font-size: 11px; font-weight: 800; color: var(--accent-color); text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+
+        .tut-visual {
+            width: 100%; height: 160px;
+            background-color: #f8fafc;
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+            padding: 10px; box-sizing: border-box;
+        }
+
+        .tut-desc {
+            font-size: 14px; line-height: 1.7; color: var(--text-color);
+            text-align: center; margin: 0; min-height: 50px;
+            white-space: normal;
+        }
+
+        .tut-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .tut-dots { display: flex; gap: 8px; }
+        .tut-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #e2e8f0; transition: background-color 0.2s; }
+        .tut-dot.active { background-color: var(--accent-color); }
+
+        /* 4. ゲームプレイ画面 */
+        #game-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.95); z-index: 2000;
+            display: none; flex-direction: column; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #game-overlay.active { display: flex; opacity: 1; }
+        
+        .game-bar {
+            background-color: #1a1a1a; height: 50px;
+            display: flex; align-items: center; padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            justify-content: space-between; color: #ffffff;
+        }
+
+        .back-btn {
+            background: none; border: none; color: #ffffff;
+            font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 20px; transition: background-color 0.2s;
+        }
+        .back-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .game-iframe-container { flex-grow: 1; width: 100%; background-color: #000; }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+
+        body.game-active header { opacity: 0; transform: translateY(-20px); pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div class="game-layout">
-        <div class="top-row">
-            <div class="deck-zone">
-                <div class="slot" id="stock-pile" onclick="drawStockCard()">🎴</div>
-                <div class="slot" id="waste-pile"></div>
+    <header id="lobby-header">
+        <h1>Clubhouse Games</h1>
+        <p>世界のボードゲーム、カードゲーム、カジュアルゲームコレクション</p>
+    </header>
+
+    <div class="screen-container">
+        <!-- スクリーン1：カルーセル選択画面 -->
+        <div class="screen active" id="screen-carousel">
+            <div class="carousel-wrapper" id="game-carousel-wrapper">
+                <div class="carousel" id="game-carousel">
+                    <!-- JSでカードが生成されます -->
+                </div>
+            </div>
+            <div class="lobby-action-bar">
+                <button class="btn-primary" id="select-play-btn" onclick="goToSetup()" disabled>設定に進む</button>
+            </div>
+        </div>
+
+        <!-- スクリーン2：設定・やり方説明画面 -->
+        <div class="screen" id="screen-setup">
+            <div class="setup-panel">
+                <!-- 左：イラスト & 説明 -->
+                <div class="setup-left">
+                    <div class="illustration-container" id="illustration-box">
+                        <!-- SVGイラストが動的に挿入されます -->
+                    </div>
+                    <div class="rule-text-box">
+                        <h2 class="rule-title" id="setup-title">ゲーム名</h2>
+                        <p class="rule-desc" id="setup-desc">説明文</p>
+                        <button class="btn-read-tutorial" onclick="openTutorial()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                            あそびかたを読む
+                        </button>
+                    </div>
+                </div>
+                <!-- 右：対戦設定 & スタート -->
+                <div class="setup-right">
+                    <div>
+                        <div class="config-group">
+                            <div class="config-title">対戦モード</div>
+                            <div class="option-buttons">
+                                <button class="opt-btn active" id="mode-cpu-btn" onclick="setMode('vs_cpu')">🤖 CP対戦</button>
+                                <button class="opt-btn" id="mode-player-btn" onclick="setMode('vs_player')">👥 2人対戦</button>
+                            </div>
+                        </div>
+
+                        <div class="config-group" id="difficulty-group">
+                            <div class="config-title">難易度</div>
+                            <div class="option-buttons">
+                                <button class="opt-btn" id="diff-easy-btn" onclick="setDiff('easy')">やさしい</button>
+                                <button class="opt-btn active" id="diff-normal-btn" onclick="setDiff('normal')">ふつう</button>
+                                <button class="opt-btn" id="diff-hard-btn" onclick="setDiff('hard')">つよい</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-group">
+                        <button class="btn-secondary" style="flex: 1;" onclick="goToCarousel()">戻る</button>
+                        <button class="btn-primary" style="flex: 2;" onclick="playGame()">スタート</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- あそびかたオーバーレイ（ステップバイステップ） -->
+    <div id="tutorial-overlay">
+        <div class="tutorial-card">
+            <button class="close-tut-btn" onclick="closeTutorial()">×</button>
+            <div class="tut-step-num" id="tut-step-label">STEP 1 / 3</div>
+            <h2 class="tut-title" id="tut-game-title">リバーシ</h2>
+            
+            <div class="tut-visual" id="tut-visual-box">
+                <!-- SVGイラスト -->
             </div>
             
-            <div class="foundation-zone">
-                <div class="slot" id="f-0" onclick="clickFoundation(0)">❤️</div>
-                <div class="slot" id="f-1" onclick="clickFoundation(1)">♦️</div>
-                <div class="slot" id="f-2" onclick="clickFoundation(2)">♠️</div>
-                <div class="slot" id="f-3" onclick="clickFoundation(3)">♣️</div>
+            <p class="tut-desc" id="tut-desc-text">ここに解説のテキストが表示されます。</p>
+            
+            <div class="tut-footer">
+                <div class="tut-dots" id="tut-dots-box">
+                    <div class="tut-dot active"></div>
+                    <div class="tut-dot"></div>
+                    <div class="tut-dot"></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-secondary" id="tut-prev-btn" onclick="changeTutorialStep(-1)" style="padding: 8px 18px; font-size:12px;">前へ</button>
+                    <button class="btn-primary" id="tut-next-btn" onclick="changeTutorialStep(1)" style="padding: 8px 18px; font-size:12px;">次へ</button>
+                </div>
             </div>
         </div>
-
-        <div class="tableau-zone" id="tableau">
-            <div class="tableau-col" id="col-0" onclick="clickTableauCol(0)"></div>
-            <div class="tableau-col" id="col-1" onclick="clickTableauCol(1)"></div>
-            <div class="tableau-col" id="col-2" onclick="clickTableauCol(2)"></div>
-            <div class="tableau-col" id="col-3" onclick="clickTableauCol(3)"></div>
-            <div class="tableau-col" id="col-4" onclick="clickTableauCol(4)"></div>
-            <div class="tableau-col" id="col-5" onclick="clickTableauCol(5)"></div>
-            <div class="tableau-col" id="col-6" onclick="clickTableauCol(6)"></div>
-        </div>
     </div>
 
-    <button onclick="resetGame()">最初からリセット</button>
-
-    <div class="modal" id="alert-modal">
-        <div class="modal-card">
-            <h2 id="alert-title">通知</h2>
-            <p id="alert-desc">メッセージ</p>
-            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+    <!-- ゲームプレイ用フルスクリーンオーバーレイ -->
+    <div id="game-overlay">
+        <div class="game-bar">
+            <button class="back-btn" onclick="closeGame()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                ロビーに戻る
+            </button>
+            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="overlay-title">PLAYING</div>
+            <div style="width: 100px;"></div>
         </div>
-    </div>
-
-    <div class="modal" id="result-overlay">
-        <div class="modal-card">
-            <h2>🎉 クロンダイククリア！</h2>
-            <p>見事すべてのカードを土台に回収し、ソリティアをクリアしました！</p>
-            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        <div class="game-iframe-container">
+            <iframe id="game-frame" src=""></iframe>
         </div>
     </div>
 
     <script>
-        const suits = ['❤️', '♦️', '♠️', '♣️']; 
-        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        let audioCtx = null;
+        function playTickSound() {
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.02);
+                
+                gain.gain.setValueAtTime(0.025, audioCtx.currentTime); 
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.02);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.02);
+            } catch (e) {
+                console.log("Audio Context blocked", e);
+            }
+        }
 
-        let stock = [];     
-        let waste = [];     
-        let foundations = Array(4).fill(null).map(() => []); 
-        let tableau = Array(7).fill(null).map(() => []);     
+        const gamesData = {
+            reversi: { 
+                title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
+                desc: 'お互いの石で相手の石を挟んでひっくり返していくボードゲーム。最終的に盤面に自分の色の石が多い方が勝利となります。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="12" fill="#1b4332"/><circle cx="35" cy="35" r="14" fill="#111"/><circle cx="65" cy="65" r="14" fill="#111"/><circle cx="35" cy="65" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/><circle cx="65" cy="35" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                steps: [
+                    "盤面の中央にあらかじめ白黒2枚ずつ計4枚を配置した状態でスタート。黒が先手です。",
+                    "自分の手札の色の石を、縦・横・斜めのいずれかで相手の石を挟める空いているマスに配置します。",
+                    "挟まれた石はすべて自分の色に反転します。盤面がすべて埋まり、最後に多く自分の石を残した方の勝利です。"
+                ]
+            },
+            mancala: { 
+                title: 'マンカラ', icon: '🪵🔮', file: 'mancala.html', supports2P: true, 
+                desc: '最古の知略ゲーム。自分のポケットから石を取って反時計回りに配っていき、自陣の石をすべてなくすか、ストアに多くの石を集めたプレイヤーの勝利です。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="20" width="90" height="60" rx="15" fill="#8b5a2b" stroke="#563313" stroke-width="3"/><circle cx="20" cy="38" r="10" fill="#3c2009"/><circle cx="50" cy="38" r="10" fill="#3c2009"/><circle cx="80" cy="38" r="10" fill="#3c2009"/><circle cx="20" cy="62" r="10" fill="#3c2009"/><circle cx="50" cy="62" r="10" fill="#3c2009"/><circle cx="80" cy="62" r="10" fill="#3c2009"/><circle cx="50" cy="38" r="4" fill="#1982c4"/><circle cx="53" cy="41" r="4" fill="#ff595e"/><circle cx="47" cy="40" r="4" fill="#8ac926"/></svg>`,
+                steps: [
+                    "自陣の6つの穴（ポケット）の中から任意の1つを選び、中に入っている全てのビーズを手に取ります。",
+                    "取ったビーズを手元から右方向（反時計回り）に向かって、自陣ストアも含めて1つずつ配っていきます（相手のストアは飛ばします）。",
+                    "最後の1つが自分のストア（大きな穴）に入れば、もう一度ターンが得られます。自陣の穴が空になったらゲーム終了、多くの石を回収した方が勝ちです。"
+                ]
+            },
+            connectfour: { 
+                title: 'コネクトフォー', icon: '🟡🔴', file: 'connectfour.html', supports2P: true, 
+                desc: '格子状のボードに上からチップを交互に落としていき、自分の色のチップを縦・横・斜めのいずれかで「4枚」一直線に並べたプレイヤーの勝利となります。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/></svg>`,
+                steps: [
+                    "縦7列・横6行の青いグリッドボードに、イエローとレッドが交互に上からチップをスライドして落とします。",
+                    "チップはグリッドの一番下に自重でスライド落下して積み重なっていきます。",
+                    "縦、横、斜めのどこか一方向に、自分のチップを一番最初に「4枚連続で一直線」に繋げたプレイヤーが勝ちとなります。"
+                ]
+            },
+            hitandblow: { 
+                title: 'ヒット＆ブロー', icon: '🎨🔍', file: 'hitandblow.html', supports2P: false, 
+                desc: '相手が隠した4つの異なる色の配置を推測して当てるパズル。位置と色が合っていれば「ヒット」、色だけが合っていれば「ブロー」としてヒントが得られます。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#2b1d0c" stroke="#482a10" stroke-width="2"/><circle cx="30" cy="35" r="11" fill="#ff4d4d"/><circle cx="70" cy="35" r="11" fill="#3399ff"/><circle cx="30" cy="65" r="6" fill="#d9534f"/></svg>`,
+                steps: [
+                    "コンピュータが背後で重複のない4色のピンを秘密の順序で作成します。プレイヤーはそれを推測します。",
+                    "色ピンを予測して配置すると、結果として「Hit（色も位置も正解）」と「Blow（色は正解だが位置が不一致）」の個数が表示されます。",
+                    "このヒント情報のみを頼りにして、決められた規定回数（8回）以内に4つすべての色と順序を当てることができれば勝利です。"
+                ]
+            },
+            gomoku: { 
+                title: '五目ならべ', icon: '🪵⚫', file: 'gomoku.html', supports2P: true, 
+                desc: '15x15の碁盤の交点に、交互に自分の石を配置。縦・横・斜めのいずれかで先に隙間なく自分の石を「5枚」一直線に並べた方が勝利となります。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                steps: [
+                    "美しい木製の碁盤の上で、黒（先手）と白（後手）が格子状の『線の交点』に交互に石を置きます。",
+                    "どこに置くかは制限はありません。お互いに攻撃を組み立てつつ、相手の防御をかいくぐって5並びを狙います。",
+                    "先に自分の石を、縦・横・斜めのどこか一列に連続で「5石以上」繋げたプレイヤーが勝利となります。"
+                ]
+            },
+            yacht: { 
+                title: 'ヨット', icon: '🎲🗒️', file: 'yacht.html', supports2P: true, 
+                desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
+                steps: [
+                    "5個のサイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
+                    "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
+                    "すべてのカテゴリを埋め終えた時点で、合計得点が一番高いプレイヤーが優勝となります。"
+                ]
+            },
+            blackjack: { 
+                title: 'ブラックジャック', icon: '♣️🃏', file: 'blackjack.html', supports2P: false, 
+                desc: 'カジノの王道カードゲーム。配られたカードの合計値を「21」を超えないように近づけ、ディーラーの合計値よりも高ければ勝利となります。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="20" width="36" height="54" rx="5" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-10 28 47)"/><text x="18" y="52" font-family="sans-serif" font-size="16" font-weight="bold" fill="#ff4d4d" transform="rotate(-10 28 47)">10♦</text><rect x="48" y="16" width="36" height="54" rx="5" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(8 66 43)"/><text x="56" y="48" font-family="sans-serif" font-size="16" font-weight="bold" fill="#111" transform="rotate(8 66 43)">A♣</text></svg>`,
+                steps: [
+                    "手札のカードの合計数値を『21』にできる限り近づけるゲーム。J,Q,Kは10点、Aは1または11点の好きな方でカウント可能。",
+                    "もう1枚引く『ヒット（Hit）』、その数で勝負する『スタンド（Stand）』、賭け金を2倍にする『ダブルダウン（Double）』を選択します。",
+                    "カードを引きすぎて21を超えてしまうと『バースト（即負け）』。21以内でディーラーよりも数字が大きければ勝利となります。"
+                ]
+            },
+            sevens: { 
+                title: '7ならべ', icon: '♠️7️⃣', file: 'sevens.html', supports2P: true, 
+                desc: '「7」のカードを起点として、同じマーク（スート）で隣り合う数（6や8など）を手札から順番に出していき、いち早く手札をなくすことを目指します。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="30" y="15" width="40" height="70" rx="6" fill="#fff" stroke="#ccc" stroke-width="2"/><text x="41" y="58" font-family="sans-serif" font-size="24" font-weight="bold" fill="#d9534f">7♦</text></svg>`,
+                steps: [
+                    "場の中央に、ダイヤ、ハート、スペード、クラブの4枚の『7』が最初に配置され、残りのカードを手札として分散して持ちます。",
+                    "場にあるカードの前後1差の数（例: ダイヤの7の横にはダイヤの6または8）のみ手札から置くことができます。",
+                    "出すカードがない時は『パス（Pass）』。パスは最大3回まで。いち早くすべての手札を出し切ったプレイヤーの勝利です。"
+                ]
+            },
+            speed: { 
+                title: 'スピード', icon: '💨🃏', file: 'speed.html', supports2P: false, 
+                desc: 'リアルタイム型の反射神経カードゲーム。中央に置かれた台座のカードと、数字が「1」前後する手札を、ターンを持たずに早い者勝ちで重ねていきます。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 26 49)"/><rect x="52" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 68 49)"/><path d="M40 50 L60 50 M52 44 L60 50 L52 56" stroke="#4a90e2" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`,
+                steps: [
+                    "お互いの手札（手元の4枚）から、中央に配置された2つの台座（捨て場）カードと数字が前後1ずれているものを、順番を待たず即座に出し合います。",
+                    "カードを置くと手元の空き枠に自分の山札からカードが自動で1枚補充されます。お互いに出せない時は中央にカードを1枚配り直します（Stuckボタン）。",
+                    "自分の手札（4枚）と山札（残り枚数）の全てを一番最初に使い切って「0枚」にした方のプレイヤーが、圧倒的スピード勝利となります。"
+                ]
+            },
+            lastcard: { 
+                title: 'ラストカード', icon: '🃏🔥', file: 'lastcard.html', supports2P: true, 
+                desc: 'トランプを使用するUNO風のカードゲーム。同じマークか数字を出し、手札を減らします。最後の1枚になったら即座に宣言を行わなければペナルティです。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="15" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-20 31 49)"/><rect x="34" y="20" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5"/><rect x="53" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(20 69 49)"/></svg>`,
+                steps: [
+                    "手札7枚からスタート。中央に表向きに置かれた場札と同じスート（マーク）または同じ数字のカードのみ、手札から出して重ねられます。",
+                    "特殊効果カード：『2』を出された次のプレイヤーは2枚引く、『8』は相手のターンをスキップ（もう一回自分の番）などのトラップが存在します。",
+                    "手札がラスト1枚になったら、2秒以内に『ラストカード！』ボタンを押してください。宣言を忘れると自動で2枚ペナルティとしてカードを引かされます。"
+                ]
+            },
+            matching: { 
+                title: '神経衰弱', icon: '🃏🎴', file: 'matching.html', supports2P: true, 
+                desc: '2枚めくって同じ数字を揃える記憶力ゲーム。ペア成立時に難易度別のCPUによる高品位な対戦が特徴。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="21" y="58" font-size="24" fill="#d4a373">?</text><rect x="56" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="67" y="58" font-size="24" fill="#d4a373">?</text></svg>`,
+                steps: [
+                    "裏向きに配置された16枚のカードの中から、自分の番に2枚めくって表にします。",
+                    "カードの数字が合致すればペア成立として獲得し、もう一度続けてめくることができます。",
+                    "数字が合わなければ手番は交代。すべてのカードがペアとなった時点で、獲得枚数が多いプレイヤーの勝利です。"
+                ]
+            },
+            slidepuzzle: { 
+                title: 'スライドパズル', icon: '🔢🧩', file: 'slidepuzzle.html', supports2P: false, 
+                desc: '空いたスペースを活用して数字をスライドし、1から15まで順番に揃えて並び替える1人専用ロジックパズル。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#0c120f"/><rect x="10" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="34" font-size="20" font-weight="bold" fill="#352110">1</text><rect x="52" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="63" y="34" font-size="20" font-weight="bold" fill="#352110">2</text><rect x="10" y="52" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="76" font-size="20" font-weight="bold" fill="#352110">3</text></svg>`,
+                steps: [
+                    "4x4のパネルの中に、1〜15の数字と『空きスペース』がバラバラに配置されています。",
+                    "空きスペースに隣接する数字をスライドさせて移動させます。",
+                    "左上から順番に『1, 2, 3... 15』の形に美しく整列させることができれば、見事パズルクリアです。"
+                ]
+            },
+            takoyaki: { 
+                title: 'たこやき', icon: '🐙🎴', file: 'takoyaki.html', supports2P: true, 
+                desc: '自分の10マスのカードを、山札から引いた数字に合わせてめくり合いいち早く全オープンを競う運引きカードゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="20" width="36" height="54" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><rect x="54" y="20" width="36" height="54" rx="5" fill="#fff" stroke="#ccc" stroke-width="1.5"/><circle cx="72" cy="47" r="11" fill="#ff595e"/></svg>`,
+                steps: [
+                    "お互いに10マスの伏せられたトランプを持ち、自分の手番で山札からカードを1枚引きます。",
+                    "めくった数字が『1（A）から10』かつ、自分の対応する位置が伏せられているならオープン可能。連鎖が始まります。",
+                    "J,Q,Kはハズレで交代。Jokerが出た場合は好きな箇所を開けられます。先に10マスすべて開けたプレイヤーの勝利となります。"
+                ]
+            },
+            pigstail: { 
+                title: 'ぶたのしっぽ', icon: '🐷🌀', file: 'pigstail.html', supports2P: true, 
+                desc: '円形に並んだカードを交互に中央に引き合い、同じマークを引いた人がペナルティとなるハラハラ系カードゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="38" fill="none" stroke="#d4a373" stroke-width="2.5" stroke-dasharray="6 4"/><circle cx="50" cy="50" r="18" fill="#ff595e"/><text x="41" y="56" font-size="16" fill="#fff">🐖</text></svg>`,
+                steps: [
+                    "円を描いて配置されたトランプから、自分のターンに1枚カードを引き、中央の捨て場に重ねてしていきます。",
+                    "引いたカードのマークが、現在中央にあるカードと同じだった場合はアウトです。",
+                    "アウトになった場合、中央に溜まったすべての山札を引き取るペナルティを受けます。サークルが尽きた時点でペナルティの最も少ない人の勝ちです。"
+                ]
+            },
+            war: { 
+                title: '戦争', icon: '⚔️🃏', file: 'war.html', supports2P: true, 
+                desc: '均等に配られた手札を同時に出し合い、数字の絶対的な大きさのみで勝負するシンプルなゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 28 49)"/><rect x="56" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 72 49)"/><text x="36" y="56" font-size="22">⚔️</text></svg>`,
+                steps: [
+                    "トランプ52枚が均等にお互い（各26枚）に配られ、見えない山札としてセットします。",
+                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強、2が最弱です。",
+                    "数字の大きかったプレイヤーが、その勝負で出されたすべてのカード（スコア）を獲得します。最終的に獲得枚数が多い方が勝ちです。"
+                ]
+            },
+            hareandhounds: { 
+                title: 'ウサギと猟犬', icon: '🐰🐕', file: 'hareandhounds.html', supports2P: true, 
+                desc: '3匹の猟犬（前進のみ）と、1匹のウサギによる非対称パズル。猟犬が追い詰めるか、ウサギが逃げ切るか勝負。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="20" width="90" height="60" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><circle cx="25" cy="50" r="12" fill="#ff4d4d"/><circle cx="50" cy="50" r="12" fill="#ff4d4d"/><circle cx="75" cy="50" r="12" fill="#fff" stroke="#ccc" stroke-width="1"/><text x="18" y="55" font-size="14" fill="#fff">🐕</text><text x="68" y="55" font-size="14" fill="#000">🐰</text></svg>`,
+                steps: [
+                    "3匹の猟犬（赤）と1匹のウサギ（白）に分かれて移動。猟犬は左から右方向（前進）のみ、ウサギは全方向移動できます。",
+                    "猟犬側はウサギをじわじわと前進で挟み込み、1マスに閉じ込めて移動不能な包囲状態にハメれば勝利です。",
+                    "ウサギ側は猟犬の隙間をすり抜け、猟犬のラインよりも左端へ脱出することができれば勝利です。"
+                ]
+            },
+            dotsandboxes: { 
+                title: 'ドット＆ボックス', icon: '✏️📦', file: 'dotsandboxes.html', supports2P: true, 
+                desc: 'グリッド上の点と点を繋いで線を引き、四角形（ボックス）を完成させて所有権を競う陣取りゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="20" cy="20" r="5" fill="#1e293b"/><circle cx="50" cy="20" r="5" fill="#1e293b"/><circle cx="80" cy="20" r="5" fill="#1e293b"/><circle cx="20" cy="50" r="5" fill="#1e293b"/><circle cx="50" cy="50" r="5" fill="#1e293b"/><circle cx="80" cy="50" r="5" fill="#1e293b"/><circle cx="20" cy="80" r="5" fill="#1e293b"/><circle cx="50" cy="80" r="5" fill="#1e293b"/><circle cx="80" cy="80" r="5" fill="#1e293b"/><line x1="20" y1="20" x2="50" y2="20" stroke="#4a90e2" stroke-width="4"/><line x1="20" y1="20" x2="20" y2="50" stroke="#4a90e2" stroke-width="4"/><rect x="20" y="20" width="30" height="30" fill="rgba(74, 144, 226, 0.15)"/></svg>`,
+                steps: [
+                    "交互に点と点を結ぶ『垂直または水平の線』を引いていきます。",
+                    "自分が引いた線によって1x1の『四角形（ボックス）』が完成した場合、そのボックスを自分の陣地として獲得し、さらに連続でもう1本線を引くことができます。",
+                    "すべてのボックス（計9個）が埋まった時点で、より多くのボックスを所有していた方の勝利となります。"
+                ]
+            },
+            checkers: { 
+                title: 'チェッカー', icon: '🏁🔴', file: 'checkers.html', supports2P: true, 
+                desc: '斜めのみに進むコマを操り、相手のコマをジャンプして飛び越え、すべて奪うか動けなくすることを目指す古典ボードゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="10" fill="#2d1e15"/><rect x="10" y="10" width="80" height="80" fill="#e2ae6c"/><rect x="10" y="10" width="40" height="40" fill="#8b5a2b"/><rect x="50" y="50" width="40" height="40" fill="#8b5a2b"/><circle cx="30" cy="30" r="12" fill="#ff4d4d"/><circle cx="70" cy="70" r="12" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                steps: [
+                    "8x8のマス目の上を、斜め前方に1マスずつ交互に移動します。飛び越えられる敵のコマが斜めに隣接している場合は、必ずジャンプして飛び越えてそのコマを獲得しなければなりません。",
+                    "相手の最深部の行に達したコマは『キング（King）』になり、斜め後方への移動やジャンプも可能になります。",
+                    "相手のすべてのコマを奪い取るか、相手が完全に身動きできない状態（詰み）に追い詰めた方の勝利となります。"
+                ]
+            },
+            hex: { 
+                title: 'ヘックス', icon: '🐝🔗', file: 'hex.html', supports2P: true, 
+                desc: '六角形マスのボード上で、自分の色を繋いで対岸の壁同士を完全に一続きにする対戦型接続パズル。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><polygon points="50,15 80,30 80,60 50,75 20,60 20,30" fill="#fff" stroke="#4a90e2" stroke-width="3"/><polygon points="50,25 70,35 70,55 50,65 30,55 30,35" fill="rgba(74, 144, 226, 0.15)"/></svg>`,
+                steps: [
+                    "六角形のマス目の空いている箇所に、交互に自分のコマを置いていきます。",
+                    "プレイヤー1（赤）は上下の境界を、プレイヤー2（青）は左右の境界を一続きに自分の色で繋げることを目指します。",
+                    "境界同士を完全に途切れなく一本のラインで接続したプレイヤーが勝利となります。引き分けはありません。"
+                ]
+            },
+            shanghai: { 
+                title: '麻雀ソリティア', icon: '🀄🧩', file: 'shanghai.html', supports2P: false, 
+                desc: '積み上げられた麻雀牌の中から、左右や上部が空いている同じ絵柄の牌を2個ずつ選択して消去していく1人専用パズル（上海）。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="20" y="25" width="45" height="50" rx="6" fill="#fff" stroke="#ccc" stroke-width="2"/><rect x="35" y="15" width="45" height="50" rx="6" fill="#fff" stroke="#ccc" stroke-width="2"/><text x="50" y="45" font-family="sans-serif" font-size="22" font-weight="bold" fill="#33cc33">萬</text></svg>`,
+                steps: [
+                    "ピラミッド状に立体的に配置された麻雀牌の中から、同じ絵柄の牌を2個探して選択します。",
+                    "消去できるのは、左右のどちらかが空いており、かつその牌の上に他の牌が重なっていないフリーな牌のみとなります。",
+                    "順番にペアを消去していき、最終的に盤面上にあるすべての牌を綺麗に消し去ることができればクリアとなります。"
+                ]
+            },
+            klondike: { 
+                title: 'クロンダイク', icon: '♠️👑', file: 'klondike.html', supports2P: false, 
+                desc: 'トランプを赤黒交互かつ降順に並び替えながら、最終的に右上の土台へAからKまで順番に揃えていく定番ソリティアパズル。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="15" y="25" width="32" height="48" rx="4" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><rect x="53" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5"/><text x="61" y="55" font-family="sans-serif" font-size="16" font-weight="bold" fill="#d9534f">A♥</text></svg>`,
+                steps: [
+                    "場にあるカードを、赤と黒のマークが交互になるように、かつ数字が小さくなる順（K、Q、J...）に重ねて並び替えます。",
+                    "山札から順にカードを引きながら、空いた列にはKから始まる列を作ることができます。",
+                    "最終的に、右上の4つの土台スロットに、ダイヤ・ハート・スペード・クラブのすべてをAからKまで完全に回収しきればゲームクリアです。"
+                ]
+            }
+        };
 
-        let selected = null; 
+        const carouselEl = document.getElementById('game-carousel');
+        const selectPlayBtn = document.getElementById('select-play-btn');
+        
+        const screenCarousel = document.getElementById('screen-carousel');
+        const screenSetup = document.getElementById('screen-setup');
+        
+        const illustrationBox = document.getElementById('illustration-box');
+        const setupTitle = document.getElementById('setup-title');
+        const setupDesc = document.getElementById('setup-desc');
+        
+        const modeCpuBtn = document.getElementById('mode-cpu-btn');
+        const modePlayerBtn = document.getElementById('mode-player-btn');
+        const difficultyGroup = document.getElementById('difficulty-group');
+        
+        const gameOverlay = document.getElementById('game-overlay');
+        const gameFrame = document.getElementById('game-frame');
+        const overlayTitle = document.getElementById('overlay-title');
 
-        function initGame() {
-            stock = []; waste = []; selected = null;
-            foundations = Array(4).fill(null).map(() => []);
-            tableau = Array(7).fill(null).map(() => []);
-            document.getElementById('result-overlay').style.display = 'none';
-            closeAlert();
+        // チュートリアルモーダルの制御DOM
+        const tutorialOverlay = document.getElementById('tutorial-overlay');
+        const tutGameTitle = document.getElementById('tut-game-title');
+        const tutVisualBox = document.getElementById('tut-visual-box');
+        const tutDescText = document.getElementById('tut-desc-text');
+        const tutStepLabel = document.getElementById('tut-step-label');
+        const tutDotsBox = document.getElementById('tut-dots-box');
 
-            let deck = [];
-            suits.forEach((suit, s) => {
-                values.forEach((val, v) => {
-                    deck.push({ val, suit, isRed: (s < 2), sIdx: s, vIdx: v, faceUp: false });
-                });
+        let selectedId = null;
+        let selectedMode = 'vs_cpu'; 
+        let selectedDiff = 'normal'; 
+        let tutorialCurrentStep = 0;
+
+        function initCarousel() {
+            carouselEl.innerHTML = '';
+            Object.keys(gamesData).forEach(id => {
+                const game = gamesData[id];
+                const card = document.createElement('div');
+                card.className = 'game-icon-card';
+                card.dataset.id = id;
+                card.innerHTML = `
+                    <div class="game-icon">${game.icon}</div>
+                    <div class="game-title">${game.title}</div>
+                `;
+                card.addEventListener('click', () => selectGame(id));
+                carouselEl.appendChild(card);
             });
-            deck.sort(() => Math.random() - 0.5);
 
-            for (let i = 0; i < 7; i++) {
-                for (let j = i; j < 7; j++) {
-                    const card = deck.pop();
-                    if (j === i) card.faceUp = true; 
-                    tableau[j].push(card);
+            const scrollWrapper = document.getElementById('game-carousel-wrapper');
+            let lastScrollPos = 0;
+            const scrollInterval = 85; 
+
+            scrollWrapper.addEventListener('scroll', () => {
+                const currentScroll = scrollWrapper.scrollLeft;
+                if (Math.abs(currentScroll - lastScrollPos) > scrollInterval) {
+                    playTickSound();
+                    lastScrollPos = currentScroll;
                 }
-            }
-
-            stock = deck;
-            updateUI();
+            });
         }
 
-        function drawStockCard() {
-            selected = null;
-            if (stock.length === 0) {
-                if (waste.length === 0) return;
-                stock = waste.reverse().map(c => { c.faceUp = false; return c; });
-                waste = [];
+        function selectGame(id) {
+            playTickSound();
+            document.querySelectorAll('.game-icon-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            const selectedCard = document.querySelector(`.game-icon-card[data-id="${id}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                selectedCard.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+            selectedId = id;
+            selectPlayBtn.disabled = false;
+        }
+
+        function goToSetup() {
+            if (!selectedId) return;
+            playTickSound();
+            const game = gamesData[selectedId];
+
+            setupTitle.innerText = game.title;
+            setupDesc.innerText = game.desc;
+            illustrationBox.innerHTML = game.illust;
+
+            selectedMode = 'vs_cpu';
+            selectedDiff = 'normal';
+            updateConfigButtons();
+
+            if (game.supports2P) {
+                modePlayerBtn.disabled = false;
             } else {
-                const card = stock.pop();
-                card.faceUp = true;
-                waste.push(card);
+                modePlayerBtn.disabled = true;
+                setMode('vs_cpu'); 
             }
-            updateUI();
+
+            screenCarousel.classList.remove('active');
+            setTimeout(() => {
+                screenSetup.classList.add('active');
+            }, 150);
         }
 
-        function clickTableauCol(colIdx) {
-            const col = tableau[colIdx];
-            if (selected === null) {
-                if (col.length === 0) return;
-                const firstFaceUpIdx = col.findIndex(c => c.faceUp);
-                if (firstFaceUpIdx !== -1) {
-                    selected = { source: 'tableau', colIdx, cardIdx: firstFaceUpIdx };
-                }
+        function updateConfigButtons() {
+            modeCpuBtn.classList.toggle('active', selectedMode === 'vs_cpu');
+            modePlayerBtn.classList.toggle('active', selectedMode === 'vs_player');
+
+            if (selectedMode === 'vs_cpu') {
+                difficultyGroup.style.display = 'block';
+                document.getElementById('diff-easy-btn').classList.toggle('active', selectedDiff === 'easy');
+                document.getElementById('diff-normal-btn').classList.toggle('active', selectedDiff === 'normal');
+                document.getElementById('diff-hard-btn').classList.toggle('active', selectedDiff === 'hard');
             } else {
-                const movingCards = getSelectedCards();
-                if (movingCards.length === 0) return;
-
-                const firstMovingCard = movingCards[0];
-
-                let valid = false;
-                if (col.length === 0) {
-                    if (firstMovingCard.vIdx === 12) valid = true;
-                } else {
-                    const targetCard = col[col.length - 1];
-                    if (targetCard.faceUp && targetCard.isRed !== firstMovingCard.isRed && targetCard.vIdx === firstMovingCard.vIdx + 1) {
-                        valid = true;
-                    }
-                }
-
-                if (valid) {
-                    moveCards(movingCards, { source: 'tableau', colIdx });
-                } else {
-                    selected = null; 
-                }
-                updateUI();
+                difficultyGroup.style.display = 'none';
             }
         }
 
-        function clickFoundation(fIdx) {
-            if (selected === null) {
-                const f = foundations[fIdx];
-                if (f.length > 0) {
-                    selected = { source: 'foundation', colIdx: fIdx, cardIdx: f.length - 1 };
-                }
+        function setMode(mode) {
+            playTickSound();
+            selectedMode = mode;
+            updateConfigButtons();
+        }
+
+        function setDiff(diff) {
+            playTickSound();
+            selectedDiff = diff;
+            updateConfigButtons();
+        }
+
+        function goToCarousel() {
+            playTickSound();
+            screenSetup.classList.remove('active');
+            setTimeout(() => {
+                screenCarousel.classList.add('active');
+            }, 150);
+        }
+
+        function openTutorial() {
+            playTickSound();
+            if (!selectedId) return;
+            const game = gamesData[selectedId];
+            
+            tutGameTitle.innerText = game.title;
+            tutorialCurrentStep = 0;
+            
+            updateTutorialStepUI();
+            
+            tutorialOverlay.style.display = 'flex';
+            setTimeout(() => {
+                tutorialOverlay.classList.add('active');
+            }, 10);
+        }
+
+        function updateTutorialStepUI() {
+            const game = gamesData[selectedId];
+            tutStepLabel.innerText = `STEP ${tutorialCurrentStep + 1} / 3`;
+            tutDescText.innerText = game.steps[tutorialCurrentStep];
+            tutVisualBox.innerHTML = game.illust; 
+
+            tutDotsBox.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = `tut-dot ${i === tutorialCurrentStep ? 'active' : ''}`;
+                tutDotsBox.appendChild(dot);
+            }
+
+            document.getElementById('tut-prev-btn').disabled = (tutorialCurrentStep === 0);
+            if (tutorialCurrentStep === 2) {
+                document.getElementById('tut-next-btn').innerText = "理解した";
             } else {
-                const movingCards = getSelectedCards();
-                if (movingCards.length !== 1) {
-                    selected = null; 
-                    updateUI();
-                    return;
-                }
-
-                const card = movingCards[0];
-                const f = foundations[fIdx];
-
-                let valid = false;
-                if (f.length === 0) {
-                    if (card.vIdx === 0 && card.sIdx === fIdx) valid = true;
-                } else {
-                    const top = f[f.length - 1];
-                    if (card.sIdx === fIdx && card.vIdx === top.vIdx + 1) {
-                        valid = true;
-                    }
-                }
-
-                if (valid) {
-                    moveCards(movingCards, { source: 'foundation', colIdx: fIdx });
-                } else {
-                    selected = null;
-                }
-                updateUI();
+                document.getElementById('tut-next-btn').innerText = "次へ";
             }
         }
 
-        document.getElementById('waste-pile').addEventListener('click', () => {
-            if (waste.length === 0) return;
-            selected = { source: 'waste', colIdx: 0, cardIdx: waste.length - 1 };
-            updateUI();
-        });
-
-        function getSelectedCards() {
-            if (!selected) return [];
-            if (selected.source === 'waste') {
-                return [waste[waste.length - 1]];
-            } else if (selected.source === 'foundation') {
-                const f = foundations[selected.colIdx];
-                return [f[f.length - 1]];
-            } else if (selected.source === 'tableau') {
-                const col = tableau[selected.colIdx];
-                return col.slice(selected.cardIdx);
+        function changeTutorialStep(dir) {
+            playTickSound();
+            if (dir === 1 && tutorialCurrentStep === 2) {
+                closeTutorial();
+                return;
             }
-            return [];
+            tutorialCurrentStep = Math.max(0, Math.min(2, tutorialCurrentStep + dir));
+            updateTutorialStepUI();
         }
 
-        function moveCards(cards, dest) {
-            if (selected.source === 'waste') {
-                waste.pop();
-            } else if (selected.source === 'foundation') {
-                foundations[selected.colIdx].pop();
-            } else if (selected.source === 'tableau') {
-                tableau[selected.colIdx].splice(selected.cardIdx);
-                const col = tableau[selected.colIdx];
-                if (col.length > 0) {
-                    col[col.length - 1].faceUp = true;
-                }
-            }
-
-            if (dest.source === 'tableau') {
-                tableau[dest.colIdx] = tableau[dest.colIdx].concat(cards);
-            } else if (dest.source === 'foundation') {
-                foundations[dest.colIdx].push(cards[0]);
-            }
-
-            selected = null;
-            checkWin();
+        function closeTutorial() {
+            playTickSound();
+            tutorialOverlay.classList.remove('active');
+            setTimeout(() => {
+                tutorialOverlay.style.display = 'none';
+            }, 300);
         }
 
-        function checkWin() {
-            const won = foundations.every(f => f.length === 13);
-            if (won) {
-                document.getElementById('result-overlay').style.display = 'flex';
+        function playGame() {
+            if (!selectedId) return;
+            playTickSound();
+            const game = gamesData[selectedId];
+            
+            let gameUrl = `${game.file}?mode=${selectedMode}`;
+            if (selectedMode === 'vs_cpu') {
+                gameUrl += `&diff=${selectedDiff}`;
             }
+
+            gameFrame.src = gameUrl;
+            overlayTitle.innerText = game.title;
+            gameOverlay.style.display = 'flex';
+            setTimeout(() => {
+                gameOverlay.classList.add('active');
+            }, 10);
+            document.body.classList.add('game-active');
         }
 
-        function updateUI() {
-            const stockPile = document.getElementById('stock-pile');
-            if (stock.length > 0) {
-                stockPile.className = 'slot has-card card back';
-                stockPile.innerText = '🎴';
-            } else {
-                stockPile.className = 'slot';
-                stockPile.innerText = '🌀';
-            }
-
-            const wastePile = document.getElementById('waste-pile');
-            wastePile.innerHTML = '';
-            wastePile.className = 'slot';
-            if (waste.length > 0) {
-                wastePile.className = 'slot has-card';
-                const card = waste[waste.length - 1];
-                const cardEl = createCardDOM(card, selected && selected.source === 'waste');
-                wastePile.appendChild(cardEl);
-            }
-
-            for (let i = 0; i < 4; i++) {
-                const fEl = document.getElementById(`f-${i}`);
-                fEl.innerHTML = '';
-                fEl.className = 'slot';
-                const f = foundations[i];
-                if (f.length > 0) {
-                    fEl.className = 'slot has-card';
-                    const card = f[f.length - 1];
-                    const isSelected = selected && selected.source === 'foundation' && selected.colIdx === i;
-                    fEl.appendChild(createCardDOM(card, isSelected));
-                } else {
-                    fEl.innerText = i === 0 ? '♥' : (i === 1 ? '♦' : (i === 2 ? '♠' : '♣'));
-                }
-            }
-
-            for (let c = 0; c < 7; c++) {
-                const colEl = document.getElementById(`col-${c}`);
-                colEl.innerHTML = '';
-                const col = tableau[c];
-
-                col.forEach((card, idx) => {
-                    const cardEl = document.createElement('div');
-                    const isSelected = selected && selected.source === 'tableau' && selected.colIdx === c && idx >= selected.cardIdx;
-
-                    if (card.faceUp) {
-                        cardEl.className = `card ${card.isRed ? 'red' : ''}`;
-                        if (isSelected) cardEl.classList.add('selected');
-                        cardEl.innerHTML = `
-                            <div>${card.val} ${card.suit}</div>
-                            <div style="text-align:right; transform:rotate(180deg);">${card.val} ${card.suit}</div>
-                        `;
-                    } else {
-                        cardEl.className = 'card back';
-                        cardEl.innerText = '🎴';
-                    }
-
-                    cardEl.style.top = `${idx * 16}px`;
-                    cardEl.style.zIndex = idx;
-                    colEl.appendChild(cardEl);
-                });
-            }
+        function closeGame() {
+            playTickSound();
+            gameOverlay.classList.remove('active');
+            setTimeout(() => {
+                gameOverlay.style.display = 'none';
+                gameFrame.src = '';
+            }, 300);
+            document.body.classList.remove('game-active');
+            
+            goToCarousel();
+            document.querySelectorAll('.game-icon-card').forEach(card => card.classList.remove('selected'));
+            selectedId = null;
+            selectPlayBtn.disabled = true;
         }
 
-        function createCardDOM(card, isSelected) {
-            const el = document.createElement('div');
-            el.className = `card ${card.isRed ? 'red' : ''}`;
-            if (isSelected) el.classList.add('selected');
-            el.innerHTML = `
-                <div>${card.val} ${card.suit}</div>
-                <div style="text-align:right; transform:rotate(180deg);">${card.val} ${card.suit}</div>
-            `;
-            return el;
-        }
-
-        function showCustomAlert(title, desc) {
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-desc').innerText = desc;
-            document.getElementById('alert-modal').style.display = 'flex';
-        }
-        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
-
-        function resetGame() { initGame(); }
-        initGame();
+        initCarousel();
     </script>
 </body>
 </html>
