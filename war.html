@@ -3,48 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>戦争</title>
+    <title>戦争 - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
-        .score-panel { display: flex; gap: 30px; margin-bottom: 30px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .score { font-size: 16px; font-weight: bold; }
-        .battlefield { display: flex; gap: 40px; align-items: center; min-height: 160px; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 30px; background: #fff; padding: 10px 30px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score { font-size: 15px; font-weight: bold; }
+        .battlefield { display: flex; gap: 40px; align-items: center; min-height: 150px; }
         .player-side { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-        .card-slot { width: 80px; height: 115px; border-radius: 8px; border: 2px dashed rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .card-slot.has-card { background: #fff; color: #111; border: none; }
+        .card-slot { width: 75px; height: 105px; border-radius: 8px; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: inset 0 3px 6px rgba(0,0,0,0.05); }
+        .card-slot.has-card { background: #fff; color: #111; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: deal 0.2s ease-out; }
+        @keyframes deal { from { transform: translateY(-40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .card-slot.has-card.red { color: #d9534f; }
-        .status { font-size: 18px; color: #d4a373; font-weight: bold; margin-bottom: 25px; height: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .deck-info { font-size: 12px; opacity: 0.6; }
-        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 12px 36px; font-size: 15px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: background-color 0.2s; margin-top: 25px; }
-        button:hover { background-color: #32463b; }
+        .status { font-size: 16px; color: #b8813a; font-weight: bold; margin-bottom: 25px; height: 24px; text-align: center; }
+        .deck-info { font-size: 11px; opacity: 0.5; font-weight: bold; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="score-panel">
-        <div class="score">Player 1 獲得枚数: <span id="p1-score">0</span>枚</div>
-        <div class="score">Player 2 獲得枚数: <span id="p2-score">0</span>枚</div>
+        <div class="score">あなた獲得: <span id="p1-score">0</span>枚</div>
+        <div class="score" id="p2-score-label">相手獲得: <span id="p2-score">0</span>枚</div>
     </div>
 
-    <div class="status" id="status-text">カードを引いて戦闘を開始してください</div>
+    <div class="status" id="status-text">「カードを引く」を押してください</div>
 
     <div class="battlefield">
         <div class="player-side">
             <span class="deck-info">PLAYER 1</span>
             <div class="card-slot" id="p1-slot">🎴</div>
         </div>
-        <div style="font-size: 24px; opacity: 0.5; font-weight: bold;">VS</div>
+        <div style="font-size: 20px; opacity: 0.4; font-weight: bold;">VS</div>
         <div class="player-side">
-            <span class="deck-info">PLAYER 2</span>
+            <span class="deck-info" id="p2-panel-label">PLAYER 2</span>
             <div class="card-slot" id="p2-slot">🎴</div>
         </div>
     </div>
 
-    <button id="draw-btn" onclick="playRound()">カードを引く</button>
-    <button onclick="resetGame()" style="background: none; border: none; text-decoration: underline; color: #8e9a93; margin-top: 15px; font-size: 12px; padding: 0;">リセット</button>
+    <button class="btn-modal" id="draw-btn" onclick="playRound()" style="margin-top: 25px; padding: 12px 40px;">カードを引く</button>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝利！</h2>
+            <p id="result-desc">結果</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
-        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']; // 強さ順
+        const values = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
         const suits = ['❤️', '♠️', '♦️', '♣️'];
         let p1Deck = [];
         let p2Deck = [];
@@ -53,24 +76,27 @@
         let pot = [];
         let gameOver = false;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+
         function initGame() {
             p1Score = 0; p2Score = 0; pot = []; gameOver = false;
             document.getElementById('p1-score').innerText = 0;
             document.getElementById('p2-score').innerText = 0;
-            document.getElementById('status-text').innerText = "カードを引いて戦闘を開始してください";
+            document.getElementById('p2-score-label').innerText = gameMode === 'vs_cpu' ? "CPU獲得: 0枚" : "相手獲得: 0枚";
+            document.getElementById('p2-panel-label').innerText = gameMode === 'vs_cpu' ? "CPU" : "PLAYER 2";
+            document.getElementById('status-text').innerText = "カードを引いて対決してください";
             document.getElementById('p1-slot').className = 'card-slot';
             document.getElementById('p1-slot').innerText = '🎴';
             document.getElementById('p2-slot').className = 'card-slot';
             document.getElementById('p2-slot').innerText = '🎴';
             document.getElementById('draw-btn').disabled = false;
-            document.getElementById('draw-btn').innerText = "カードを引く";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
 
-            // デッキを均等に2等分配る
             let initialDeck = [];
             suits.forEach(suit => {
-                values.forEach(val => {
-                    initialDeck.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') });
-                });
+                values.forEach(val => { initialDeck.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') }); });
             });
             initialDeck.sort(() => Math.random() - 0.5);
 
@@ -89,7 +115,6 @@
             const c1 = p1Deck.pop();
             const c2 = p2Deck.pop();
 
-            // スロット表示更新
             const slot1 = document.getElementById('p1-slot');
             const slot2 = document.getElementById('p2-slot');
 
@@ -101,41 +126,58 @@
 
             pot.push(c1, c2);
 
-            const power1 = values.indexOf(c1.val);
-            const power2 = values.indexOf(c2.val);
+            const pow1 = values.indexOf(c1.val);
+            const pow2 = values.indexOf(c2.val);
 
-            if (power1 > power2) {
-                // P1勝利
-                document.getElementById('status-text').innerText = `Player 1 の勝ち！ (${pot.length}枚獲得)`;
+            if (pow1 > pow2) {
+                document.getElementById('status-text').innerText = `あなたの勝ち！ (+${pot.length}枚)`;
                 p1Score += pot.length;
                 document.getElementById('p1-score').innerText = p1Score;
                 pot = [];
-            } else if (power2 > power1) {
-                // P2勝利
-                document.getElementById('status-text').innerText = `Player 2 の勝ち！ (${pot.length}枚獲得)`;
+            } else if (pow2 > pow1) {
+                document.getElementById('status-text').innerText = `${gameMode === 'vs_cpu' ? 'CPU' : '相手'}の勝ち！ (+${pot.length}枚)`;
                 p2Score += pot.length;
                 document.getElementById('p2-score').innerText = p2Score;
                 pot = [];
             } else {
-                // 引き分け -> 連鎖（戦争）へ
-                document.getElementById('status-text').innerText = "引き分け！場に溜まります！次のカードで勝負！";
+                showCustomAlert("ドロー！", "数字が等しいため、場にカードが蓄積されます！次の1枚で一括回収を狙いましょう。");
+                document.getElementById('status-text').innerText = "引き分け！場に蓄積されています。";
             }
 
             if (p1Deck.length === 0 || p2Deck.length === 0) {
-                checkWinner();
+                setTimeout(checkWinner, 1000);
             }
         }
 
         function checkWinner() {
             gameOver = true;
             document.getElementById('draw-btn').disabled = true;
-            let msg = "";
-            if (p1Score > p2Score) msg = `ゲーム終了！ ${p1Score} 対 ${p2Score} で Player 1 の優勝！`;
-            else if (p2Score > p1Score) msg = `ゲーム終了！ ${p2Score} 対 ${p1Score} で Player 2 の優勝！`;
-            else msg = `引き分け！ 両者 ${p1Score}枚獲得`;
 
-            document.getElementById('status-text').innerText = msg;
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = `あなた ${p1Score}枚 - ${p2Score}枚 ${gameMode === 'vs_cpu' ? 'CPU' : 'Player 2'}`;
+
+            if (p1Score === p2Score) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (p1Score > p2Score) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
         }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
 
         function resetGame() { initGame(); }
         initGame();

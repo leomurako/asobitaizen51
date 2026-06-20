@@ -3,76 +3,80 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ウサギと猟犬</title>
+    <title>ウサギと猟犬 - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
-        .status { font-size: 16px; color: #d4a373; font-weight: bold; margin-bottom: 25px; height: 24px; }
+        .status { font-size: 15px; color: #b8813a; font-weight: bold; margin-bottom: 25px; height: 24px; text-align: center; }
         
-        /* ボード全体のエリア */
-        .board-container { position: relative; width: 450px; height: 250px; background: radial-gradient(circle, #e2ae6c 60%, #b8813a 100%); border: 6px solid #563313; border-radius: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.5); }
-        
-        /* 背景ライン描画用のSVG */
+        .board-container { position: relative; width: 440px; height: 240px; background: radial-gradient(circle, #f5d19a 50%, #d8a05c 100%); border: 6px solid #6d4218; border-radius: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.08); }
         svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
         
-        /* 交点ノード */
-        .node { position: absolute; width: 34px; height: 34px; border-radius: 50%; background-color: #3c2009; border: 2px solid #563313; transform: translate(-50%, -50%); cursor: pointer; box-shadow: inset 0 3px 5px rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 10; transition: background-color 0.2s, transform 0.2s; }
-        .node.highlight { background-color: rgba(212, 163, 115, 0.8) !important; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 10px #d4a373; }
+        .node { position: absolute; width: 34px; height: 34px; border-radius: 50%; background-color: #4a2c0f; border: 2px solid #6d4218; transform: translate(-50%, -50%); cursor: pointer; box-shadow: inset 0 3px 5px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; transition: background-color 0.2s, transform 0.2s; }
+        .node.highlight { background-color: rgba(74, 144, 226, 0.85) !important; transform: translate(-50%, -50%) scale(1.15); box-shadow: 0 0 12px #4a90e2; }
         
-        /* 駒デザイン */
-        .piece { width: 80%; height: 80%; border-radius: 50%; box-shadow: 0 3px 6px rgba(0,0,0,0.4); pointer-events: none; }
+        .piece { width: 80%; height: 80%; border-radius: 50%; box-shadow: 0 3px 6px rgba(0,0,0,0.3); pointer-events: none; }
         .piece.hound { background: radial-gradient(circle at 35% 35%, #ff4d4d, #b30000); }
         .piece.hare { background: radial-gradient(circle at 35% 35%, #ffffff, #888); }
 
-        button { margin-top: 25px; background: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="status" id="status-text">猟犬(赤)の手番：動かす駒を選択してください</div>
 
     <div class="board-container" id="board-container">
-        <!-- ボードの接続線 -->
         <svg>
-            <!-- メイン横線 -->
-            <line x1="50" y1="125" x2="400" y2="125" stroke="#563313" stroke-width="4"/>
-            <!-- 縦横斜め接続線 -->
-            <line x1="50" y1="125" x2="150" y2="40" stroke="#563313" stroke-width="4"/>
-            <line x1="50" y1="125" x2="150" y2="210" stroke="#563313" stroke-width="4"/>
-            
-            <line x1="150" y1="40" x2="150" y2="210" stroke="#563313" stroke-width="4"/>
-            <line x1="275" y1="40" x2="275" y2="210" stroke="#563313" stroke-width="4"/>
-            
-            <line x1="150" y1="40" x2="275" y2="40" stroke="#563313" stroke-width="4"/>
-            <line x1="150" y1="210" x2="275" y2="210" stroke="#563313" stroke-width="4"/>
-            
-            <line x1="150" y1="40" x2="275" y2="210" stroke="#563313" stroke-width="4"/>
-            <line x1="150" y1="210" x2="275" y2="40" stroke="#563313" stroke-width="4"/>
-
-            <line x1="275" y1="40" x2="400" y2="125" stroke="#563313" stroke-width="4"/>
-            <line x1="275" y1="210" x2="400" y2="125" stroke="#563313" stroke-width="4"/>
-            
-            <line x1="150" y1="125" x2="275" y2="125" stroke="#563313" stroke-width="4"/>
+            <line x1="50" y1="120" x2="390" y2="120" stroke="#6d4218" stroke-width="4"/>
+            <line x1="50" y1="120" x2="146" y2="40" stroke="#6d4218" stroke-width="4"/>
+            <line x1="50" y1="120" x2="146" y2="200" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="40" x2="146" y2="200" stroke="#6d4218" stroke-width="4"/>
+            <line x1="268" y1="40" x2="268" y2="200" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="40" x2="268" y2="40" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="200" x2="268" y2="200" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="40" x2="268" y2="200" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="200" x2="268" y2="40" stroke="#6d4218" stroke-width="4"/>
+            <line x1="268" y1="40" x2="390" y2="120" stroke="#6d4218" stroke-width="4"/>
+            <line x1="268" y1="200" x2="390" y2="120" stroke="#6d4218" stroke-width="4"/>
+            <line x1="146" y1="120" x2="268" y2="120" stroke="#6d4218" stroke-width="4"/>
         </svg>
-
-        <!-- 各交点(ノード)はJSで自動配置 -->
     </div>
 
-    <button onclick="resetGame()">リセット</button>
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">猟犬の勝ち！</h2>
+            <p id="result-desc">ウサギを完全に包囲しました！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
-        // 11個のノードの座標定義
         const positions = [
-            { x: 50,  y: 125 }, // 0: 左端
-            { x: 150, y: 40  }, // 1: 上左
-            { x: 150, y: 125 }, // 2: 中左
-            { x: 150, y: 210 }, // 3: 下左
-            { x: 275, y: 40  }, // 4: 上右
-            { x: 275, y: 125 }, // 5: 中右
-            { x: 275, y: 210 }, // 6: 下右
-            { x: 400, y: 125 }  // 7: 右端
+            { x: 50,  y: 120 }, // 0
+            { x: 146, y: 40  }, // 1
+            { x: 146, y: 120 }, // 2
+            { x: 146, y: 200 }, // 3
+            { x: 268, y: 40  }, // 4
+            { x: 268, y: 120 }, // 5
+            { x: 268, y: 200 }, // 6
+            { x: 390, y: 120 }  // 7
         ];
 
-        // 接続グラフの隣接リスト
         const adj = {
             0: [1, 2, 3],
             1: [0, 2, 4, 5],
@@ -84,12 +88,14 @@
             7: [4, 5, 6]
         };
 
-        // コマの状態 0: 空, 1: 猟犬, 2: ウサギ
-        let boardState = [1, 1, 0, 1, 0, 0, 0, 2]; // 初期: 左側に猟犬3、右端にウサギ1
-        let currentPlayer = 1; // 1: 猟犬(赤), 2: ウサギ(白)
+        let boardState = [1, 1, 0, 1, 0, 0, 0, 2];
+        let currentPlayer = 1; // 1: 猟犬, 2: ウサギ
         let selectedNode = null;
         let gameOver = false;
-        let hareMovesWithoutProgress = 0; // 千日手防止
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal'; // CPUが猟犬(赤)を担当
 
         const container = document.getElementById('board-container');
         const statusText = document.getElementById('status-text');
@@ -99,14 +105,14 @@
             currentPlayer = 1;
             selectedNode = null;
             gameOver = false;
-            hareMovesWithoutProgress = 0;
             statusText.innerText = "猟犬(赤)の手番：動かす駒を選択してください";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
 
             drawBoard();
         }
 
         function drawBoard() {
-            // ノードDOMの初期化
             const existingNodes = container.querySelectorAll('.node');
             existingNodes.forEach(n => container.removeChild(n));
 
@@ -130,37 +136,36 @@
 
         function handleNodeClick(idx) {
             if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 1) return; // CPU(猟犬)ターン中の操作防止
 
             if (selectedNode === null) {
-                // 駒の選択フェーズ
                 if (boardState[idx] === currentPlayer) {
                     selectedNode = idx;
                     highlightMoves(idx);
                 }
             } else {
-                // 移動先選択フェーズ
                 if (idx === selectedNode) {
-                    // キャンセル
                     selectedNode = null;
                     clearHighlights();
                 } else {
                     const validMoves = getValidMoves(selectedNode);
                     if (validMoves.includes(idx)) {
-                        // 移動実行
                         boardState[idx] = currentPlayer;
                         boardState[selectedNode] = 0;
                         selectedNode = null;
                         clearHighlights();
 
-                        // ターン交代と判定
                         checkGameResult();
                         if (!gameOver) {
                             currentPlayer = currentPlayer === 1 ? 2 : 1;
-                            statusText.innerText = `${currentPlayer === 1 ? '猟犬(赤)' : 'ウサギ(白)'}の手番：駒を選択してください`;
+                            statusText.innerText = `${currentPlayer === 1 ? '猟犬(赤)' : 'ウサギ(白)'}の手番です`;
+                            
+                            if (gameMode === 'vs_cpu' && currentPlayer === 1) {
+                                setTimeout(cpuHoundMove, 950);
+                            }
                         }
                         drawBoard();
                     } else if (boardState[idx] === currentPlayer) {
-                        // 別の駒に選び直す
                         selectedNode = idx;
                         highlightMoves(idx);
                     }
@@ -168,7 +173,6 @@
             }
         }
 
-        // 有効な移動先の検出
         function getValidMoves(fromIdx) {
             const player = boardState[fromIdx];
             const neighbors = adj[fromIdx];
@@ -176,16 +180,12 @@
 
             neighbors.forEach(toIdx => {
                 if (boardState[toIdx] === 0) {
-                    // 猟犬の特殊移動ルール：後退（左への移動）はできない！
                     if (player === 1) {
-                        const fromPos = positions[fromIdx];
-                        const toPos = positions[toIdx];
-                        if (toPos.x >= fromPos.x) {
-                            valid.push(toIdx);
+                        if (positions[toIdx].x >= positions[fromIdx].x) {
+                            valid.push(toIdx); // 猟犬は前進（右方向）のみ
                         }
                     } else {
-                        // ウサギは全方向移動可能
-                        valid.push(toIdx);
+                        valid.push(toIdx); // ウサギは自由
                     }
                 }
             });
@@ -196,7 +196,8 @@
             clearHighlights();
             const valid = getValidMoves(fromIdx);
             valid.forEach(idx => {
-                container.children[idx + 1].classList.add('highlight'); // line要素を避けるためにノード部分に付与
+                // svg line除外のため+1
+                container.children[idx + 1].classList.add('highlight');
             });
         }
 
@@ -205,38 +206,129 @@
             nodes.forEach(n => n.classList.remove('highlight'));
         }
 
+        // CPU(猟犬)の思考アルゴリズム
+        function cpuHoundMove() {
+            if (gameOver) return;
+
+            const moves = [];
+            // 動かせるすべての猟犬の手を列挙
+            boardState.forEach((val, fromIdx) => {
+                if (val === 1) {
+                    const valid = getValidMoves(fromIdx);
+                    valid.forEach(toIdx => {
+                        moves.push({ from: fromIdx, to: toIdx });
+                    });
+                }
+            });
+
+            if (moves.length === 0) return;
+
+            let choice = moves[0];
+            const hareIdx = boardState.indexOf(2);
+
+            if (difficulty === 'easy') {
+                choice = moves[Math.floor(Math.random() * moves.length)];
+            } else {
+                // ふつう以上：ウサギへの距離（x座標ベース）を縮める、または追い詰める手を優先
+                let bestScore = -Infinity;
+                moves.forEach(m => {
+                    // 仮置き
+                    boardState[m.to] = 1;
+                    boardState[m.from] = 0;
+                    
+                    // 評価値の算出
+                    let score = 0;
+                    const hDist = Math.abs(positions[m.to].x - positions[hareIdx].x);
+                    score -= hDist; // 近づくほど高評価
+
+                    // つよい: 挟み撃ち、または動けるマスの制限
+                    if (difficulty === 'hard') {
+                        const hareMoves = getValidMoves(hareIdx);
+                        score += (3 - hareMoves.length) * 15; // 相手の動けるマスを奪う手
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        choice = m;
+                    }
+
+                    // 戻す
+                    boardState[m.to] = 0;
+                    boardState[m.from] = 1;
+                });
+            }
+
+            boardState[choice.to] = 1;
+            boardState[choice.from] = 0;
+
+            checkGameResult();
+            if (!gameOver) {
+                currentPlayer = 2; // ウサギ(あなた)へ
+                statusText.innerText = "ウサギ(白)の手番です";
+            }
+            drawBoard();
+        }
+
         function checkGameResult() {
             const hareIdx = boardState.indexOf(2);
             const houndIndices = boardState.map((val, idx) => val === 1 ? idx : -1).filter(idx => idx !== -1);
 
-            // 1. ウサギが最も左端の猟犬よりもさらに左側に脱出した場合、ウサギの勝ち
             const leftmostHoundX = Math.min(...houndIndices.map(idx => positions[idx].x));
             const hareX = positions[hareIdx].x;
 
+            // 勝利：ウサギ脱出
             if (hareX < leftmostHoundX) {
                 gameOver = true;
-                statusText.innerText = "🎉 ウサギ(白)の勝ち！ 猟犬を回避し、完全に脱出しました！";
+                showFinalResult(2, "ウサギが猟犬を交わして完全に脱出しました！");
                 return;
             }
 
-            // 2. 猟犬がウサギを完全に包囲して動けなくした場合、猟犬の勝ち
+            // 勝利：猟犬の完全包囲
             const hareValidMoves = getValidMoves(hareIdx);
             if (hareValidMoves.length === 0) {
                 gameOver = true;
-                statusText.innerText = "🎉 猟犬(赤)の勝ち！ ウサギを完璧に包囲しました！";
+                showFinalResult(1, "猟犬がウサギを完全に閉じ込め、包囲しました！");
                 return;
             }
 
-            // 3. 猟犬も動ける場所がなくなった場合、ウサギの勝ち
+            // 猟犬詰み
             let houndCanMove = false;
             houndIndices.forEach(idx => {
                 if (getValidMoves(idx).length > 0) houndCanMove = true;
             });
-
             if (!houndCanMove) {
                 gameOver = true;
-                statusText.innerText = "🎉 ウサギ(白)の勝ち！ 猟犬がこれ以上進めなくなりました。";
+                showFinalResult(2, "猟犬がこれ以上身動きできなくなりました！");
             }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner, detail) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = detail;
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 2) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 猟犬(赤)の勝ち！" : "🎉 ウサギ(白)の勝ち！";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
         }
 
         function resetGame() { initGame(); }

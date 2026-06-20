@@ -3,53 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>神経衰弱</title>
+    <title>神経衰弱 - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
-        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .score { font-size: 18px; font-weight: bold; }
-        .turn { color: #d4a373; font-weight: bold; }
-        .grid { display: grid; grid-template-columns: repeat(4, 80px); gap: 15px; perspective: 1000px; }
-        .card { width: 80px; height: 110px; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); cursor: pointer; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score { font-size: 16px; font-weight: bold; }
+        .turn { color: var(--accent-color); font-weight: bold; }
+        .grid { display: grid; grid-template-columns: repeat(4, 75px); gap: 15px; perspective: 1000px; }
+        .card { width: 75px; height: 105px; position: relative; transform-style: preserve-3d; transition: transform 0.5s; cursor: pointer; }
         .card.flipped { transform: rotateY(180deg); }
-        .face { position: absolute; width: 100%; height: 100%; border-radius: 8px; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .face { position: absolute; width: 100%; height: 100%; border-radius: 10px; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .back { background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 3px solid #d4a373; box-sizing: border-box; color: #d4a373; }
-        .front { background: #fff; color: #111; transform: rotateY(180deg); }
+        .front { background: #fff; color: #111; transform: rotateY(180deg); border: 1px solid #cbd5e1; box-sizing: border-box; }
         .front.red { color: #d9534f; }
-        .matched { opacity: 0.2; cursor: default; }
-        button { margin-top: 25px; background: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+        .matched { opacity: 0.15; cursor: default; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="score-panel">
-        <div class="score">P1 Score: <span id="p1-score">0</span></div>
-        <div class="turn" id="turn-text">Player 1 の番</div>
-        <div class="score">P2 Score: <span id="p2-score">0</span></div>
+        <div class="score">あなた: <span id="p1-score">0</span></div>
+        <div class="turn" id="turn-text">あなたの番</div>
+        <div class="score" id="p2-score-label">相手: <span id="p2-score">0</span></div>
     </div>
     <div class="grid" id="grid"></div>
-    <button onclick="resetGame()">リセット</button>
+    <button class="btn-modal" onclick="resetGame()" style="margin-top: 25px;">リセット</button>
+
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
         const symbols = ['A', '2', '3', '4', '5', '6', '7', '8'];
-        const suits = ['❤️', '♠️']; // 赤と黒の2ペアずつ作成
         let cardsData = [];
         let flippedCards = [];
-        let p1Score = 0, p2Score = 0;
-        let currentPlayer = 1;
+        let scores = [0, 0];
+        let currentPlayer = 1; // 1: P1, 2: P2/CPU
         let lockBoard = false;
+        let memory = {}; // CPUの記憶
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
 
         function initGame() {
-            p1Score = 0; p2Score = 0; currentPlayer = 1; flippedCards = []; lockBoard = false;
+            scores = [0, 0]; currentPlayer = 1; flippedCards = []; lockBoard = false; memory = {};
             document.getElementById('p1-score').innerText = 0;
             document.getElementById('p2-score').innerText = 0;
-            document.getElementById('turn-text').innerText = "Player 1 の番";
+            document.getElementById('p2-score-label').innerHTML = gameMode === 'vs_cpu' ? `CPU: <span id="p2-score">0</span>` : `相手: <span id="p2-score">0</span>`;
+            document.getElementById('turn-text').innerText = "あなたのターン";
+            document.getElementById('result-overlay').style.display = 'none';
 
-            // 8ペア(16枚)を生成
             cardsData = [];
             symbols.forEach(sym => {
-                cardsData.push({ symbol: sym, suit: '❤️', isRed: true });
-                cardsData.push({ symbol: sym, suit: '♠️', isRed: false });
+                cardsData.push({ symbol: sym, isRed: true });
+                cardsData.push({ symbol: sym, isRed: false });
             });
             cardsData.sort(() => Math.random() - 0.5);
 
@@ -61,18 +80,26 @@
                 card.dataset.index = index;
                 card.innerHTML = `
                     <div class="face back">♠︎</div>
-                    <div class="face front ${data.isRed ? 'red' : ''}">${data.symbol}${data.suit}</div>
+                    <div class="face front ${data.isRed ? 'red' : ''}">${data.symbol}</div>
                 `;
-                card.addEventListener('click', () => flipCard(card, index));
+                card.addEventListener('click', () => handleCardClick(card, index));
                 grid.appendChild(card);
             });
         }
 
-        function flipCard(card, index) {
+        function handleCardClick(card, index) {
             if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
 
+            revealCard(card, index);
+        }
+
+        function revealCard(card, index) {
             card.classList.add('flipped');
             flippedCards.push({ card, index });
+
+            // 記憶の書き込み
+            memory[index] = cardsData[index].symbol;
 
             if (flippedCards.length === 2) {
                 checkMatch();
@@ -85,40 +112,125 @@
             const second = cardsData[flippedCards[1].index];
 
             if (first.symbol === second.symbol) {
-                // ペア成立
                 setTimeout(() => {
                     flippedCards[0].card.classList.add('matched');
                     flippedCards[1].card.classList.add('matched');
-                    if (currentPlayer === 1) {
-                        p1Score++; document.getElementById('p1-score').innerText = p1Score;
-                    } else {
-                        p2Score++; document.getElementById('p2-score').innerText = p2Score;
-                    }
+                    
+                    // 記憶から削除
+                    delete memory[flippedCards[0].index];
+                    delete memory[flippedCards[1].index];
+
+                    scores[currentPlayer - 1]++;
+                    document.getElementById('p1-score').innerText = scores[0];
+                    document.getElementById('p2-score').innerText = scores[1];
+
                     flippedCards = [];
                     lockBoard = false;
                     checkWin();
                 }, 600);
             } else {
-                // ペア不成立 -> 元に戻す
                 setTimeout(() => {
                     flippedCards[0].card.classList.remove('flipped');
                     flippedCards[1].card.classList.remove('flipped');
                     flippedCards = [];
+                    
                     currentPlayer = currentPlayer === 1 ? 2 : 1;
-                    document.getElementById('turn-text').innerText = `Player ${currentPlayer} の番`;
+                    document.getElementById('turn-text').innerText = currentPlayer === 1 ? "あなたのターン" : (gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン");
                     lockBoard = false;
+
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(cpuMove, 1000);
+                    }
                 }, 1000);
             }
+        }
+
+        // 記憶力CPU
+        function cpuMove() {
+            if (lockBoard || gameOver) return;
+
+            const unrevealedIndices = [];
+            cardsData.forEach((_, idx) => {
+                const el = boardEl().children[idx];
+                if (!el.classList.contains('flipped') && !el.classList.contains('matched')) {
+                    unrevealedIndices.push(idx);
+                }
+            });
+
+            if (unrevealedIndices.length === 0) return;
+
+            // 記憶に基づくマッチ探索
+            let p1 = null, p2 = null;
+            const knownPairs = {};
+            for (let idx in memory) {
+                const sym = memory[idx];
+                if (unrevealedIndices.includes(parseInt(idx))) {
+                    if (knownPairs[sym] !== undefined) {
+                        p1 = knownPairs[sym];
+                        p2 = parseInt(idx);
+                        break;
+                    }
+                    knownPairs[sym] = parseInt(idx);
+                }
+            }
+
+            // 記憶想起確率（easy:30%, normal:60%, hard:100%）
+            const probability = difficulty === 'easy' ? 0.3 : (difficulty === 'normal' ? 0.65 : 1.0);
+            const remember = Math.random() < probability;
+
+            if (p1 !== null && p2 !== null && remember) {
+                // 記憶していたペアをめくる
+                executeCpuFlip(p1, p2);
+            } else {
+                // ランダムに1枚目
+                const firstIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
+                // 1枚目と対になるペアが記憶にあれば、想起確率でめくる
+                const partnerIdx = Object.keys(memory).find(idx => memory[idx] === cardsData[firstIdx].symbol && parseInt(idx) !== firstIdx && unrevealedIndices.includes(parseInt(idx)));
+                
+                if (partnerIdx !== undefined && remember) {
+                    executeCpuFlip(firstIdx, parseInt(partnerIdx));
+                } else {
+                    // 完全ランダム2枚目
+                    const rest = unrevealedIndices.filter(i => i !== firstIdx);
+                    const secondIdx = rest[Math.floor(Math.random() * rest.length)];
+                    executeCpuFlip(firstIdx, secondIdx);
+                }
+            }
+        }
+
+        function boardEl() { return document.getElementById('grid'); }
+
+        function executeCpuFlip(i1, i2) {
+            const grid = boardEl();
+            revealCard(grid.children[i1], i1);
+            setTimeout(() => {
+                revealCard(grid.children[i2], i2);
+            }, 600);
         }
 
         function checkWin() {
             const matchedCount = document.querySelectorAll('.card.matched').length;
             if (matchedCount === 16) {
-                let winMsg = "";
-                if (p1Score > p2Score) winMsg = "Player 1 の勝ち！";
-                else if (p2Score > p1Score) winMsg = "Player 2 の勝ち！";
-                else winMsg = "引き分け！";
-                document.getElementById('turn-text').innerText = "ゲーム終了! " + winMsg;
+                gameOver = true;
+                const overlay = document.getElementById('result-overlay');
+                const titleEl = document.getElementById('result-title');
+                const descEl = document.getElementById('result-desc');
+
+                descEl.innerText = `あなた ${scores[0]} - ${scores[1]} ${gameMode === 'vs_cpu' ? 'CPU' : 'Player 2'}`;
+
+                if (scores[0] === scores[1]) {
+                    titleEl.innerText = "🤝 引き分け";
+                    titleEl.style.color = "#718096";
+                } else if (scores[0] > scores[1]) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                    titleEl.style.color = "#e53e3e";
+                }
+                overlay.style.display = 'flex';
+            } else if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1000);
             }
         }
 

@@ -3,60 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ぶたのしっぽ</title>
+    <title>ぶたのしっぽ - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
-        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
-        .score { font-size: 16px; font-weight: bold; }
-        .turn { color: #d4a373; font-weight: bold; }
-        /* しっぽサークル */
-        .circle-area { width: 400px; height: 400px; position: relative; display: flex; align-items: center; justify-content: center; }
-        .circle-card { width: 45px; height: 65px; position: absolute; border-radius: 4px; background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1px solid #d4a373; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score { font-size: 15px; font-weight: bold; }
+        .turn { color: var(--accent-color); font-weight: bold; }
+        .circle-area { width: 380px; height: 380px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .circle-card { width: 44px; height: 62px; position: absolute; border-radius: 6px; background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1.5px solid #d4a373; box-shadow: 0 2px 5px rgba(0,0,0,0.25); cursor: pointer; transition: transform 0.15s; }
         .circle-card:hover { transform: scale(1.1) !important; z-index: 100; }
-        /* 中央捨て場 */
-        .pile { width: 60px; height: 85px; border-radius: 6px; border: 2px dashed rgba(255,255,255,0.2); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
-        .pile.has-card { background: #fff; color: #111; border: none; }
+        .pile { width: 58px; height: 82px; border-radius: 6px; border: 2px dashed #cbd5e1; position: relative; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; box-shadow: inset 0 3px 6px rgba(0,0,0,0.05); }
+        .pile.has-card { background: #fff; color: #111; border: 1px solid #cbd5e1; box-shadow: 0 3px 6px rgba(0,0,0,0.15); }
         .pile.has-card.red { color: #d9534f; }
-        button { margin-top: 25px; background: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="score-panel">
-        <div class="score">P1 罰符: <span id="p1-score">0</span>枚</div>
-        <div class="turn" id="turn-text">Player 1 の番：サークルのカードを引いてください</div>
-        <div class="score">P2 罰符: <span id="p2-score">0</span>枚</div>
+        <div class="score">あなた罰符: <span id="p1-score">0</span>枚</div>
+        <div class="turn" id="turn-text">手番待機中</div>
+        <div class="score">相手罰符: <span id="p2-score">0</span>枚</div>
     </div>
 
     <div class="circle-area" id="circle-area">
         <div class="pile" id="pile">🌀</div>
     </div>
 
-    <button onclick="resetGame()">最初から</button>
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="result-overlay modal" id="result-modal">
+        <div class="modal-card">
+            <h2 id="result-title">クリア</h2>
+            <p id="result-desc">結果</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
         const suits = ['❤️', '♠️', '♦️', '♣️'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         let pool = [];
         let centerPile = [];
-        let p1Penalty = 0, p2Penalty = 0;
+        let penalties = [0, 0];
         let currentPlayer = 1;
         let gameOver = false;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+
         function initGame() {
-            pool = []; centerPile = []; p1Penalty = 0; p2Penalty = 0; currentPlayer = 1; gameOver = false;
+            pool = []; centerPile = []; penalties = [0, 0]; currentPlayer = 1; gameOver = false;
             document.getElementById('p1-score').innerText = 0;
             document.getElementById('p2-score').innerText = 0;
-            document.getElementById('turn-text').innerText = "Player 1 の番：サークルのカードを引いてください";
+            document.getElementById('turn-text').innerText = "あなたのターン：カードを引いてください";
+            document.getElementById('result-modal').style.display = 'none';
+            closeAlert();
             
             const pile = document.getElementById('pile');
             pile.innerHTML = '🌀'; pile.className = 'pile';
 
-            // デッキ作成
             suits.forEach(suit => {
-                values.forEach(val => {
-                    pool.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') });
-                });
+                values.forEach(val => { pool.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') }); });
             });
             pool.sort(() => Math.random() - 0.5);
 
@@ -65,24 +87,21 @@
 
         function drawCircle() {
             const area = document.getElementById('circle-area');
-            // 一旦既存のカードDOMを全削除（pile以外）
             const cards = area.querySelectorAll('.circle-card');
             cards.forEach(c => area.removeChild(c));
 
             const total = pool.length;
-            const radius = 135; // サークルの半径
+            const radius = 125;
 
             pool.forEach((cardData, i) => {
                 const angle = (i / total) * Math.PI * 2;
                 const card = document.createElement('div');
                 card.className = 'circle-card';
 
-                // 円状に数学的に配置
-                const x = 177 + Math.cos(angle) * radius;
-                const y = 167 + Math.sin(angle) * radius;
+                const x = 168 + Math.cos(angle) * radius;
+                const y = 159 + Math.sin(angle) * radius;
                 card.style.left = `${x}px`;
                 card.style.top = `${y}px`;
-                // 本家のようにらせん状に見せる微細な傾き
                 const deg = (angle * 180 / Math.PI) + 90;
                 card.style.transform = `rotate(${deg}deg)`;
 
@@ -93,12 +112,16 @@
 
         function handleDraw(index) {
             if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
 
+            executeDraw(index);
+        }
+
+        function executeDraw(index) {
             const drawn = pool.splice(index, 1)[0];
             const pile = document.getElementById('pile');
-            
-            // 判定：直前と同じマークかチェック
             let isPenalty = false;
+
             if (centerPile.length > 0) {
                 const topCard = centerPile[centerPile.length - 1];
                 if (topCard.suit === drawn.suit) {
@@ -107,42 +130,65 @@
             }
 
             centerPile.push(drawn);
-            
-            // 捨て場中央の表示更新
             pile.className = `pile has-card ${drawn.isRed ? 'red' : ''}`;
             pile.innerText = `${drawn.val}${drawn.suit}`;
 
             if (isPenalty) {
-                // ペナルティ：現在のセンターカードをすべて引き取る
-                alert(`バースト！同じマーク（${drawn.suit}）を引いてしまいました。これまでの蓄積カード（${centerPile.length}枚）を引き取ります。`);
-                if (currentPlayer === 1) {
-                    p1Penalty += centerPile.length;
-                    document.getElementById('p1-score').innerText = p1Penalty;
-                } else {
-                    p2Penalty += centerPile.length;
-                    document.getElementById('p2-score').innerText = p2Penalty;
-                }
+                showCustomAlert("バースト！", `同じマーク（${drawn.suit}）を引いてしまいました！プールされた ${centerPile.length} 枚を引き取ります。`);
+                penalties[currentPlayer - 1] += centerPile.length;
+                document.getElementById('p1-score').innerText = penalties[0];
+                document.getElementById('p2-score').innerText = penalties[1];
                 centerPile = [];
                 pile.innerHTML = '🌀'; pile.className = 'pile';
             }
 
-            // ゲーム終了チェック
             if (pool.length === 0) {
                 gameOver = true;
-                // 最終的に罰符が少ない方が勝ち
-                let winMsg = "";
-                if (p1Penalty < p2Penalty) winMsg = "罰符の少ない Player 1 の勝ち！";
-                else if (p2Penalty < p1Penalty) winMsg = "罰符の少ない Player 2 の勝ち！";
-                else winMsg = "引き分け！";
-                document.getElementById('turn-text').innerText = "ゲーム終了! " + winMsg;
+                showFinalResult();
                 return;
             }
 
-            // プレイヤー交代
             currentPlayer = currentPlayer === 1 ? 2 : 1;
-            document.getElementById('turn-text').innerText = `Player ${currentPlayer} の番：サークルのカードを引いてください`;
-
+            document.getElementById('turn-text').innerText = currentPlayer === 1 ? "あなたのターン" : "相手のターン";
             drawCircle();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1200); // CPU思考時間
+            }
+        }
+
+        function cpuMove() {
+            if (gameOver || pool.length === 0) return;
+            // 完全ランダムでサークルから引く
+            const randIdx = Math.floor(Math.random() * pool.length);
+            executeDraw(randIdx);
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult() {
+            const modal = document.getElementById('result-modal');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = `あなた ${penalties[0]}枚 - ${penalties[1]}枚 ${gameMode === 'vs_cpu' ? 'CPU' : 'Player 2'}`;
+
+            if (penalties[0] === penalties[1]) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (penalties[0] < penalties[1]) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            modal.style.display = 'flex';
         }
 
         function resetGame() { initGame(); }

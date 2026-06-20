@@ -3,81 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>たこやき</title>
+    <title>たこやき - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
-        .status { font-size: 16px; color: #d4a373; font-weight: bold; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
-        .play-area { display: flex; flex-direction: column; gap: 30px; align-items: center; width: 100%; max-width: 600px; }
-        .row-container { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box; }
-        .row-label { font-size: 12px; font-weight: bold; opacity: 0.6; margin-bottom: 8px; }
-        .cards-grid { display: grid; grid-template-columns: repeat(5, 75px); gap: 12px; }
-        .card { width: 75px; height: 105px; border-radius: 8px; position: relative; box-shadow: 0 4px 8px rgba(0,0,0,0.3); border: 2px solid transparent; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
+        .status { font-size: 15px; color: #b8813a; font-weight: bold; margin-bottom: 25px; text-align: center; height: 20px; }
+        .play-area { display: flex; flex-direction: column; gap: 20px; align-items: center; width: 100%; max-width: 500px; }
+        .row-container { display: flex; flex-direction: column; align-items: center; background: #fff; padding: 12px; border-radius: 16px; border: 1px solid #e2e8f0; width: 100%; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .row-label { font-size: 11px; font-weight: bold; opacity: 0.6; margin-bottom: 8px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(5, 70px); gap: 10px; }
+        .card { width: 70px; height: 98px; border-radius: 8px; position: relative; box-shadow: 0 3px 6px rgba(0,0,0,0.15); border: 2px solid transparent; box-sizing: border-box; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
         .card.closed { background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 2px solid #d4a373; color: #d4a373; }
-        .card.opened { background: #fff; color: #111; }
+        .card.opened { background: #fff; color: #111; border: 1px solid #cbd5e1; }
         .card.opened.red { color: #d9534f; }
-        .center-deck { display: flex; gap: 25px; margin: 20px 0; align-items: center; }
-        .draw-pile { width: 75px; height: 105px; background: linear-gradient(135deg, #1a3038 0%, #09151a 100%); border: 2px solid #d4a373; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; box-shadow: 0 6px 12px rgba(0,0,0,0.4); }
-        .drawn-card-slot { width: 75px; height: 105px; border-radius: 8px; border: 2px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
-        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+        
+        .center-deck { display: flex; gap: 25px; margin: 15px 0; align-items: center; }
+        .draw-pile { width: 70px; height: 98px; background: linear-gradient(135deg, #1a3038 0%, #09151a 100%); border: 2px solid #d4a373; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 22px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.25); }
+        .drawn-card-slot { width: 70px; height: 98px; border-radius: 8px; border: 2px dashed #cbd5e1; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="status" id="status-text">Player 1 の手番：山札をタップしてカードを引いてください</div>
+    <div class="status" id="status-text">山札をタップして引いてください</div>
     
     <div class="play-area">
-        <!-- P2ボード -->
         <div class="row-container">
-            <div class="row-label">PLAYER 2 (上段: 1〜5, 下段: 6〜10)</div>
+            <div class="row-label" id="p2-label">PLAYER 2</div>
             <div class="cards-grid" id="p2-grid"></div>
         </div>
 
-        <!-- 中央山札 & 引いたカード -->
         <div class="center-deck">
             <div class="draw-pile" id="deck" onclick="drawCard()">🎴</div>
             <div class="drawn-card-slot" id="drawn-slot"></div>
         </div>
 
-        <!-- P1ボード -->
         <div class="row-container">
-            <div class="row-label">PLAYER 1 (上段: 1〜5, 下段: 6〜10)</div>
+            <div class="row-label">PLAYER 1 (あなた)</div>
             <div class="cards-grid" id="p1-grid"></div>
         </div>
     </div>
 
-    <button onclick="resetGame()" style="margin-top: 20px;">リセット</button>
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
-        // カードデータ作成 (Joker込み54枚)
         const suits = ['❤️', '♠️', '♦️', '♣️'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         let deck = [];
-        
-        let p1Boards = []; // 10枚
-        let p2Boards = []; // 10枚
+        let p1Boards = [];
+        let p2Boards = [];
         let currentPlayer = 1;
         let drawnCard = null;
         let gameOver = false;
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+
         function initGame() {
             currentPlayer = 1; drawnCard = null; gameOver = false;
-            document.getElementById('status-text').innerText = "Player 1 の手番：山札をタップしてカードを引いてください";
+            document.getElementById('status-text').innerText = "あなたの手番：山札をタップしてカードを引いてください";
             document.getElementById('drawn-slot').innerHTML = '';
             document.getElementById('drawn-slot').className = 'drawn-card-slot';
+            document.getElementById('p2-label').innerText = gameMode === 'vs_cpu' ? "CPU" : "PLAYER 2";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
 
-            // 山札作成
             deck = [];
             suits.forEach(suit => {
-                values.forEach(val => {
-                    deck.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') });
-                });
+                values.forEach(val => { deck.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') }); });
             });
-            // Joker 2枚追加
             deck.push({ val: 'JK', suit: '🃏', isRed: true });
             deck.push({ val: 'JK', suit: '🃏', isRed: false });
             deck.sort(() => Math.random() - 0.5);
 
-            // プレイヤーボード初期配置
             p1Boards = Array(10).fill(null).map(() => ({ card: deck.pop(), opened: false }));
             p2Boards = Array(10).fill(null).map(() => ({ card: deck.pop(), opened: false }));
 
@@ -98,8 +117,7 @@
                 if (!slot.opened) {
                     el.classList.add('closed');
                     el.innerText = idx + 1;
-                    if (!gameOver && drawnCard && currentPlayer === playerNum) {
-                        // アクション可能な場合はホバー効果など付けられる
+                    if (!gameOver && drawnCard && currentPlayer === playerNum && (gameMode !== 'vs_cpu' || currentPlayer === 1)) {
                         el.style.cursor = 'pointer';
                         el.addEventListener('click', () => tryPlaceOnSlot(idx));
                     }
@@ -114,9 +132,15 @@
 
         function drawCard() {
             if (gameOver || drawnCard) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPU自動化
+
+            executeDraw();
+        }
+
+        function executeDraw() {
             if (deck.length === 0) {
-                alert("山札切れです。引き分けとしてゲームを終了します。");
                 gameOver = true;
+                showFinalResult(0);
                 return;
             }
 
@@ -125,27 +149,38 @@
             slot.className = `drawn-card-slot opened ${drawnCard.isRed ? 'red' : ''}`;
             slot.innerText = `${drawnCard.val}${drawnCard.suit}`;
 
-            // 引いたカードが役立つかチェック
             const valueIdx = cardValToIdx(drawnCard.val);
-            if (valueIdx === -1) {
-                // J, Q, K のハズレ -> ターン終了へ
+            const myBoard = currentPlayer === 1 ? p1Boards : p2Boards;
+
+            if (valueIdx === -1 && drawnCard.val !== 'JK') {
+                // ハズレ
                 document.getElementById('status-text').innerText = `ハズレ (${drawnCard.val}) です。タップで交代。`;
                 slot.style.cursor = 'pointer';
-                slot.onclick = endTurn;
+                if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                    setTimeout(endTurn, 1000); // CPU自動
+                } else {
+                    slot.onclick = endTurn;
+                }
             } else if (drawnCard.val === 'JK') {
-                // ジョーカー（どこでも置けるワイルドカード）
-                document.getElementById('status-text').innerText = "Joker！ 好きな空きマス（裏向きのカード）を選んでタップしてください";
+                document.getElementById('status-text').innerText = "Joker！空きマスを選んでめくってください。";
+                if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                    setTimeout(cpuAutoPlayJoker, 1000);
+                }
                 drawGrids();
             } else {
-                // 通常カード -> その位置が開けられるか
-                const myBoard = currentPlayer === 1 ? p1Boards : p2Boards;
                 if (!myBoard[valueIdx].opened) {
-                    document.getElementById('status-text').innerText = `${valueIdx + 1}番をめくりましょう！対応するカードをタップしてください。`;
+                    document.getElementById('status-text').innerText = `${valueIdx + 1}番をめくりましょう！`;
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(() => tryPlaceOnSlot(valueIdx), 1000);
+                    }
                 } else {
-                    // 既に開いていた場合はパス（ハズレ扱い）
-                    document.getElementById('status-text').innerText = `すでに開いています。タップして次のプレイヤーと交代。`;
+                    document.getElementById('status-text').innerText = `すでに開いています。タップで交代。`;
                     slot.style.cursor = 'pointer';
-                    slot.onclick = endTurn;
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(endTurn, 1000);
+                    } else {
+                        slot.onclick = endTurn;
+                    }
                 }
                 drawGrids();
             }
@@ -157,9 +192,7 @@
             const myBoard = currentPlayer === 1 ? p1Boards : p2Boards;
             const targetValIdx = cardValToIdx(drawnCard.val);
 
-            // 条件判定（通常一致 または Jokerによるワイルド挿入）
             if (targetValIdx === idx || (drawnCard.val === 'JK' && !myBoard[idx].opened)) {
-                // 裏向きだったカードを新しく「引いた状態」にスライド
                 const originalCard = myBoard[idx].card;
                 myBoard[idx].card = drawnCard;
                 myBoard[idx].opened = true;
@@ -167,13 +200,12 @@
                 // 勝利判定
                 if (myBoard.every(slot => slot.opened)) {
                     gameOver = true;
-                    document.getElementById('status-text').innerText = `🎉 Player ${currentPlayer} の勝利！おめでとうございます！`;
+                    showFinalResult(currentPlayer);
                     drawnCard = null;
                     drawGrids();
                     return;
                 }
 
-                // 新しく飛び出してきたカードが連鎖を継続
                 drawnCard = originalCard;
                 const slot = document.getElementById('drawn-slot');
                 slot.className = `drawn-card-slot opened ${drawnCard.isRed ? 'red' : ''}`;
@@ -181,24 +213,45 @@
                 slot.onclick = null;
                 slot.style.cursor = 'default';
 
-                // 連鎖継続判定
                 const newValIdx = cardValToIdx(drawnCard.val);
-                if (newValIdx === -1) {
-                    document.getElementById('status-text').innerText = `ハズレ (${drawnCard.val}) が飛び出しました。タップして交代。`;
+                if (newValIdx === -1 && drawnCard.val !== 'JK') {
+                    document.getElementById('status-text').innerText = `ハズレ (${drawnCard.val}) です。タップで交代。`;
                     slot.style.cursor = 'pointer';
-                    slot.onclick = endTurn;
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(endTurn, 1000);
+                    } else {
+                        slot.onclick = endTurn;
+                    }
                 } else if (drawnCard.val === 'JK') {
-                    document.getElementById('status-text').innerText = "Joker出現！ 好きな空きマスをタップしてください";
+                    document.getElementById('status-text').innerText = "Joker出現！空きマスを選択してください";
+                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        setTimeout(cpuAutoPlayJoker, 1000);
+                    }
                 } else {
                     if (!myBoard[newValIdx].opened) {
-                        document.getElementById('status-text').innerText = `連鎖発生！${newValIdx + 1}番のカードをタップしてください。`;
+                        document.getElementById('status-text').innerText = `連鎖！${newValIdx + 1}番をめくります。`;
+                        if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                            setTimeout(() => tryPlaceOnSlot(newValIdx), 1000);
+                        }
                     } else {
-                        document.getElementById('status-text').innerText = `すでに開いていました。タップして交代。`;
+                        document.getElementById('status-text').innerText = `すでに開いていました。タップで交代。`;
                         slot.style.cursor = 'pointer';
-                        slot.onclick = endTurn;
+                        if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                            setTimeout(endTurn, 1000);
+                        } else {
+                            slot.onclick = endTurn;
+                        }
                     }
                 }
                 drawGrids();
+            }
+        }
+
+        function cpuAutoPlayJoker() {
+            const emptyIndices = [];
+            p2Boards.forEach((s, idx) => { if (!s.opened) emptyIndices.push(idx); });
+            if (emptyIndices.length > 0) {
+                tryPlaceOnSlot(emptyIndices[0]); // 一番最初の空きマスをオートでめくる
             }
         }
 
@@ -210,15 +263,46 @@
             document.getElementById('drawn-slot').style.cursor = 'default';
 
             currentPlayer = currentPlayer === 1 ? 2 : 1;
-            document.getElementById('status-text').innerText = `Player ${currentPlayer} の手番：山札をタップしてカードを引いてください`;
+            document.getElementById('status-text').innerText = currentPlayer === 1 ? "あなたのターン" : "CPUのターン";
             drawGrids();
+
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(executeDraw, 1000);
+            }
         }
 
         function cardValToIdx(val) {
             if (val === 'A') return 0;
             const parsed = parseInt(val);
             if (parsed >= 2 && parsed <= 10) return parsed - 1;
-            return -1; // J, Q, K は直接置けない
+            return -1;
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (winner === 0) {
+                titleEl.innerText = "🤝 引き分け";
+                descEl.innerText = "山札切れとなりました。";
+            } else if (winner === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                descEl.innerText = "すべてのカードをめくり揃えました！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "相手が一足早く揃えました。";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
         }
 
         function resetGame() { initGame(); }
