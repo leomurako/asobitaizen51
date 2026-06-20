@@ -95,7 +95,7 @@
 
         const urlParams = new URLSearchParams(window.location.search);
         const gameMode = urlParams.get('mode') || 'vs_player';
-        const difficulty = urlParams.get('diff') || 'normal'; // CPUが猟犬(赤)を担当
+        const difficulty = urlParams.get('diff') || 'normal';
 
         const container = document.getElementById('board-container');
         const statusText = document.getElementById('status-text');
@@ -119,6 +119,7 @@
             positions.forEach((pos, idx) => {
                 const node = document.createElement('div');
                 node.className = 'node';
+                node.id = `node-${idx}`; // 明示的な一意のID
                 node.style.left = `${pos.x}px`;
                 node.style.top = `${pos.y}px`;
 
@@ -136,7 +137,7 @@
 
         function handleNodeClick(idx) {
             if (gameOver) return;
-            if (gameMode === 'vs_cpu' && currentPlayer === 1) return; // CPU(猟犬)ターン中の操作防止
+            if (gameMode === 'vs_cpu' && currentPlayer === 1) return; // CPU操作中の誤動作防止
 
             if (selectedNode === null) {
                 if (boardState[idx] === currentPlayer) {
@@ -182,22 +183,23 @@
                 if (boardState[toIdx] === 0) {
                     if (player === 1) {
                         if (positions[toIdx].x >= positions[fromIdx].x) {
-                            valid.push(toIdx); // 猟犬は前進（右方向）のみ
+                            valid.push(toIdx);
                         }
                     } else {
-                        valid.push(toIdx); // ウサギは自由
+                        valid.push(toIdx);
                     }
                 }
             });
             return valid;
         }
 
+        // 明示的なID指定（document.getElementById）に修正し、SVG変更時の順序バグを解消
         function highlightMoves(fromIdx) {
             clearHighlights();
             const valid = getValidMoves(fromIdx);
             valid.forEach(idx => {
-                // svg line除外のため+1
-                container.children[idx + 1].classList.add('highlight');
+                const targetNode = document.getElementById(`node-${idx}`);
+                if (targetNode) targetNode.classList.add('highlight');
             });
         }
 
@@ -206,12 +208,10 @@
             nodes.forEach(n => n.classList.remove('highlight'));
         }
 
-        // CPU(猟犬)の思考アルゴリズム
         function cpuHoundMove() {
             if (gameOver) return;
 
             const moves = [];
-            // 動かせるすべての猟犬の手を列挙
             boardState.forEach((val, fromIdx) => {
                 if (val === 1) {
                     const valid = getValidMoves(fromIdx);
@@ -229,22 +229,18 @@
             if (difficulty === 'easy') {
                 choice = moves[Math.floor(Math.random() * moves.length)];
             } else {
-                // ふつう以上：ウサギへの距離（x座標ベース）を縮める、または追い詰める手を優先
                 let bestScore = -Infinity;
                 moves.forEach(m => {
-                    // 仮置き
                     boardState[m.to] = 1;
                     boardState[m.from] = 0;
                     
-                    // 評価値の算出
                     let score = 0;
                     const hDist = Math.abs(positions[m.to].x - positions[hareIdx].x);
-                    score -= hDist; // 近づくほど高評価
+                    score -= hDist;
 
-                    // つよい: 挟み撃ち、または動けるマスの制限
                     if (difficulty === 'hard') {
                         const hareMoves = getValidMoves(hareIdx);
-                        score += (3 - hareMoves.length) * 15; // 相手の動けるマスを奪う手
+                        score += (3 - hareMoves.length) * 15;
                     }
 
                     if (score > bestScore) {
@@ -252,7 +248,6 @@
                         choice = m;
                     }
 
-                    // 戻す
                     boardState[m.to] = 0;
                     boardState[m.from] = 1;
                 });
@@ -263,7 +258,7 @@
 
             checkGameResult();
             if (!gameOver) {
-                currentPlayer = 2; // ウサギ(あなた)へ
+                currentPlayer = 2;
                 statusText.innerText = "ウサギ(白)の手番です";
             }
             drawBoard();
@@ -276,14 +271,12 @@
             const leftmostHoundX = Math.min(...houndIndices.map(idx => positions[idx].x));
             const hareX = positions[hareIdx].x;
 
-            // 勝利：ウサギ脱出
             if (hareX < leftmostHoundX) {
                 gameOver = true;
                 showFinalResult(2, "ウサギが猟犬を交わして完全に脱出しました！");
                 return;
             }
 
-            // 勝利：猟犬の完全包囲
             const hareValidMoves = getValidMoves(hareIdx);
             if (hareValidMoves.length === 0) {
                 gameOver = true;
@@ -291,7 +284,6 @@
                 return;
             }
 
-            // 猟犬詰み
             let houndCanMove = false;
             houndIndices.forEach(idx => {
                 if (getValidMoves(idx).length > 0) houndCanMove = true;

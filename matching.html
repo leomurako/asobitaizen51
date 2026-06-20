@@ -51,6 +51,7 @@
         let scores = [0, 0];
         let currentPlayer = 1; // 1: P1, 2: P2/CPU
         let lockBoard = false;
+        let cpuThinking = false; // CPUの多重実行を防ぐガードフラグ
         let memory = {}; // CPUの記憶
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -58,7 +59,7 @@
         const difficulty = urlParams.get('diff') || 'normal';
 
         function initGame() {
-            scores = [0, 0]; currentPlayer = 1; flippedCards = []; lockBoard = false; memory = {};
+            scores = [0, 0]; currentPlayer = 1; flippedCards = []; lockBoard = false; cpuThinking = false; memory = {};
             document.getElementById('p1-score').innerText = 0;
             document.getElementById('p2-score').innerText = 0;
             document.getElementById('p2-score-label').innerHTML = gameMode === 'vs_cpu' ? `CPU: <span id="p2-score">0</span>` : `相手: <span id="p2-score">0</span>`;
@@ -88,7 +89,7 @@
         }
 
         function handleCardClick(card, index) {
-            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+            if (lockBoard || cpuThinking || card.classList.contains('flipped') || card.classList.contains('matched')) return;
             if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
 
             revealCard(card, index);
@@ -112,7 +113,9 @@
             const second = cardsData[flippedCards[1].index];
 
             if (first.symbol === second.symbol) {
+                // ペア成立
                 setTimeout(() => {
+                    if (flippedCards.length < 2) return; // 安全対策
                     flippedCards[0].card.classList.add('matched');
                     flippedCards[1].card.classList.add('matched');
                     
@@ -125,17 +128,21 @@
                     document.getElementById('p2-score').innerText = scores[1];
 
                     flippedCards = [];
+                    cpuThinking = false; // ロック解除
                     lockBoard = false;
                     checkWin();
                 }, 600);
             } else {
+                // ペア不成立 -> 元に戻す
                 setTimeout(() => {
+                    if (flippedCards.length < 2) return; // 安全対策
                     flippedCards[0].card.classList.remove('flipped');
                     flippedCards[1].card.classList.remove('flipped');
                     flippedCards = [];
                     
                     currentPlayer = currentPlayer === 1 ? 2 : 1;
                     document.getElementById('turn-text').innerText = currentPlayer === 1 ? "あなたのターン" : (gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン");
+                    cpuThinking = false; // ロック解除
                     lockBoard = false;
 
                     if (gameMode === 'vs_cpu' && currentPlayer === 2) {
@@ -145,9 +152,8 @@
             }
         }
 
-        // 記憶力CPU
         function cpuMove() {
-            if (lockBoard || gameOver) return;
+            if (lockBoard || gameOver || cpuThinking) return;
 
             const unrevealedIndices = [];
             cardsData.forEach((_, idx) => {
@@ -157,7 +163,10 @@
                 }
             });
 
-            if (unrevealedIndices.length === 0) return;
+            // 安全対策：残りカードが2枚未満の場合はフリーズを防ぐために処理しない
+            if (unrevealedIndices.length < 2) return;
+
+            cpuThinking = true; // 思考中ロック開始
 
             // 記憶に基づくマッチ探索
             let p1 = null, p2 = null;
@@ -174,7 +183,7 @@
                 }
             }
 
-            // 記憶想起確率（easy:30%, normal:60%, hard:100%）
+            // 記憶想起確率（easy:30%, normal:65%, hard:100%）
             const probability = difficulty === 'easy' ? 0.3 : (difficulty === 'normal' ? 0.65 : 1.0);
             const remember = Math.random() < probability;
 
@@ -200,10 +209,22 @@
 
         function boardEl() { return document.getElementById('grid'); }
 
+        // インデックスとDOM要素の完全な安全チェックロジックに修正
         function executeCpuFlip(i1, i2) {
             const grid = boardEl();
+            if (i1 === undefined || i2 === undefined || !grid.children[i1] || !grid.children[i2]) {
+                cpuThinking = false;
+                lockBoard = false;
+                return;
+            }
+            lockBoard = true;
             revealCard(grid.children[i1], i1);
             setTimeout(() => {
+                if (gameOver) {
+                    cpuThinking = false;
+                    lockBoard = false;
+                    return;
+                }
                 revealCard(grid.children[i2], i2);
             }, 600);
         }
