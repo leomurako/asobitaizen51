@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>リバーシ - Light Edition</title>
+    <title>リバーシ - Deluxe Edition</title>
     <style>
         :root {
             --bg-color: #f5f7fb;
-            --board-color: #2d6a4f;
-            --board-border: #1b4332;
-            --text-color: #1e293b;
-            --accent: #4a90e2;
+            --board-color: #2a6f4d;
+            --board-border: #14361b;
+            --text-color: #2d3748;
+            --accent-color: #4a90e2;
         }
 
         body {
@@ -23,84 +23,131 @@
         }
 
         .header-panel {
-            display: flex; align-items: center; gap: 40px; margin-bottom: 25px;
-            background: #ffffff; padding: 12px 30px; border-radius: 30px;
-            border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            display: flex; align-items: center; gap: 30px; margin-bottom: 20px;
+            background: #ffffff; padding: 10px 25px; border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
         }
 
-        .score-box { display: flex; align-items: center; gap: 12px; font-size: 20px; font-weight: 700; }
-        .mini-disc { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
+        .score-box { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; }
+        .mini-disc { width: 20px; height: 20px; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
         .mini-disc.black { background: radial-gradient(circle at 30% 30%, #555, #111); }
-        .mini-disc.white { background: radial-gradient(circle at 30% 30%, #fff, #ccc); border: 1px solid #ddd; box-sizing: border-box; }
+        .mini-disc.white { background: radial-gradient(circle at 30% 30%, #fff, #ccc); border: 1px solid #aaa; }
+        .turn-indicator { font-size: 14px; font-weight: 700; color: var(--accent-color); }
 
-        .turn-indicator { font-size: 15px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
+        /* 盤面 */
+        .board-wrapper {
+            background: var(--board-border); padding: 10px; border-radius: 16px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        .board {
+            display: grid; grid-template-columns: repeat(8, 55px); grid-template-rows: repeat(8, 55px);
+            background-color: var(--board-color); gap: 2px; border-radius: 8px; overflow: hidden;
+        }
 
-        .board-wrapper { background: var(--board-border); padding: 12px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        .board { display: grid; grid-template-columns: repeat(8, 55px); grid-template-rows: repeat(8, 55px); background-color: var(--board-color); gap: 2px; border-radius: 12px; overflow: hidden; border: 2px solid var(--board-border); }
+        .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .cell.hint::after {
+            content: ''; width: 10px; height: 10px; background-color: rgba(255, 255, 255, 0.2); border-radius: 50%;
+        }
+        .cell.hint:hover::after { transform: scale(1.5); background-color: rgba(212, 163, 115, 0.6); }
 
-        .cell { background-color: var(--board-color); position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .cell.hint::after { content: ''; width: 10px; height: 10px; background-color: rgba(255, 255, 255, 0.25); border-radius: 50%; transition: transform 0.2s; }
-        .cell.hint:hover::after { transform: scale(1.6); background-color: rgba(74, 144, 226, 0.6); }
-
-        .disc-container { width: 82%; height: 82%; perspective: 1000px; }
-        .disc { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.25); }
-        .disc-face { position: absolute; width: 100%; height: 100%; border-radius: 50%; backface-visibility: hidden; }
-        .disc-face.black { background: radial-gradient(circle at 30% 30%, #555 0%, #111 75%); transform: rotateY(0deg); }
-        .disc-face.white { background: radial-gradient(circle at 30% 30%, #ffffff 0%, #dcdcdc 80%); transform: rotateY(180deg); border: 1px solid #b5b5b5; box-sizing: border-box; }
+        /* 石 */
+        .disc-container { width: 84%; height: 82%; perspective: 1000px; }
+        .disc {
+            width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.2); border-radius: 50%;
+        }
+        .disc-face { position: absolute; width: 100%; height: 100%; border-radius: 50%; backface-visibility: hidden; box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+        .disc-face.black { background: radial-gradient(circle at 30% 30%, #555, #111); }
+        .disc-face.white { background: radial-gradient(circle at 30% 30%, #fff, #dcdcdc); border: 1px solid #b5b5b5; box-sizing: border-box; transform: rotateY(180deg); }
         .disc.is-white { transform: rotateY(180deg); }
 
-        button { background-color: #ffffff; color: var(--text-color); border: 1px solid #e2e8f0; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        button:hover { background-color: #f1f5f9; }
+        /* ダイアログ（アラート代替） */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-card {
+            background: #ffffff; padding: 25px; border-radius: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%;
+            animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--text-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; line-height: 1.5; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+
+        /* リッチな勝敗リザルト画面 */
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .result-card { text-align: center; animation: popUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .result-title { font-size: 36px; font-weight: 900; color: var(--accent-color); margin-bottom: 10px; }
+        .result-score { font-size: 24px; font-weight: 800; margin-bottom: 25px; color: var(--text-color); }
     </style>
 </head>
 <body>
 
     <div class="header-panel">
-        <div class="score-box">
-            <div class="mini-disc black"></div>
-            <span id="score-black">2</span>
-        </div>
+        <div class="score-box"><div class="mini-disc black"></div><span id="score-black">2</span></div>
         <div class="turn-indicator" id="turn-text">黒の手番</div>
-        <div class="score-box">
-            <div class="mini-disc white"></div>
-            <span id="score-white">2</span>
-        </div>
+        <div class="score-box"><div class="mini-disc white"></div><span id="score-white">2</span></div>
     </div>
 
     <div class="board-wrapper">
         <div class="board" id="board"></div>
     </div>
 
-    <button onclick="resetGame()">最初からやり直す</button>
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 終局リザルト画面 -->
+    <div class="result-overlay" id="result-overlay">
+        <div class="result-card">
+            <div class="result-title" id="result-title">勝ち！</div>
+            <div class="result-score" id="result-score">黒 32 - 32 白</div>
+            <button class="btn-modal" style="padding: 12px 35px; font-size: 15px;" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const gameMode = urlParams.get('mode') || 'vs_player'; // 'vs_cpu' or 'vs_player'
-        const cpuDifficulty = urlParams.get('diff') || 'normal'; // 'easy', 'normal', 'hard'
-
-        const boardSize = 8;
+        const size = 8;
         let board = [];
-        let currentPlayer = 1; // 1: 黒(Player 1), 2: 白(Player 2 / CPU)
+        let currentPlayer = 1;
         let gameOver = false;
 
-        const directions = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]];
+        // URLパラメータ解析
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; // 'vs_cpu' or 'vs_player'
+        const difficulty = urlParams.get('diff') || 'normal';  // 'easy', 'normal', 'hard'
+
         const boardEl = document.getElementById('board');
-        const scoreBlackEl = document.getElementById('score-black');
-        const scoreWhiteEl = document.getElementById('score-white');
-        const turnTextEl = document.getElementById('turn-text');
+        const turnText = document.getElementById('turn-text');
 
         function initGame() {
-            board = Array(boardSize).fill(null).map(() => Array(boardSize).fill(0));
-            board[3][3] = 2; board[3][4] = 1; board[4][3] = 1; board[4][4] = 2;
-            currentPlayer = 1; gameOver = false;
+            board = Array(size).fill(null).map(() => Array(size).fill(0));
+            board[3][3] = 2; board[4][4] = 2; board[3][4] = 1; board[4][3] = 1;
+            currentPlayer = 1;
+            gameOver = false;
+
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
             createBoardDOM();
             updateUI();
         }
 
         function createBoardDOM() {
             boardEl.innerHTML = '';
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     cell.addEventListener('click', () => handleCellClick(r, c));
@@ -109,55 +156,57 @@
             }
         }
 
-        function getFlippableDiscs(r, c, player) {
-            if (board[r][c] !== 0) return [];
-            const opponent = player === 1 ? 2 : 1;
-            let piecesToFlip = [];
-
-            for (let [dr, dc] of directions) {
-                let tempFlip = [];
-                let nr = r + dr, nc = c + dc;
-                while (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && board[nr][nc] === opponent) {
-                    tempFlip.push([nr, nc]);
-                    nr += dr; nc += dc;
-                }
-                if (nr >= 0 && nr < boardSize && nc >= 0 && nc < boardSize && board[nr][nc] === player) {
-                    piecesToFlip = piecesToFlip.concat(tempFlip);
-                }
-            }
-            return piecesToFlip;
-        }
-
-        function hasValidMoves(player) {
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
-                    if (getFlippableDiscs(r, c, player).length > 0) return true;
-                }
-            }
-            return false;
-        }
-
         function handleCellClick(r, c) {
             if (gameOver) return;
             if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPUターン中は操作無効
 
-            const flippables = getFlippableDiscs(r, c, currentPlayer);
-            if (flippables.length === 0) return;
-
-            executeMove(r, c, flippables);
+            if (executeMove(r, c, currentPlayer)) {
+                endTurn();
+            }
         }
 
-        function executeMove(r, c, flippables) {
-            board[r][c] = currentPlayer;
-            for (let [fr, fc] of flippables) {
-                board[fr][fc] = currentPlayer;
-            }
+        // 石を配置し裏返す
+        function executeMove(r, c, player) {
+            const flippables = getFlippableDiscs(r, c, player);
+            if (flippables.length === 0) return false;
 
+            board[r][c] = player;
+            flippables.forEach(([fr, fc]) => {
+                board[fr][fc] = player;
+            });
+            return true;
+        }
+
+        function getFlippableDiscs(r, c, player) {
+            if (board[r][c] !== 0) return [];
+            const opponent = player === 1 ? 2 : 1;
+            let pieces = [];
+
+            const dirs = [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]];
+            for (let [dr, dc] of dirs) {
+                let temp = [];
+                let nr = r + dr, nc = c + dc;
+                while (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === opponent) {
+                    tempFlip = [nr, nc];
+                    tempFlip.push(nr, nc);
+                    tempFlip = [];
+                    temp.push([nr, nc]);
+                    nr += dr; nc += dc;
+                }
+                if (nr >= 0 && nr < size && nc >= 0 && nc < size && board[nr][nc] === player) {
+                    pieces = pieces.concat(temp);
+                }
+            }
+            return pieces;
+        }
+
+        function endTurn() {
             let nextPlayer = currentPlayer === 1 ? 2 : 1;
+            
             if (hasValidMoves(nextPlayer)) {
                 currentPlayer = nextPlayer;
             } else if (hasValidMoves(currentPlayer)) {
-                alert(`${nextPlayer === 1 ? '黒' : '白'}に置ける場所がないためパスします。`);
+                showCustomAlert("パス", `${nextPlayer === 1 ? '黒' : '白'}に置ける場所がないためパスします。`);
             } else {
                 gameOver = true;
             }
@@ -165,67 +214,82 @@
             updateUI();
 
             if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
-                setTimeout(cpuMove, 850);
+                setTimeout(cpuMove, 800); // 思考時間ディレイ
             }
         }
 
-        // リバーシCPU思考
+        function hasValidMoves(player) {
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (getFlippableDiscs(r, c, player).length > 0) return true;
+                }
+            }
+            return false;
+        }
+
+        // CPU（AI）の思考ロジック
         function cpuMove() {
             if (gameOver) return;
 
-            let bestMove = null;
-            let bestScore = -9999;
             const moves = [];
-
-            // すべての合法手を取得
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
                     const flips = getFlippableDiscs(r, c, 2);
-                    if (flips.length > 0) moves.push({ r, c, flips });
+                    if (flips.length > 0) {
+                        moves.push({ r, c, count: flips.length });
+                    }
                 }
             }
 
-            if (moves.length === 0) return;
+            if (moves.length === 0) {
+                endTurn();
+                return;
+            }
 
-            // 難易度による評価ロジック
-            if (cpuDifficulty === 'easy') {
-                bestMove = moves[Math.floor(Math.random() * moves.length)];
+            let choice = moves[0];
+
+            if (difficulty === 'easy') {
+                // やさしい: 完全ランダム
+                choice = moves[Math.floor(Math.random() * moves.length)];
+            } else if (difficulty === 'normal') {
+                // ふつう: 角があれば最優先、なければランダム
+                const corners = moves.filter(m => (m.r === 0 || m.r === 7) && (m.c === 0 || m.c === 7));
+                if (corners.length > 0) {
+                    choice = corners[Math.floor(Math.random() * corners.length)];
+                } else {
+                    choice = moves[Math.floor(Math.random() * moves.length)];
+                }
             } else {
-                // 隅を高く評価する重みづけマップ
+                // つよい: 盤面の重要度評価表（角は高評価、角の隣は低評価）
                 const weights = [
                     [100, -20, 10,  5,  5, 10, -20, 100],
-                    [-20, -40, -2, -2, -2, -2, -40, -20],
-                    [ 10,  -2,  2,  2,  2,  2,  -2,  10],
-                    [  5,  -2,  2,  0,  0,  2,  -2,   5],
-                    [  5,  -2,  2,  0,  0,  2,  -2,   5],
-                    [ 10,  -2,  2,  2,  2,  2,  -2,  10],
-                    [-20, -40, -2, -2, -2, -2, -40, -20],
+                    [-20, -40,  1,  1,  1,  1, -40, -20],
+                    [ 10,   1,  5,  2,  2,  5,   1,  10],
+                    [  5,   1,  2,  1,  1,  2,   1,   5],
+                    [  5,   1,  2,  1,  1,  2,   1,   5],
+                    [ 10,   1,  5,  2,  2,  5,   1,  10],
+                    [-20, -40,  1,  1,  1,  1, -40, -20],
                     [100, -20, 10,  5,  5, 10, -20, 100]
                 ];
-
+                let maxWeight = -Infinity;
                 moves.forEach(m => {
-                    let score = weights[m.r][m.c];
-                    if (cpuDifficulty === 'hard') {
-                        // 『つよい』は挟める枚数も加味
-                        score += m.flips.length * 2;
-                    }
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestMove = m;
+                    const w = weights[m.r][m.c];
+                    if (w > maxWeight) {
+                        maxWeight = w;
+                        choice = m;
                     }
                 });
             }
 
-            if (bestMove) {
-                executeMove(bestMove.r, bestMove.c, bestMove.flips);
-            }
+            executeMove(choice.r, choice.c, 2);
+            endTurn();
         }
 
         function updateUI() {
             let black = 0, white = 0;
-            for (let r = 0; r < boardSize; r++) {
-                for (let c = 0; c < boardSize; c++) {
-                    const idx = r * boardSize + c;
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const idx = r * size + c;
                     const cell = boardEl.children[idx];
                     const val = board[r][c];
 
@@ -243,28 +307,65 @@
                             cell.appendChild(container);
                         }
                         const disc = container.querySelector('.disc');
-                        if (val === 2) disc.classList.add('is-white');
-                        else disc.classList.remove('is-white');
-
-                        if (val === 1) black++;
-                        else white++;
+                        disc.classList.toggle('is-white', val === 2);
+                        if (val === 1) black++; else white++;
                     } else if (container) {
                         cell.removeChild(container);
                     }
                 }
             }
 
-            scoreBlackEl.innerText = black;
-            scoreWhiteEl.innerText = white;
+            document.getElementById('score-black').innerText = black;
+            document.getElementById('score-white').innerText = white;
 
             if (gameOver) {
-                turnTextEl.innerText = black > white ? "黒の勝ち！" : white > black ? "白の勝ち！" : "引き分け";
+                turnText.innerText = "ゲーム終了";
+                showFinalResult(black, white);
             } else {
-                turnTextEl.innerText = currentPlayer === 1 ? "黒の手番" : (gameMode === 'vs_cpu' ? "CPUの番" : "白の手番");
+                turnText.innerText = currentPlayer === 1 ? "黒の手番" : "白の手番";
             }
         }
 
-        function resetGame() { initGame(); }
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+
+        function closeAlert() {
+            document.getElementById('alert-modal').style.display = 'none';
+        }
+
+        function showFinalResult(black, white) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const scoreEl = document.getElementById('result-score');
+
+            scoreEl.innerText = `黒 ${black} - ${white} 白`;
+
+            if (black === white) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (gameMode === 'vs_cpu') {
+                if (black > white) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = black > white ? "🎉 Player 1 (黒) の勝ち！" : "🎉 Player 2 (白) の勝ち！";
+                titleEl.style.color = "#4a90e2";
+            }
+
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() {
+            initGame();
+        }
+
         initGame();
     </script>
 </body>

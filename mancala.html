@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マンカラ - Light Edition</title>
+    <title>マンカラ - Deluxe Edition</title>
     <style>
         :root {
             --bg-color: #f5f7fb;
-            --board-color: radial-gradient(circle, #fbf7f0 40%, #e2d9cf 100%);
-            --board-border: #bca08d;
-            --pit-bg: #806454;
-            --text-color: #1e293b;
-            --accent: #4a90e2;
+            --board-color: radial-gradient(circle, #f3e5ab 30%, #d2b48c 100%);
+            --board-border: #8b5a2b;
+            --pit-bg: #4a2c0f;
+            --text-color: #2d3748;
+            --accent-color: #4a90e2;
         }
 
         body {
@@ -22,40 +22,80 @@
             min-height: 100vh; color: var(--text-color); user-select: none;
         }
 
-        #status { font-size: 16px; margin-bottom: 25px; font-weight: bold; color: var(--accent); letter-spacing: 1px; }
+        h1 { margin: 0 0 5px; font-size: 24px; letter-spacing: 2px; }
+        #status { font-size: 16px; margin-bottom: 20px; font-weight: bold; color: #b8813a; height: 24px; }
 
+        /* ボード */
         .mancala-board {
-            background: var(--board-color);
-            border: 8px solid var(--board-border);
-            border-radius: 40px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.06), inset 0 2px 4px rgba(255,255,255,0.6);
-            padding: 30px; display: flex; align-items: center; gap: 20px;
-            max-width: 820px; width: 90%; box-sizing: border-box;
+            background: var(--board-color); border: 8px solid var(--board-border);
+            border-radius: 40px; box-shadow: 0 16px 30px rgba(0,0,0,0.1), inset 0 2px 4px rgba(255,255,255,0.4);
+            padding: 25px; display: flex; align-items: center; gap: 20px;
+            max-width: 800px; width: 92%; box-sizing: border-box;
         }
 
-        .store-container { display: flex; flex-direction: column; align-items: center; width: 80px; }
-        .store-label { font-size: 11px; margin-bottom: 8px; opacity: 0.6; font-weight: bold; letter-spacing: 1px; }
-        .store { width: 70px; height: 200px; background-color: var(--pit-bg); border-radius: 35px; position: relative; box-shadow: inset 0 10px 15px rgba(0,0,0,0.4); }
+        .store-container { display: flex; flex-direction: column; align-items: center; width: 75px; }
+        .store-label { font-size: 10px; margin-bottom: 6px; opacity: 0.6; font-weight: bold; }
+        .store {
+            width: 65px; height: 180px; background-color: var(--pit-bg); border-radius: 35px;
+            position: relative; box-shadow: inset 0 8px 12px rgba(0,0,0,0.5), 0 2px 2px rgba(255,255,255,0.2);
+        }
 
-        .pits-container { flex-grow: 1; display: flex; flex-direction: column; gap: 30px; }
+        .pits-container { flex-grow: 1; display: flex; flex-direction: column; gap: 25px; }
         .row { display: flex; justify-content: space-around; }
         .pit-wrapper { display: flex; flex-direction: column; align-items: center; }
-        .pit-label { font-size: 10px; opacity: 0.5; margin-top: 6px; margin-bottom: 6px; font-weight: bold; }
-        .pit { width: 68px; height: 68px; background-color: var(--pit-bg); border-radius: 50%; position: relative; cursor: pointer; box-shadow: inset 0 8px 12px rgba(0,0,0,0.4); transition: transform 0.2s, box-shadow 0.2s; }
+        .pit-label { font-size: 9px; opacity: 0.5; margin-top: 5px; margin-bottom: 5px; font-weight: bold; }
+        
+        .pit {
+            width: 60px; height: 60px; background-color: var(--pit-bg); border-radius: 50%;
+            position: relative; cursor: pointer; box-shadow: inset 0 6px 10px rgba(0,0,0,0.5), 0 2px 2px rgba(255,255,255,0.2);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .active-player .pit { box-shadow: inset 0 6px 10px rgba(0,0,0,0.5), 0 0 10px rgba(255, 255, 255, 0.4); }
+        .active-player .pit:hover { transform: scale(1.1); box-shadow: inset 0 6px 10px rgba(0,0,0,0.5), 0 0 12px var(--accent-color); }
 
-        .active-player .pit { box-shadow: inset 0 8px 12px rgba(0,0,0,0.4), 0 0 12px rgba(74, 144, 226, 0.3); }
-        .active-player .pit:hover { transform: scale(1.1); box-shadow: inset 0 8px 12px rgba(0,0,0,0.4), 0 0 15px var(--accent); }
+        .seed-count {
+            position: absolute; bottom: -5px; right: -5px; background-color: rgba(0, 0, 0, 0.8);
+            color: #fff; border-radius: 10px; padding: 2px 6px; font-size: 11px; font-weight: bold;
+            pointer-events: none; border: 1px solid rgba(255,255,255,0.15); z-index: 10;
+        }
 
-        .seed-count { position: absolute; bottom: -5px; right: -5px; background-color: #2d3748; color: #fff; border-radius: 12px; padding: 2px 7px; font-size: 11px; font-weight: bold; pointer-events: none; border: 1px solid rgba(255,255,255,0.15); z-index: 10; }
         .marbles-layer { position: absolute; width: 100%; height: 100%; top: 0; left: 0; pointer-events: none; }
-        .marble { position: absolute; width: 11px; height: 11px; border-radius: 50%; box-shadow: 1px 2px 3px rgba(0,0,0,0.3); background: radial-gradient(circle at 4px 4px, #ffffff, var(--marble-color, #ff595e)); }
+        .marble {
+            position: absolute; width: 10px; height: 10px; border-radius: 50%;
+            box-shadow: 1px 2px 3px rgba(0,0,0,0.4);
+            background: radial-gradient(circle at 3px 3px, #ffffff, var(--marble-color, #ff595e));
+        }
 
-        button { background-color: #ffffff; color: var(--text-color); border: 1px solid #e2e8f0; padding: 10px 24px; font-size: 14px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; margin-top: 25px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-        button:hover { background-color: #f1f5f9; }
+        /* カスタムダイアログ */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal-card {
+            background: #ffffff; padding: 25px; border-radius: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%;
+            animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--text-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; line-height: 1.5; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+
+        /* リザルトオーバーレイ */
+        .result-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.96); backdrop-filter: blur(8px);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000;
+        }
+        .result-card { text-align: center; animation: popUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .result-title { font-size: 36px; font-weight: 900; color: var(--accent-color); margin-bottom: 10px; }
+        .result-score { font-size: 24px; font-weight: 800; margin-bottom: 25px; color: var(--text-color); }
     </style>
 </head>
 <body>
 
+    <h1>MANCALA</h1>
     <div id="status">Player 1 のターン</div>
 
     <div class="mancala-board">
@@ -63,7 +103,7 @@
             <span class="store-label">PLAYER 2</span>
             <div class="store" id="pit-13">
                 <div class="marbles-layer"></div>
-                <div class="seed-count">0</div>
+                <span class="seed-count">0</span>
             </div>
         </div>
 
@@ -91,61 +131,46 @@
             <span class="store-label">PLAYER 1</span>
             <div class="store" id="pit-6">
                 <div class="marbles-layer"></div>
-                <div class="seed-count">0</div>
+                <span class="seed-count">0</span>
             </div>
         </div>
     </div>
 
-    <button onclick="resetGame()">最初からやり直す</button>
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="result-overlay" id="result-overlay">
+        <div class="result-card">
+            <div class="result-title" id="result-title">勝ち！</div>
+            <div class="result-score" id="result-score">24 対 24</div>
+            <button class="btn-modal" style="padding: 12px 35px; font-size: 15px;" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
 
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const gameMode = urlParams.get('mode') || 'vs_player'; 
-        const cpuDifficulty = urlParams.get('diff') || 'normal';
-
         let board = [];
         let currentPlayer = 1;
         let gameOver = false;
         const marbleColors = ['#ff595e', '#ffca3a', '#8ac926', '#1982c4', '#6a4c93'];
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; 
+        const difficulty = urlParams.get('diff') || 'normal';  
+
         function initGame() {
             board = [4, 4, 4, 4, 4, 4, 0, 4, 4, 4, 4, 4, 4, 0];
             currentPlayer = 1;
             gameOver = false;
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
             updateUI();
-        }
-
-        function renderMarbles(pitIdx, count) {
-            const pitEl = document.getElementById(`pit-${pitIdx}`);
-            const layer = pitEl.querySelector('.marbles-layer');
-            layer.innerHTML = '';
-
-            const isStore = (pitIdx === 6 || pitIdx === 13);
-            const visualLimit = Math.min(count, 14);
-
-            for (let i = 0; i < visualLimit; i++) {
-                const marble = document.createElement('div');
-                marble.className = 'marble';
-
-                const angle = Math.random() * Math.PI * 2;
-                let x, y;
-
-                if (isStore) {
-                    const radiusX = Math.random() * 15;
-                    const radiusY = Math.random() * 65;
-                    x = 29 + Math.cos(angle) * radiusX;
-                    y = 94 + Math.sin(angle) * radiusY;
-                } else {
-                    const radius = Math.random() * 19;
-                    x = 28 + Math.cos(angle) * radius;
-                    y = 28 + Math.sin(angle) * radius;
-                }
-
-                marble.style.left = `${x}px`;
-                marble.style.top = `${y}px`;
-                marble.style.setProperty('--marble-color', marbleColors[(pitIdx + i) % marbleColors.length]);
-                layer.appendChild(marble);
-            }
         }
 
         function updateUI() {
@@ -171,20 +196,56 @@
             } else {
                 rowP1.classList.remove('active-player');
                 rowP2.classList.add('active-player');
-                document.getElementById('status').innerText = gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン";
+                document.getElementById('status').innerText = gameMode === 'vs_cpu' ? "CPU の思考中..." : "Player 2 のターン";
+            }
+        }
+
+        function renderMarbles(pitIdx, count) {
+            const pitEl = document.getElementById(`pit-${pitIdx}`);
+            const layer = pitEl.querySelector('.marbles-layer');
+            layer.innerHTML = '';
+
+            const isStore = (pitIdx === 6 || pitIdx === 13);
+            const visualLimit = Math.min(count, 12);
+
+            for (let i = 0; i < visualLimit; i++) {
+                const marble = document.createElement('div');
+                marble.className = 'marble';
+                const angle = Math.random() * Math.PI * 2;
+                let x, y;
+
+                if (isStore) {
+                    const rx = Math.random() * 14;
+                    const ry = Math.random() * 60;
+                    x = 29 + Math.cos(angle) * radiusCalc(rx);
+                    y = 94 + Math.sin(angle) * radiusCalc(ry);
+                } else {
+                    const r = Math.random() * 16;
+                    x = 25 + Math.cos(angle) * r;
+                    y = 25 + Math.sin(angle) * r;
+                }
+                marble.style.left = `${x}px`;
+                marble.style.top = `${y}px`;
+                marble.style.setProperty('--marble-color', marbleColors[(pitIdx + i) % marbleColors.length]);
+                layer.appendChild(marble);
+            }
+        }
+        function radiusCalc(v) { return v; }
+
+        function handlePitClick(pitIdx) {
+            if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            if (makeMove(pitIdx)) {
+                endTurn();
             }
         }
 
         function makeMove(pitIdx) {
-            if (gameOver) return;
-            if (currentPlayer === 1 && (pitIdx < 0 || pitIdx > 5)) return;
-            if (currentPlayer === 2 && (pitIdx < 7 || pitIdx > 12)) return;
-            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPUターン中はプレイヤー操作無効
+            if (currentPlayer === 1 && (pitIdx < 0 || pitIdx > 5)) return false;
+            if (currentPlayer === 2 && (pitIdx < 7 || pitIdx > 12)) return false;
+            if (board[pitIdx] === 0) return false;
 
-            executeMove(pitIdx);
-        }
-
-        function executeMove(pitIdx) {
             let seeds = board[pitIdx];
             board[pitIdx] = 0;
             let current = pitIdx;
@@ -198,15 +259,12 @@
             }
 
             const ownStore = (currentPlayer === 1) ? 6 : 13;
-            let extraTurn = false;
+            lastLandedInStore = (current === ownStore);
 
-            if (current === ownStore) {
-                extraTurn = true;
-            } else {
+            if (!lastLandedInStore) {
                 const isOwnSide = (currentPlayer === 1 && current >= 0 && current <= 5) ||
                                   (currentPlayer === 2 && current >= 7 && current <= 12);
                 const opposite = 12 - current;
-
                 if (isOwnSide && board[current] === 1 && board[opposite] > 0) {
                     const captured = board[current] + board[opposite];
                     board[current] = 0;
@@ -214,24 +272,32 @@
                     board[ownStore] += captured;
                 }
             }
+            return true;
+        }
 
+        let lastLandedInStore = false;
+
+        function endTurn() {
             checkGameOver();
-
-            if (!gameOver) {
-                if (!extraTurn) {
-                    currentPlayer = (currentPlayer === 1) ? 2 : 1;
-                }
+            if (gameOver) {
                 updateUI();
+                return;
+            }
 
-                if (gameMode === 'vs_cpu' && currentPlayer === 2) {
-                    setTimeout(cpuMove, 900);
-                }
+            if (!lastLandedInStore) {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
             } else {
-                updateUI();
+                showCustomAlert("手番継続", `ピッタリ入ったため、Player ${currentPlayer} のターン継続です！`);
+            }
+
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1000);
             }
         }
 
-        // マンカラCPU思考
+        // CPUのAI思考ロジック
         function cpuMove() {
             if (gameOver) return;
 
@@ -242,55 +308,39 @@
 
             if (validPits.length === 0) return;
 
-            let chosenPit = null;
+            let chosenPit = validPits[0];
 
-            if (cpuDifficulty === 'easy') {
+            if (difficulty === 'easy') {
                 chosenPit = validPits[Math.floor(Math.random() * validPits.length)];
             } else {
-                // 『ふつう』『つよい』はもう一回手番が得られる手を最優先
-                for (let pit of validPits) {
-                    const seeds = board[pit];
-                    if ((pit + seeds) % 14 === 13) {
-                        chosenPit = pit;
-                        break;
-                    }
-                }
-
-                // 2. 『つよい』の場合は横取り（キャプチャ）が発生する手を選ぶ
-                if (!chosenPit && cpuDifficulty === 'hard') {
-                    for (let pit of validPits) {
-                        const seeds = board[pit];
-                        const landing = (pit + seeds) % 14;
-                        if (landing >= 7 && landing <= 12 && board[landing] === 0) {
-                            const opposite = 12 - landing;
-                            if (board[opposite] > 0) {
-                                chosenCode = pit;
-                                break;
+                // ふつう以上: 1. ストアにピタリと入る手があれば優先
+                let storeGoalPit = validPits.find(p => (p + board[p]) % 14 === 13);
+                if (storeGoalPit !== undefined) {
+                    chosenPit = storeGoalPit;
+                } else if (difficulty === 'hard') {
+                    // つよい: 2. 横取りできる手があれば優先
+                    let maxCapture = -1;
+                    validPits.forEach(p => {
+                        const targetLand = (p + board[p]) % 14;
+                        if (targetLand >= 7 && targetLand <= 12 && board[targetLand] === 0) {
+                            const opposite = 12 - targetLand;
+                            if (board[opposite] > maxCapture) {
+                                maxCapture = board[opposite];
+                                chosenPit = p;
                             }
                         }
+                    });
+                    if (maxCapture === -1) {
+                        chosenPit = validPits[Math.floor(Math.random() * validPits.length)];
                     }
+                } else {
+                    chosenPit = validPits[Math.floor(Math.random() * validPits.length)];
                 }
-
-                // 優先順位に満たなければ、ランダムまたは最も石の多い箇所
-                if (!chosenCode && !chosenCard() && !chosenId) { /* 補正 */ }
-                if (chosenCode === undefined) chosenCode = null; // 安全対策
-                
-                if (!chosenCardSelected()) { /* 安全対策 */ }
             }
 
-            // 最終選定
-            let finalSelection = chosenPit;
-            if (!finalSelection) {
-                // 最も手数が多く稼げる、または右側のピットを優先
-                finalSelection = validPits[validPits.length - 1]; 
-            }
-
-            executeMove(finalSelection);
+            makeMove(chosenPit);
+            endTurn();
         }
-
-        // プレースホルダーの補正用ヘルパー群
-        function chosenCardSelected() { return true; }
-        function chosenCard() { return null; }
 
         function checkGameOver() {
             const p1Empty = board.slice(0, 6).every(s => s === 0);
@@ -304,23 +354,50 @@
                 if (p2Empty) {
                     for (let i = 0; i <= 5; i++) { board[6] += board[i]; board[i] = 0; }
                 }
-
-                const s1 = board[6];
-                const s2 = board[13];
-                let msg = "";
-                if (s1 > s2) msg = `ゲーム終了！ ${s1} 対 ${s2} で Player 1 の勝ち！`;
-                else if (s2 > s1) msg = `ゲーム終了！ ${s2} 対 ${s1} で Player 2 の勝ち！`;
-                else msg = `ゲーム終了！ ${s1} 対 ${s2} で引き分け！`;
-
-                document.getElementById('status').innerText = msg;
+                showFinalResult();
             }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult() {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const scoreEl = document.getElementById('result-score');
+
+            const s1 = board[6];
+            const s2 = board[13];
+            scoreEl.innerText = `${s1} 対 ${s2}`;
+
+            if (s1 === s2) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (gameMode === 'vs_cpu') {
+                if (s1 > s2) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = s1 > s2 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
         }
 
         function resetGame() { initGame(); }
 
         for (let i = 0; i < 14; i++) {
             if (i !== 6 && i !== 13) {
-                document.getElementById(`pit-${i}`).addEventListener('click', () => makeMove(i));
+                document.getElementById(`pit-${i}`).addEventListener('click', () => handlePitClick(i));
             }
         }
 
