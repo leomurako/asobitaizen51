@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スパイダー - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --table-color: #1e3a2b; --text-color: #2d3748; --accent: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+
+        .game-layout { background: var(--table-color); width: 640px; height: 440px; border-radius: 24px; border: 8px solid #3d2516; box-shadow: 0 15px 35px rgba(0,0,0,0.1); padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .top-row { display: flex; justify-content: space-between; width: 100%; height: 75px; align-items: center; }
+        .deck-zone { display: flex; gap: 15px; align-items: center; }
+        .score-info { color: #fff; font-weight: bold; font-size: 15px; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 12px; }
+
+        .tableau-zone { display: flex; justify-content: space-between; width: 100%; height: 300px; margin-top: 15px; }
+        .tableau-col { width: 50px; height: 100%; position: relative; border-radius: 6px; border: 1.5px dashed rgba(255,255,255,0.08); box-sizing: border-box; }
+
+        .slot { width: 50px; height: 70px; border-radius: 6px; border: 1.5px dashed rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 14px; color: rgba(255,255,255,0.25); box-sizing: border-box; cursor: pointer; position: relative; }
+        .slot.has-card { border: none; background: #fff; box-shadow: 0 3px 6px rgba(0,0,0,0.3); }
+
+        /* カード（絶対配置） */
+        .card { width: 50px; height: 70px; background: #fff; color: #111; border-radius: 6px; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 11px; font-weight: bold; cursor: pointer; border: 1px solid #cbd5e1; box-shadow: 0 2px 4px rgba(0,0,0,0.25); position: absolute; transition: transform 0.1s; }
+        .card.red { color: #d9534f; }
+        .card.back { background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1.5px solid #d4a373; box-shadow: 0 2px 4px rgba(0,0,0,0.3); color: #d4a373; }
+        .card.selected { border: 2px solid var(--accent); transform: scale(1.05); box-shadow: 0 0 10px rgba(74, 144, 226, 0.6); z-index: 100 !important; }
+
+        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent); padding: 8px 24px; font-size: 13px; font-weight: 700; border-radius: 20px; cursor: pointer; transition: all 0.2s; margin-top: 15px; }
+        button:hover { background-color: rgba(74, 144, 226, 0.08); }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="game-layout">
+        <div class="top-row">
+            <div class="deck-zone">
+                <div class="slot has-card card back" id="stock-pile" onclick="dealFromStock()">🎴</div>
+                <div style="color:rgba(255,255,255,0.5); font-size:12px; font-weight:bold;">山札タップで各列に配る</div>
+            </div>
+            <div class="score-info">完成数: <span id="completed-sets">0</span> / 4</div>
+        </div>
+
+        <div class="tableau-zone" id="tableau">
+            <div class="tableau-col" id="col-0" onclick="clickTableauCol(0)"></div>
+            <div class="tableau-col" id="col-1" onclick="clickTableauCol(1)"></div>
+            <div class="tableau-col" id="col-2" onclick="clickTableauCol(2)"></div>
+            <div class="tableau-col" id="col-3" onclick="clickTableauCol(3)"></div>
+            <div class="tableau-col" id="col-4" onclick="clickTableauCol(4)"></div>
+            <div class="tableau-col" id="col-5" onclick="clickTableauCol(5)"></div>
+            <div class="tableau-col" id="col-6" onclick="clickTableauCol(6)"></div>
+            <div class="tableau-col" id="col-7" onclick="clickTableauCol(7)"></div>
+        </div>
+    </div>
+
+    <button onclick="resetGame()">リセット</button>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2>🎉 スパイダークリア！</h2>
+            <p>見事すべてのカード（4組のラン）を回収してクリアしました！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        // 52枚（スペードA〜K x 4組）
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        let stock = [];     
+        let tableau = Array(8).fill(null).map(() => []); 
+        let completedCount = 0;
+
+        let selected = null; // { colIdx: 数値, cardIdx: 数値 }
+
+        function initGame() {
+            stock = []; selected = null; completedCount = 0;
+            tableau = Array(8).fill(null).map(() => []);
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('completed-sets').innerText = 0;
+            closeAlert();
+
+            let deck = [];
+            for (let suitNum = 0; suitNum < 4; suitNum++) {
+                values.forEach((val, v) => {
+                    deck.push({ val, suit: '♠️', isRed: false, vIdx: v, faceUp: false });
+                });
+            }
+            deck.sort(() => Math.random() - 0.5);
+
+            // 初期場札配置（計28枚）
+            // 8列：最初の4列に4枚、残りの4列に3枚を裏向きで配り、最後に一番上を表にする
+            let colIndex = 0;
+            for (let i = 0; i < 28; i++) {
+                const card = deck.pop();
+                tableau[colIndex].push(card);
+                colIndex = (colIndex + 1) % 8;
+            }
+
+            // 各列の一番上を表向きにする
+            for (let i = 0; i < 8; i++) {
+                const col = tableau[i];
+                if (col.length > 0) col[col.length - 1].faceUp = true;
+            }
+
+            stock = deck;
+            updateUI();
+        }
+
+        // 山札から各列に1枚ずつ配る
+        function dealFromStock() {
+            selected = null;
+            if (stock.length === 0) return;
+
+            // スパイダー標準ルール：場に空き列がある時は配れない
+            const hasEmptyCol = tableau.some(col => col.length === 0);
+            if (hasEmptyCol) {
+                showCustomAlert("山札配布不可", "すべての列に少なくとも1枚以上のカードが置かれていないと、山札を配ることはできません。");
+                return;
+            }
+
+            for (let i = 0; i < 8; i++) {
+                if (stock.length > 0) {
+                    const card = stock.pop();
+                    card.faceUp = true;
+                    tableau[i].push(card);
+                }
+            }
+
+            checkAndRemoveRuns();
+            updateUI();
+        }
+
+        function clickTableauCol(colIdx) {
+            const col = tableau[colIdx];
+            if (selected === null) {
+                if (col.length === 0) return;
+
+                // クリックされたカードのインデックスを取得
+                // 選択可能判定：クリックしたカードから一番下（手前）までが正しい降順になっている必要がある
+                const clickedCardIdx = col.length - 1; // 簡易クリック：常に手前の連鎖可能かを自動チェック
+                
+                // 動かせる一連の束（降順になっているもの）を探す
+                let validIdx = col.length - 1;
+                for (let i = col.length - 2; i >= 0; i--) {
+                    if (col[i].faceUp && col[i].vIdx === col[i+1].vIdx + 1) {
+                        validIdx = i;
+                    } else break;
+                }
+
+                selected = { colIdx, cardIdx: validIdx };
+            } else {
+                // 移動可能チェック
+                const movingCards = tableau[selected.colIdx].slice(selected.cardIdx);
+                const firstMovingCard = movingCards[0];
+
+                let valid = false;
+                if (col.length === 0) {
+                    valid = true; // 空き列にはどんなカードでも置ける
+                } else {
+                    const targetCard = col[col.length - 1];
+                    // スパイダー：数字が1つ小さければ重ねられる
+                    if (targetCard.faceUp && targetCard.vIdx === firstMovingCard.vIdx + 1) {
+                        valid = true;
+                    }
+                }
+
+                if (valid) {
+                    // 移動実行
+                    tableau[selected.colIdx].splice(selected.cardIdx);
+                    tableau[colIdx] = tableau[colIdx].concat(movingCards);
+
+                    // 移動元の新しいトップカードを表にする
+                    const prevCol = tableau[selected.colIdx];
+                    if (prevCol.length > 0 && !prevCol[prevCol.length - 1].faceUp) {
+                        prevCol[prevCol.length - 1].faceUp = true;
+                    }
+
+                    selected = null;
+                    checkAndRemoveRuns();
+                } else {
+                    selected = null; // キャンセル
+                }
+                updateUI();
+            }
+        }
+
+        // KからAまでの役（ラン）が揃ったかスキャンし、あれば回収する
+        function checkAndRemoveRuns() {
+            for (let i = 0; i < 8; i++) {
+                const col = tableau[i];
+                if (col.length < 13) continue;
+
+                // 下から13枚チェック
+                for (let start = 0; start <= col.length - 13; start++) {
+                    let isRun = true;
+                    for (let step = 0; step < 13; step++) {
+                        const card = col[start + step];
+                        if (!card.faceUp || card.vIdx !== 12 - step) {
+                            isRun = false;
+                            break;
+                        }
+                    }
+
+                    if (isRun) {
+                        // K〜Aが完全に揃った！
+                        col.splice(start, 13);
+                        completedCount++;
+                        document.getElementById('completed-sets').innerText = completedCount;
+                        showCustomAlert("ラン完成！", `KからAまでの美しい一連のカードが揃いました！ (完成数: ${completedCount}/4)`);
+
+                        // 新しい一番上のカードを表にする
+                        if (col.length > 0) col[col.length - 1].faceUp = true;
+
+                        checkWin();
+                        break;
+                    }
+                }
+            }
+        }
+
+        function checkWin() {
+            if (completedCount === 4) {
+                document.getElementById('result-overlay').style.display = 'flex';
+            }
+        }
+
+        function updateUI() {
+            // 山札ビジュアル
+            const stockPile = document.getElementById('stock-pile');
+            if (stock.length > 0) {
+                stockPile.style.display = 'flex';
+                stockPile.innerText = `🎴`;
+            } else {
+                stockPile.style.display = 'none';
+            }
+
+            // 場札描画
+            for (let c = 0; c < 8; c++) {
+                const colEl = document.getElementById(`col-${c}`);
+                colEl.innerHTML = '';
+                const col = tableau[c];
+
+                col.forEach((card, idx) => {
+                    const cardEl = document.createElement('div');
+                    const isSelected = selected && selected.colIdx === c && idx >= selected.cardIdx;
+
+                    cardEl.className = 'card';
+                    if (!card.faceUp) {
+                        cardEl.classList.add('back');
+                        cardEl.innerText = '🎴';
+                    } else {
+                        if (isSelected) cardEl.classList.add('selected');
+                        cardEl.innerHTML = `
+                            <div>${card.val} ${card.suit}</div>
+                            <div style="text-align:right; transform:rotate(180deg);">${card.val} ${card.suit}</div>
+                        `;
+                    }
+
+                    cardEl.style.top = `${idx * 16}px`;
+                    cardEl.style.zIndex = idx;
+                    colEl.appendChild(cardEl);
+                });
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
