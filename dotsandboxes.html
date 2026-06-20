@@ -13,10 +13,12 @@
         .turn-indicator { color: var(--accent-color); font-weight: bold; }
 
         .board-wrapper { background: #fff; padding: 25px; border-radius: 24px; border: 1px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.08); }
-        .board { position: relative; width: 240px; height: 240px; }
+        
+        /* 4x6 (ドット数5x7) 用の碁盤ボードサイズ（横300px * 縦200px） */
+        .board { position: relative; width: 300px; height: 200px; }
 
         /* ボックス（陣地） */
-        .box { position: absolute; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; border-radius: 4px; transition: background-color 0.3s; }
+        .box { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; border-radius: 4px; transition: background-color 0.3s; }
         .box.p1 { background-color: rgba(74, 144, 226, 0.15); color: #4a90e2; }
         .box.p2 { background-color: rgba(229, 62, 62, 0.15); color: #e53e3e; }
 
@@ -26,11 +28,8 @@
         .line.taken.p1 { background-color: #4a90e2; cursor: default; }
         .line.taken.p2 { background-color: #e53e3e; cursor: default; }
 
-        .line.horizontal { width: 60px; height: 8px; transform: translate(6px, -4px); }
-        .line.vertical { width: 8px; height: 60px; transform: translate(-4px, 6px); }
-
-        /* 点 */
-        .dot { position: absolute; width: 12px; height: 12px; background-color: #475569; border-radius: 50%; z-index: 20; transform: translate(-2px, -2px); }
+        /* 点（ドット） */
+        .dot { position: absolute; width: 8px; height: 8px; background-color: #475569; border-radius: 50%; z-index: 20; transform: translate(-4px, -4px); }
 
         .controls { margin-top: 25px; }
 
@@ -53,7 +52,7 @@
 
     <div class="board-wrapper">
         <div class="board" id="board">
-            <!-- JSで点、線、ボックスが全自動生成されます -->
+            <!-- JSで動的に自動配置 -->
         </div>
     </div>
 
@@ -78,7 +77,11 @@
     </div>
 
     <script {nonce}>
-        const gridSize = 3;
+        // 縦4、横6マスの長方形グリッドへ設定を変更
+        const numRows = 4;
+        const numCols = 6;
+        const step = 50; // モバイル画面の幅に綺麗に収まるよう50pxに最適化
+
         let linesState = {}; 
         let boxesState = []; 
         let currentPlayer = 1;
@@ -94,7 +97,7 @@
 
         function initGame() {
             linesState = {};
-            boxesState = Array(gridSize * gridSize).fill(0);
+            boxesState = Array(numRows * numCols).fill(0);
             currentPlayer = 1;
             gameOver = false;
             scores = [0, 0];
@@ -111,23 +114,25 @@
 
         function buildBoardDOM() {
             boardEl.innerHTML = '';
-            const step = 80; 
 
             // 1. ボックスの生成
-            for (let r = 0; r < gridSize; r++) {
-                for (let c = 0; c < gridSize; c++) {
+            for (let r = 0; r < numRows; r++) {
+                for (let c = 0; c < numCols; c++) {
                     const box = document.createElement('div');
                     box.className = 'box';
                     box.id = `box-${r}-${c}`;
-                    box.style.left = `${c * step + 6}px`;
-                    box.style.top = `${r * step + 6}px`;
+                    box.style.left = `${c * step + 4}px`; // ドットと辺に干渉しないように微調整
+                    box.style.top = `${r * step + 4}px`;
+                    box.style.width = `${step - 8}px`;
+                    box.style.height = `${step - 8}px`;
                     boardEl.appendChild(box);
                 }
             }
 
             // 2. 線の生成
-            for (let r = 0; r <= gridSize; r++) {
-                for (let c = 0; c < gridSize; c++) {
+            // 水平の線（Horizontal）
+            for (let r = 0; r <= numRows; r++) {
+                for (let c = 0; c < numCols; c++) {
                     const id = `h-${r}-${c}`;
                     linesState[id] = 0;
                     const line = document.createElement('div');
@@ -135,13 +140,17 @@
                     line.id = id;
                     line.style.left = `${c * step}px`;
                     line.style.top = `${r * step}px`;
+                    line.style.width = `${step - 8}px`;
+                    line.style.height = '6px';
+                    line.style.transform = `translate(4px, -3px)`; // 中央位置オフセット
                     line.addEventListener('click', () => handleLineClick(id));
                     boardEl.appendChild(line);
                 }
             }
 
-            for (let r = 0; r < gridSize; r++) {
-                for (let c = 0; c <= gridSize; c++) {
+            // 垂直の線（Vertical）
+            for (let r = 0; r < numRows; r++) {
+                for (let c = 0; c <= numCols; c++) {
                     const id = `v-${r}-${c}`;
                     linesState[id] = 0;
                     const line = document.createElement('div');
@@ -149,14 +158,17 @@
                     line.id = id;
                     line.style.left = `${c * step}px`;
                     line.style.top = `${r * step}px`;
+                    line.style.width = '6px';
+                    line.style.height = `${step - 8}px`;
+                    line.style.transform = `translate(-3px, 4px)`; // 中央位置オフセット
                     line.addEventListener('click', () => handleLineClick(id));
                     boardEl.appendChild(line);
                 }
             }
 
             // 3. 点（ドット）の生成
-            for (let r = 0; r <= gridSize; r++) {
-                for (let c = 0; c <= gridSize; c++) {
+            for (let r = 0; r <= numRows; r++) {
+                for (let c = 0; c <= numCols; c++) {
                     const dot = document.createElement('div');
                     dot.className = 'dot';
                     dot.style.left = `${c * step}px`;
@@ -172,10 +184,10 @@
 
             const turnSwitched = claimLine(lineId, currentPlayer);
 
-            // 線のタップ直後に毎回最優先でゲーム終了チェックを実行
+            // 終了判定
             if (boxesState.every(b => b !== 0)) {
                 gameOver = true;
-                setTimeout(showFinalResult, 500); // 最後のマスが塗られるのを確認してからリザルトへ
+                setTimeout(showFinalResult, 500);
                 return;
             }
 
@@ -191,22 +203,21 @@
             const lineEl = document.getElementById(lineId);
             lineEl.classList.add('taken', player === 1 ? 'p1' : 'p2');
 
-            // 四角形（ボックス）が完成したか確認
             const completedBoxes = checkBoxes(player);
             if (completedBoxes > 0) {
                 scores[player - 1] += completedBoxes;
                 document.getElementById('score-p1').innerText = scores[0];
                 document.getElementById('score-p2').innerText = scores[1];
-                return false; // ボックス獲得時はターン交代しない
+                return false; 
             }
-            return true; // ターン交代
+            return true; 
         }
 
         function checkBoxes(player) {
             let completed = 0;
-            for (let r = 0; r < gridSize; r++) {
-                for (let c = 0; c < gridSize; c++) {
-                    const boxIdx = r * gridSize + c;
+            for (let r = 0; r < numRows; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const boxIdx = r * numCols + c;
                     if (boxesState[boxIdx] === 0) {
                         const top = `h-${r}-${c}`;
                         const bottom = `h-${r+1}-${c}`;
@@ -236,7 +247,6 @@
             }
         }
 
-        // CPUのAI思考ロジック
         function cpuMove() {
             if (gameOver) return;
 
@@ -263,7 +273,6 @@
 
             const turnSwitched = claimLine(choice, 2);
 
-            // CPU操作直後にも一貫してゲーム終了チェックを実行
             if (boxesState.every(b => b !== 0)) {
                 gameOver = true;
                 setTimeout(showFinalResult, 500);
@@ -273,7 +282,6 @@
             if (turnSwitched) {
                 switchTurn();
             } else {
-                // CPUターン継続
                 setTimeout(cpuMove, 900);
             }
         }
@@ -283,9 +291,9 @@
             for (let lineId of emptyLines) {
                 linesState[lineId] = 2; 
                 let completed = 0;
-                for (let r = 0; r < gridSize; r++) {
-                    for (let c = 0; c < gridSize; c++) {
-                        const boxIdx = r * gridSize + c;
+                for (let r = 0; r < numRows; r++) {
+                    for (let c = 0; c < numCols; c++) {
+                        const boxIdx = r * numCols + c;
                         if (boxesState[boxIdx] === 0) {
                             const top = `h-${r}-${c}`, bottom = `h-${r+1}-${c}`, left = `v-${r}-${c}`, right = `v-${r}-${c+1}`;
                             if (linesState[top] !== 0 && linesState[bottom] !== 0 && linesState[left] !== 0 && linesState[right] !== 0) {
@@ -303,9 +311,9 @@
         function willGiveOpponentPoint(lineId) {
             linesState[lineId] = 2; 
             let dangerous = false;
-            for (let r = 0; r < gridSize; r++) {
-                for (let c = 0; c < gridSize; c++) {
-                    const boxIdx = r * gridSize + c;
+            for (let r = 0; r < numRows; r++) {
+                for (let c = 0; c < numCols; c++) {
+                    const boxIdx = r * numCols + c;
                     if (boxesState[boxIdx] === 0) {
                         const top = `h-${r}-${c}`, bottom = `h-${r+1}-${c}`, left = `v-${r}-${c}`, right = `v-${r}-${c+1}`;
                         let filledSides = 0;
