@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ぶたのしっぽ</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        .score-panel { display: flex; gap: 30px; margin-bottom: 20px; background: rgba(255,255,255,0.03); padding: 10px 30px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+        .score { font-size: 16px; font-weight: bold; }
+        .turn { color: #d4a373; font-weight: bold; }
+        /* しっぽサークル */
+        .circle-area { width: 400px; height: 400px; position: relative; display: flex; align-items: center; justify-content: center; }
+        .circle-card { width: 45px; height: 65px; position: absolute; border-radius: 4px; background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1px solid #d4a373; box-shadow: 0 2px 4px rgba(0,0,0,0.3); cursor: pointer; transition: transform 0.2s; }
+        .circle-card:hover { transform: scale(1.1) !important; z-index: 100; }
+        /* 中央捨て場 */
+        .pile { width: 60px; height: 85px; border-radius: 6px; border: 2px dashed rgba(255,255,255,0.2); position: relative; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .pile.has-card { background: #fff; color: #111; border: none; }
+        .pile.has-card.red { color: #d9534f; }
+        button { margin-top: 25px; background: #26352d; color: var(--text-color); border: 1px solid rgba(255,255,255,0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="score-panel">
+        <div class="score">P1 罰符: <span id="p1-score">0</span>枚</div>
+        <div class="turn" id="turn-text">Player 1 の番：サークルのカードを引いてください</div>
+        <div class="score">P2 罰符: <span id="p2-score">0</span>枚</div>
+    </div>
+
+    <div class="circle-area" id="circle-area">
+        <div class="pile" id="pile">🌀</div>
+    </div>
+
+    <button onclick="resetGame()">最初から</button>
+
+    <script>
+        const suits = ['❤️', '♠️', '♦️', '♣️'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        let pool = [];
+        let centerPile = [];
+        let p1Penalty = 0, p2Penalty = 0;
+        let currentPlayer = 1;
+        let gameOver = false;
+
+        function initGame() {
+            pool = []; centerPile = []; p1Penalty = 0; p2Penalty = 0; currentPlayer = 1; gameOver = false;
+            document.getElementById('p1-score').innerText = 0;
+            document.getElementById('p2-score').innerText = 0;
+            document.getElementById('turn-text').innerText = "Player 1 の番：サークルのカードを引いてください";
+            
+            const pile = document.getElementById('pile');
+            pile.innerHTML = '🌀'; pile.className = 'pile';
+
+            // デッキ作成
+            suits.forEach(suit => {
+                values.forEach(val => {
+                    pool.push({ val, suit, isRed: (suit === '❤️' || suit === '♦️') });
+                });
+            });
+            pool.sort(() => Math.random() - 0.5);
+
+            drawCircle();
+        }
+
+        function drawCircle() {
+            const area = document.getElementById('circle-area');
+            // 一旦既存のカードDOMを全削除（pile以外）
+            const cards = area.querySelectorAll('.circle-card');
+            cards.forEach(c => area.removeChild(c));
+
+            const total = pool.length;
+            const radius = 135; // サークルの半径
+
+            pool.forEach((cardData, i) => {
+                const angle = (i / total) * Math.PI * 2;
+                const card = document.createElement('div');
+                card.className = 'circle-card';
+
+                // 円状に数学的に配置
+                const x = 177 + Math.cos(angle) * radius;
+                const y = 167 + Math.sin(angle) * radius;
+                card.style.left = `${x}px`;
+                card.style.top = `${y}px`;
+                // 本家のようにらせん状に見せる微細な傾き
+                const deg = (angle * 180 / Math.PI) + 90;
+                card.style.transform = `rotate(${deg}deg)`;
+
+                card.addEventListener('click', () => handleDraw(i));
+                area.appendChild(card);
+            });
+        }
+
+        function handleDraw(index) {
+            if (gameOver) return;
+
+            const drawn = pool.splice(index, 1)[0];
+            const pile = document.getElementById('pile');
+            
+            // 判定：直前と同じマークかチェック
+            let isPenalty = false;
+            if (centerPile.length > 0) {
+                const topCard = centerPile[centerPile.length - 1];
+                if (topCard.suit === drawn.suit) {
+                    isPenalty = true;
+                }
+            }
+
+            centerPile.push(drawn);
+            
+            // 捨て場中央の表示更新
+            pile.className = `pile has-card ${drawn.isRed ? 'red' : ''}`;
+            pile.innerText = `${drawn.val}${drawn.suit}`;
+
+            if (isPenalty) {
+                // ペナルティ：現在のセンターカードをすべて引き取る
+                alert(`バースト！同じマーク（${drawn.suit}）を引いてしまいました。これまでの蓄積カード（${centerPile.length}枚）を引き取ります。`);
+                if (currentPlayer === 1) {
+                    p1Penalty += centerPile.length;
+                    document.getElementById('p1-score').innerText = p1Penalty;
+                } else {
+                    p2Penalty += centerPile.length;
+                    document.getElementById('p2-score').innerText = p2Penalty;
+                }
+                centerPile = [];
+                pile.innerHTML = '🌀'; pile.className = 'pile';
+            }
+
+            // ゲーム終了チェック
+            if (pool.length === 0) {
+                gameOver = true;
+                // 最終的に罰符が少ない方が勝ち
+                let winMsg = "";
+                if (p1Penalty < p2Penalty) winMsg = "罰符の少ない Player 1 の勝ち！";
+                else if (p2Penalty < p1Penalty) winMsg = "罰符の少ない Player 2 の勝ち！";
+                else winMsg = "引き分け！";
+                document.getElementById('turn-text').innerText = "ゲーム終了! " + winMsg;
+                return;
+            }
+
+            // プレイヤー交代
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            document.getElementById('turn-text').innerText = `Player ${currentPlayer} の番：サークルのカードを引いてください`;
+
+            drawCircle();
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
