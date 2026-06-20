@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヨット - Premium Clone</title>
+    <style>
+        :root { --bg-color: #121915; --text-color: #f4ede4; --accent: #d4a373; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        
+        .game-container { display: flex; gap: 30px; background: rgba(255,255,255,0.02); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 15px 35px rgba(0,0,0,0.5); max-width: 800px; width: 95%; }
+        
+        /* プレイエリア（サイコロ） */
+        .play-side { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 45%; }
+        .dice-container { display: flex; gap: 10px; margin-bottom: 25px; min-height: 80px; align-items: center; }
+        .die { width: 50px; height: 50px; background: #fff; color: #111; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.15s, box-shadow 0.15s; position: relative; }
+        .die.kept { transform: translateY(-10px); box-shadow: 0 10px 15px rgba(212,163,115,0.4); border: 2px solid var(--accent); }
+        .die.rolling { animation: shuffle 0.2s infinite; }
+        @keyframes shuffle { 0% { transform: rotate(0deg) scale(0.9); } 50% { transform: rotate(15deg) scale(1.1); } 100% { transform: rotate(-15deg) scale(0.9); } }
+
+        .btn-roll { background: var(--accent); color: #352110; border: none; font-size: 16px; font-weight: bold; padding: 12px 30px; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 10px; }
+        .btn-roll:hover { background: #e6ccb2; }
+        .btn-roll:disabled { opacity: 0.3; cursor: not-allowed; }
+        .roll-count { font-size: 13px; opacity: 0.6; }
+
+        /* スコア表 */
+        .score-side { width: 55%; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; border: 1px solid rgba(255,255,255,0.03); }
+        .score-table { width: 100%; border-collapse: collapse; }
+        .score-row { border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.15s; }
+        .score-row.fixed { cursor: default; }
+        .score-row:hover:not(.fixed):not(.summary-row) { background: rgba(255,255,255,0.04); }
+        .score-row.summary-row { background: rgba(212,163,115,0.08); font-weight: bold; cursor: default; }
+        .score-table td { padding: 8px 12px; font-size: 13px; }
+        .score-val { text-align: right; font-weight: bold; font-size: 14px; }
+        .score-val.preview { color: #d4a373; opacity: 0.7; }
+        .score-val.confirmed { color: #8ac926; }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <!-- ダイスエリア -->
+        <div class="play-side">
+            <h3 style="margin-top: 0; color: var(--accent);">DICE AREA</h3>
+            <p style="font-size: 12px; opacity: 0.6; text-align: center; margin-bottom: 20px;">キープしたいダイスをタップしてください</p>
+            <div class="dice-container" id="dice-box">
+                <div class="die" onclick="toggleKeep(0)">⚀</div>
+                <div class="die" onclick="toggleKeep(1)">⚁</div>
+                <div class="die" onclick="toggleKeep(2)">⚂</div>
+                <div class="die" onclick="toggleKeep(3)">⚃</div>
+                <div class="die" onclick="toggleKeep(4)">⚄</div>
+            </div>
+            <button class="btn-roll" id="roll-btn" onclick="rollDice()">ダイスを振る</button>
+            <div class="roll-count" id="roll-count-text">残り回数: 3</div>
+        </div>
+
+        <!-- スコア表エリア -->
+        <div class="score-side">
+            <table class="score-table">
+                <tr class="score-row" id="row-aces" onclick="confirmScore('aces')">
+                    <td>1 (Aces)</td>
+                    <td class="score-val preview" id="score-aces">-</td>
+                </tr>
+                <tr class="score-row" id="row-deuces" onclick="confirmScore('deuces')">
+                    <td>2 (Deuces)</td>
+                    <td class="score-val preview" id="score-deuces">-</td>
+                </tr>
+                <tr class="score-row" id="row-threes" onclick="confirmScore('threes')">
+                    <td>3 (Threes)</td>
+                    <td class="score-val preview" id="score-threes">-</td>
+                </tr>
+                <tr class="score-row" id="row-fours" onclick="confirmScore('fours')">
+                    <td>4 (Fours)</td>
+                    <td class="score-val preview" id="score-fours">-</td>
+                </tr>
+                <tr class="score-row" id="row-fives" onclick="confirmScore('fives')">
+                    <td>5 (Fives)</td>
+                    <td class="score-val preview" id="score-fives">-</td>
+                </tr>
+                <tr class="score-row" id="row-sixes" onclick="confirmScore('sixes')">
+                    <td>6 (Sixes)</td>
+                    <td class="score-val preview" id="score-sixes">-</td>
+                </tr>
+                <!-- ボーナス行 -->
+                <tr class="score-row summary-row">
+                    <td>ボーナス (+35点 / 63点以上)</td>
+                    <td class="score-val" id="score-bonus">0 / 63</td>
+                </tr>
+                <tr class="score-row" id="row-choice" onclick="confirmScore('choice')">
+                    <td>選択 (Choice)</td>
+                    <td class="score-val preview" id="score-choice">-</td>
+                </tr>
+                <tr class="score-row" id="row-four_of_a_kind" onclick="confirmScore('four_of_a_kind')">
+                    <td>フォーカード (4 of a Kind)</td>
+                    <td class="score-val preview" id="score-four_of_a_kind">-</td>
+                </tr>
+                <tr class="score-row" id="row-full_house" onclick="confirmScore('full_house')">
+                    <td>フルハウス (Full House)</td>
+                    <td class="score-val preview" id="score-full_house">-</td>
+                </tr>
+                <tr class="score-row" id="row-s_straight" onclick="confirmScore('s_straight')">
+                    <td>S. ストレート (S. Straight)</td>
+                    <td class="score-val preview" id="score-s_straight">-</td>
+                </tr>
+                <tr class="score-row" id="row-l_straight" onclick="confirmScore('l_straight')">
+                    <td>L. ストレート (L. Straight)</td>
+                    <td class="score-val preview" id="score-l_straight">-</td>
+                </tr>
+                <tr class="score-row" id="row-yacht" onclick="confirmScore('yacht')">
+                    <td>ヨット (Yacht)</td>
+                    <td class="score-val preview" id="score-yacht">-</td>
+                </tr>
+                <tr class="score-row summary-row" style="background: var(--accent); color: #352110;">
+                    <td>合計点数 (TOTAL)</td>
+                    <td class="score-val" id="score-total" style="font-size: 16px;">0</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const diceGlyphs = { 1: '⚀', 2: '⚁', 3: '⚂', 4: '⚃', 5: '⚄', 6: '⚅' };
+        let dice = [1, 2, 3, 4, 5];
+        let kept = [false, false, false, false, false];
+        let rollsLeft = 3;
+        let hasRolledThisTurn = false;
+
+        let scores = {
+            aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null,
+            choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null
+        };
+
+        function resetTurn() {
+            rollsLeft = 3;
+            hasRolledThisTurn = false;
+            kept = [false, false, false, false, false];
+            document.getElementById('roll-btn').disabled = false;
+            document.getElementById('roll-count-text').innerText = `残り回数: ${rollsLeft}`;
+            updateDiceUI();
+            updateScoresPreview();
+        }
+
+        function updateDiceUI() {
+            const diceBox = document.getElementById('dice-box');
+            for (let i = 0; i < 5; i++) {
+                const dieEl = diceBox.children[i];
+                dieEl.innerText = diceGlyphs[dice[i]];
+                if (kept[i]) dieEl.classList.add('kept');
+                else dieEl.classList.remove('kept');
+            }
+        }
+
+        function toggleKeep(idx) {
+            if (!hasRolledThisTurn || rollsLeft === 0) return;
+            kept[idx] = !kept[idx];
+            updateDiceUI();
+        }
+
+        function rollDice() {
+            if (rollsLeft === 0) return;
+            rollsLeft--;
+            hasRolledThisTurn = true;
+            document.getElementById('roll-count-text').innerText = `残り回数: ${rollsLeft}`;
+
+            const diceBox = document.getElementById('dice-box');
+            // シャッフル中アニメーション
+            for (let i = 0; i < 5; i++) {
+                if (!kept[i]) {
+                    diceBox.children[i].classList.add('rolling');
+                }
+            }
+
+            setTimeout(() => {
+                for (let i = 0; i < 5; i++) {
+                    if (!kept[i]) {
+                        dice[i] = Math.floor(Math.random() * 6) + 1;
+                        diceBox.children[i].classList.remove('rolling');
+                    }
+                }
+                updateDiceUI();
+                updateScoresPreview();
+
+                if (rollsLeft === 0) {
+                    document.getElementById('roll-btn').disabled = true;
+                }
+            }, 400);
+        }
+
+        // 各役の計算ロジック
+        function calculateScore(category, currentDice) {
+            const counts = Array(7).fill(0);
+            currentDice.forEach(d => counts[d]++);
+            const sum = currentDice.reduce((a, b) => a + b, 0);
+
+            switch(category) {
+                case 'aces': return counts[1] * 1;
+                case 'deuces': return counts[2] * 2;
+                case 'threes': return counts[3] * 3;
+                case 'fours': return counts[4] * 4;
+                case 'fives': return counts[5] * 5;
+                case 'sixes': return counts[6] * 6;
+                case 'choice': return sum;
+                case 'four_of_a_kind': return counts.some(c => c >= 4) ? sum : 0;
+                case 'full_house': 
+                    const has3 = counts.some(c => c === 3);
+                    const has2 = counts.some(c => c === 2);
+                    const has5 = counts.some(c => c === 5);
+                    return (has3 && has2) || has5 ? sum : 0;
+                case 's_straight':
+                    const uStr = [...new Set(currentDice)].sort().join('');
+                    if (uStr.includes('1234') || uStr.includes('2345') || uStr.includes('3456')) return 15;
+                    return 0;
+                case 'l_straight':
+                    const ulStr = [...new Set(currentDice)].sort().join('');
+                    if (ulStr === '12345' || ulStr === '23456') return 30;
+                    return 0;
+                case 'yacht': return counts.some(c => c === 5) ? 50 : 0;
+            }
+        }
+
+        // スコア表のプレビュー更新
+        function updateScoresPreview() {
+            let subtotal = 0;
+            for (let cat in scores) {
+                const el = document.getElementById(`score-${cat}`);
+                if (scores[cat] !== null) {
+                    el.innerText = scores[cat];
+                    el.className = "score-val confirmed";
+                    document.getElementById(`row-${cat}`).classList.add('fixed');
+                    if (['aces','deuces','threes','fours','fives','sixes'].includes(cat)) {
+                        subtotal += scores[cat];
+                    }
+                } else {
+                    if (hasRolledThisTurn) {
+                        el.innerText = calculateScore(cat, dice);
+                        el.className = "score-val preview";
+                    } else {
+                        el.innerText = "-";
+                        el.className = "score-val preview";
+                    }
+                    document.getElementById(`row-${cat}`).classList.remove('fixed');
+                }
+            }
+
+            // 上段ボーナス処理
+            const bonusEl = document.getElementById('score-bonus');
+            if (subtotal >= 63) {
+                bonusEl.innerText = `+35 (${subtotal}/63)`;
+                bonusEl.style.color = "#8ac926";
+            } else {
+                bonusEl.innerText = `${subtotal} / 63`;
+                bonusEl.style.color = "";
+            }
+
+            // 合計値算出
+            let total = 0;
+            for (let cat in scores) {
+                if (scores[cat] !== null) total += scores[cat];
+            }
+            if (subtotal >= 63) total += 35;
+            document.getElementById('score-total').innerText = total;
+        }
+
+        // スコア決定
+        function confirmScore(category) {
+            if (!hasRolledThisTurn || scores[category] !== null) return;
+
+            scores[category] = calculateScore(category, dice);
+            updateScoresPreview();
+
+            // 最終終局判定
+            const isFinished = Object.values(scores).every(s => s !== null);
+            if (isFinished) {
+                setTimeout(() => {
+                    alert(`すべてのラウンドが終了しました！ 合計点数: ${document.getElementById('score-total').innerText}点`);
+                }, 100);
+            } else {
+                resetTurn();
+            }
+        }
+
+        resetTurn();
+    </script>
+</body>
+</html>
