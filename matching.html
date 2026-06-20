@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>神経衰弱 - Deluxe Edition</title>
+    <title>神経衰弱 - Premium Deluxe Edition</title>
     <style>
         :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
@@ -30,7 +30,7 @@
 <body>
     <div class="score-panel">
         <div class="score">あなた: <span id="p1-score">0</span></div>
-        <div class="turn" id="turn-text">あなたの番</div>
+        <div class="turn" id="turn-text">あなたのターン</div>
         <div class="score" id="p2-score-label">相手: <span id="p2-score">0</span></div>
     </div>
     <div class="grid" id="grid"></div>
@@ -49,17 +49,38 @@
         let cardsData = [];
         let flippedCards = [];
         let scores = [0, 0];
-        let currentPlayer = 1; // 1: P1, 2: P2/CPU
+        let currentPlayer = 1; 
+        let gameOver = false;
         let lockBoard = false;
-        let cpuThinking = false; // CPUの多重実行を防ぐガードフラグ
-        let memory = {}; // CPUの記憶
+        let memory = {}; 
+
+        // タイマー一括管理用の配列
+        let activeTimers = [];
 
         const urlParams = new URLSearchParams(window.location.search);
         const gameMode = urlParams.get('mode') || 'vs_player';
         const difficulty = urlParams.get('diff') || 'normal';
 
+        // 安全なsetTimeoutラッパー（リセット時に確実に破棄できるようにする）
+        function safeTimeout(fn, delay) {
+            const id = setTimeout(() => {
+                activeTimers = activeTimers.filter(t => t !== id);
+                fn();
+            }, delay);
+            activeTimers.push(id);
+            return id;
+        }
+
+        function clearAllTimers() {
+            activeTimers.forEach(id => clearTimeout(id));
+            activeTimers = [];
+        }
+
         function initGame() {
-            scores = [0, 0]; currentPlayer = 1; flippedCards = []; lockBoard = false; cpuThinking = false; memory = {};
+            // すべての動作中タイマーを緊急停止
+            clearAllTimers();
+
+            scores = [0, 0]; currentPlayer = 1; flippedCards = []; lockBoard = false; memory = {};
             document.getElementById('p1-score').innerText = 0;
             document.getElementById('p2-score').innerText = 0;
             document.getElementById('p2-score-label').innerHTML = gameMode === 'vs_cpu' ? `CPU: <span id="p2-score">0</span>` : `相手: <span id="p2-score">0</span>`;
@@ -89,8 +110,8 @@
         }
 
         function handleCardClick(card, index) {
-            if (lockBoard || cpuThinking || card.classList.contains('flipped') || card.classList.contains('matched')) return;
-            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+            if (lockBoard || card.classList.contains('flipped') || card.classList.contains('matched') || gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return; // CPU操作中のプレイヤー割り込みを防止
 
             revealCard(card, index);
         }
@@ -99,7 +120,7 @@
             card.classList.add('flipped');
             flippedCards.push({ card, index });
 
-            // 記憶の書き込み
+            // めくられたカードをCPUの脳内メモリに記憶
             memory[index] = cardsData[index].symbol;
 
             if (flippedCards.length === 2) {
@@ -108,18 +129,16 @@
         }
 
         function checkMatch() {
-            lockBoard = true;
+            lockBoard = true; // アニメーション終了まで操作を完全にロック
             const first = cardsData[flippedCards[0].index];
             const second = cardsData[flippedCards[1].index];
 
             if (first.symbol === second.symbol) {
-                // ペア成立
-                setTimeout(() => {
-                    if (flippedCards.length < 2) return; // 安全対策
+                // ペア一致
+                safeTimeout(() => {
                     flippedCards[0].card.classList.add('matched');
                     flippedCards[1].card.classList.add('matched');
                     
-                    // 記憶から削除
                     delete memory[flippedCards[0].index];
                     delete memory[flippedCards[1].index];
 
@@ -128,47 +147,46 @@
                     document.getElementById('p2-score').innerText = scores[1];
 
                     flippedCards = [];
-                    cpuThinking = false; // ロック解除
                     lockBoard = false;
                     checkWin();
                 }, 600);
             } else {
-                // ペア不成立 -> 元に戻す
-                setTimeout(() => {
-                    if (flippedCards.length < 2) return; // 安全対策
+                // ペア不一致
+                safeTimeout(() => {
                     flippedCards[0].card.classList.remove('flipped');
                     flippedCards[1].card.classList.remove('flipped');
                     flippedCards = [];
                     
                     currentPlayer = currentPlayer === 1 ? 2 : 1;
                     document.getElementById('turn-text').innerText = currentPlayer === 1 ? "あなたのターン" : (gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン");
-                    cpuThinking = false; // ロック解除
                     lockBoard = false;
 
-                    if (gameMode === 'vs_cpu' && currentPlayer === 2) {
-                        setTimeout(cpuMove, 1000);
+                    if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                        safeTimeout(cpuMove, 1000);
                     }
                 }, 1000);
             }
         }
 
+        // タイマー管理用ラッパー（リセット時に残存しないように保護）
+        function safeTimeout(fn, delay) {
+            const timer = setTimeout(fn, delay);
+            return timer;
+        }
+
         function cpuMove() {
-            if (lockBoard || gameOver || cpuThinking) return;
+            if (lockBoard || gameOver) return;
 
             const unrevealedIndices = [];
             cardsData.forEach((_, idx) => {
                 const el = boardEl().children[idx];
-                if (!el.classList.contains('flipped') && !el.classList.contains('matched')) {
+                if (el && !el.classList.contains('flipped') && !el.classList.contains('matched')) {
                     unrevealedIndices.push(idx);
                 }
             });
 
-            // 安全対策：残りカードが2枚未満の場合はフリーズを防ぐために処理しない
-            if (unrevealedIndices.length < 2) return;
+            if (unrevealedIndices.length === 0) return;
 
-            cpuThinking = true; // 思考中ロック開始
-
-            // 記憶に基づくマッチ探索
             let p1 = null, p2 = null;
             const knownPairs = {};
             for (let idx in memory) {
@@ -183,49 +201,39 @@
                 }
             }
 
-            // 記憶想起確率（easy:30%, normal:65%, hard:100%）
-            const probability = difficulty === 'easy' ? 0.3 : (difficulty === 'normal' ? 0.65 : 1.0);
+            const probability = difficulty === 'easy' ? 0.25 : (difficulty === 'normal' ? 0.6 : 1.0);
             const remember = Math.random() < probability;
 
             if (p1 !== null && p2 !== null && remember) {
-                // 記憶していたペアをめくる
                 executeCpuFlip(p1, p2);
             } else {
-                // ランダムに1枚目
                 const firstIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
-                // 1枚目と対になるペアが記憶にあれば、想起確率でめくる
                 const partnerIdx = Object.keys(memory).find(idx => memory[idx] === cardsData[firstIdx].symbol && parseInt(idx) !== firstIdx && unrevealedIndices.includes(parseInt(idx)));
                 
                 if (partnerIdx !== undefined && remember) {
                     executeCpuFlip(firstIdx, parseInt(partnerIdx));
                 } else {
-                    // 完全ランダム2枚目
                     const rest = unrevealedIndices.filter(i => i !== firstIdx);
-                    const secondIdx = rest[Math.floor(Math.random() * rest.length)];
-                    executeCpuFlip(firstIdx, secondIdx);
+                    if (rest.length > 0) {
+                        const secondIdx = rest[Math.floor(Math.random() * rest.length)];
+                        executeCpuFlip(firstIdx, secondIdx);
+                    } else {
+                        // 最後の1枚
+                        executeCpuFlip(firstIdx, firstIdx);
+                    }
                 }
             }
         }
 
         function boardEl() { return document.getElementById('grid'); }
 
-        // インデックスとDOM要素の完全な安全チェックロジックに修正
         function executeCpuFlip(i1, i2) {
             const grid = boardEl();
-            if (i1 === undefined || i2 === undefined || !grid.children[i1] || !grid.children[i2]) {
-                cpuThinking = false;
-                lockBoard = false;
-                return;
-            }
-            lockBoard = true;
+            if (!grid.children[i1] || !grid.children[i2]) return;
+
             revealCard(grid.children[i1], i1);
-            setTimeout(() => {
-                if (gameOver) {
-                    cpuThinking = false;
-                    lockBoard = false;
-                    return;
-                }
-                revealCard(grid.children[i2], i2);
+            safeTimeout(() => {
+                if (!gameOver) revealCard(grid.children[i2], i2);
             }, 600);
         }
 
@@ -233,6 +241,7 @@
             const matchedCount = document.querySelectorAll('.card.matched').length;
             if (matchedCount === 16) {
                 gameOver = true;
+                clearAllTimers();
                 const overlay = document.getElementById('result-overlay');
                 const titleEl = document.getElementById('result-title');
                 const descEl = document.getElementById('result-desc');
@@ -251,11 +260,10 @@
                 }
                 overlay.style.display = 'flex';
             } else if (gameMode === 'vs_cpu' && currentPlayer === 2) {
-                setTimeout(cpuMove, 1000);
+                safeTimeout(cpuMove, 1000);
             }
         }
 
-        function resetGame() { initGame(); }
         initGame();
     </script>
 </body>
