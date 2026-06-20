@@ -14,22 +14,25 @@
 
         .board-wrapper { background: #fff; padding: 25px; border-radius: 24px; border: 1px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.08); }
         
-        /* 4x6 (ドット数5x7) 用の碁盤ボードサイズ（横300px * 縦200px） */
-        .board { position: relative; width: 300px; height: 200px; }
+        /* 縦4マス、横6マスに合わせたピッタリのボードサイズに調整 */
+        .board { position: relative; width: 270px; height: 180px; }
 
         /* ボックス（陣地） */
-        .box { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; border-radius: 4px; transition: background-color 0.3s; }
+        .box { position: absolute; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; border-radius: 4px; transition: background-color 0.3s; }
         .box.p1 { background-color: rgba(74, 144, 226, 0.15); color: #4a90e2; }
         .box.p2 { background-color: rgba(229, 62, 62, 0.15); color: #e53e3e; }
 
-        /* 線（辺） */
+        /* 線（辺）の基本設計 */
         .line { position: absolute; background-color: #f1f5f9; cursor: pointer; transition: background-color 0.2s; border-radius: 3px; z-index: 10; }
         .line:hover:not(.taken) { background-color: #cbd5e1; }
         .line.taken.p1 { background-color: #4a90e2; cursor: default; }
         .line.taken.p2 { background-color: #e53e3e; cursor: default; }
 
-        /* 点（ドット） */
-        .dot { position: absolute; width: 8px; height: 8px; background-color: #475569; border-radius: 50%; z-index: 20; transform: translate(-4px, -4px); }
+        .line.horizontal { height: 6px; }
+        .line.vertical { width: 6px; }
+
+        /* 点（ドット）の基本設計 */
+        .dot { position: absolute; width: 12px; height: 12px; background-color: #475569; border-radius: 50%; z-index: 20; }
 
         .controls { margin-top: 25px; }
 
@@ -52,7 +55,7 @@
 
     <div class="board-wrapper">
         <div class="board" id="board">
-            <!-- JSで動的に自動配置 -->
+            <!-- JSで点、線、ボックスが指定のサイズ(4x6)で動的生成されます -->
         </div>
     </div>
 
@@ -76,11 +79,11 @@
         </div>
     </div>
 
-    <script {nonce}>
-        // 縦4、横6マスの長方形グリッドへ設定を変更
-        const numRows = 4;
-        const numCols = 6;
-        const step = 50; // モバイル画面の幅に綺麗に収まるよう50pxに最適化
+    <script>
+        // 指示に基づき、縦4マス（猟犬・縦線数相当）x 横6マスのサイズを設定
+        const rowsOfBoxes = 4; // 縦の線の数
+        const colsOfBoxes = 6; // 横の線の数
+        const step = 45;       // マス目のピクセルサイズ（270px x 180pxに収めるための最適値）
 
         let linesState = {}; 
         let boxesState = []; 
@@ -97,7 +100,7 @@
 
         function initGame() {
             linesState = {};
-            boxesState = Array(numRows * numCols).fill(0);
+            boxesState = Array(rowsOfBoxes * colsOfBoxes).fill(0);
             currentPlayer = 1;
             gameOver = false;
             scores = [0, 0];
@@ -112,67 +115,63 @@
             buildBoardDOM();
         }
 
+        // 変数(step)に基づき、ミリ単位で正確に配置する自動レイアウト計算
         function buildBoardDOM() {
             boardEl.innerHTML = '';
 
             // 1. ボックスの生成
-            for (let r = 0; r < numRows; r++) {
-                for (let c = 0; c < numCols; c++) {
+            for (let r = 0; r < rowsOfBoxes; r++) {
+                for (let c = 0; c < colsOfBoxes; c++) {
                     const box = document.createElement('div');
                     box.className = 'box';
                     box.id = `box-${r}-${c}`;
-                    box.style.left = `${c * step + 4}px`; // ドットと辺に干渉しないように微調整
-                    box.style.top = `${r * step + 4}px`;
-                    box.style.width = `${step - 8}px`;
-                    box.style.height = `${step - 8}px`;
+                    box.style.left = `${c * step + 3}px`;
+                    box.style.top = `${r * step + 3}px`;
+                    box.style.width = `${step - 6}px`;
+                    box.style.height = `${step - 6}px`;
                     boardEl.appendChild(box);
                 }
             }
 
-            // 2. 線の生成
-            // 水平の線（Horizontal）
-            for (let r = 0; r <= numRows; r++) {
-                for (let c = 0; c < numCols; c++) {
+            // 2. 水平の線（Horizontal）の生成
+            for (let r = 0; r <= rowsOfBoxes; r++) {
+                for (let c = 0; c < colsOfBoxes; c++) {
                     const id = `h-${r}-${c}`;
                     linesState[id] = 0;
                     const line = document.createElement('div');
                     line.className = 'line horizontal';
                     line.id = id;
                     line.style.left = `${c * step}px`;
-                    line.style.top = `${r * step}px`;
-                    line.style.width = `${step - 8}px`;
-                    line.style.height = '6px';
-                    line.style.transform = `translate(4px, -3px)`; // 中央位置オフセット
+                    line.style.top = `${r * step - 3}px`;
+                    line.style.width = `${step}px`;
                     line.addEventListener('click', () => handleLineClick(id));
                     boardEl.appendChild(line);
                 }
             }
 
-            // 垂直の線（Vertical）
-            for (let r = 0; r < numRows; r++) {
-                for (let c = 0; c <= numCols; c++) {
+            // 3. 垂直の線（Vertical）の生成
+            for (let r = 0; r < rowsOfBoxes; r++) {
+                for (let c = 0; c <= colsOfBoxes; c++) {
                     const id = `v-${r}-${c}`;
                     linesState[id] = 0;
                     const line = document.createElement('div');
                     line.className = 'line vertical';
                     line.id = id;
-                    line.style.left = `${c * step}px`;
+                    line.style.left = `${c * step - 3}px`;
                     line.style.top = `${r * step}px`;
-                    line.style.width = '6px';
-                    line.style.height = `${step - 8}px`;
-                    line.style.transform = `translate(-3px, 4px)`; // 中央位置オフセット
+                    line.style.height = `${step}px`;
                     line.addEventListener('click', () => handleLineClick(id));
                     boardEl.appendChild(line);
                 }
             }
 
-            // 3. 点（ドット）の生成
-            for (let r = 0; r <= numRows; r++) {
-                for (let c = 0; c <= numCols; c++) {
+            // 4. 点（ドット）の生成
+            for (let r = 0; r <= rowsOfBoxes; r++) {
+                for (let c = 0; c <= colsOfBoxes; c++) {
                     const dot = document.createElement('div');
                     dot.className = 'dot';
-                    dot.style.left = `${c * step}px`;
-                    dot.style.top = `${r * step}px`;
+                    dot.style.left = `${c * step - 6}px`;
+                    dot.style.top = `${r * step - 6}px`;
                     boardEl.appendChild(dot);
                 }
             }
@@ -184,10 +183,9 @@
 
             const turnSwitched = claimLine(lineId, currentPlayer);
 
-            // 終了判定
             if (boxesState.every(b => b !== 0)) {
                 gameOver = true;
-                setTimeout(showFinalResult, 500);
+                setTimeout(showFinalResult, 500); 
                 return;
             }
 
@@ -215,9 +213,9 @@
 
         function checkBoxes(player) {
             let completed = 0;
-            for (let r = 0; r < numRows; r++) {
-                for (let c = 0; c < numCols; c++) {
-                    const boxIdx = r * numCols + c;
+            for (let r = 0; r < rowsOfBoxes; r++) {
+                for (let c = 0; c < colsOfBoxes; c++) {
+                    const boxIdx = r * colsOfBoxes + c;
                     if (boxesState[boxIdx] === 0) {
                         const top = `h-${r}-${c}`;
                         const bottom = `h-${r+1}-${c}`;
@@ -291,9 +289,9 @@
             for (let lineId of emptyLines) {
                 linesState[lineId] = 2; 
                 let completed = 0;
-                for (let r = 0; r < numRows; r++) {
-                    for (let c = 0; c < numCols; c++) {
-                        const boxIdx = r * numCols + c;
+                for (let r = 0; r < rowsOfBoxes; r++) {
+                    for (let c = 0; c < colsOfBoxes; c++) {
+                        const boxIdx = r * colsOfBoxes + c;
                         if (boxesState[boxIdx] === 0) {
                             const top = `h-${r}-${c}`, bottom = `h-${r+1}-${c}`, left = `v-${r}-${c}`, right = `v-${r}-${c+1}`;
                             if (linesState[top] !== 0 && linesState[bottom] !== 0 && linesState[left] !== 0 && linesState[right] !== 0) {
@@ -311,9 +309,9 @@
         function willGiveOpponentPoint(lineId) {
             linesState[lineId] = 2; 
             let dangerous = false;
-            for (let r = 0; r < numRows; r++) {
-                for (let c = 0; c < numCols; c++) {
-                    const boxIdx = r * numCols + c;
+            for (let r = 0; r < rowsOfBoxes; r++) {
+                for (let c = 0; c < colsOfBoxes; c++) {
+                    const boxIdx = r * colsOfBoxes + c;
                     if (boxesState[boxIdx] === 0) {
                         const top = `h-${r}-${c}`, bottom = `h-${r+1}-${c}`, left = `v-${r}-${c}`, right = `v-${r}-${c+1}`;
                         let filledSides = 0;
