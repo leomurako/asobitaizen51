@@ -1,713 +1,476 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Clubhouse Games Web - Ultimate Edition</title>
-	<style>
-		:root {
-			--bg-color: #f5f7fb;
-			--header-bg: rgba(255, 255, 255, 0.9);
-			--card-bg: #ffffff;
-			--card-border: #e8ecef;
-			--card-selected: #4a90e2;
-			--text-color: #1e293b;
-			--text-muted: #64748b;
-			--accent-color: #4a90e2;
-			--accent-hover: #357abd;
-			--shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.04);
-			--shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
-			--shadow-lg: 0 15px 45px rgba(0, 0, 0, 0.12);
-		}
-
-		body {
-			margin: 0;
-			padding: 0;
-			background-color: var(--bg-color);
-			color: var(--text-color);
-			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-			overflow: hidden;
-			min-height: 100vh;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-		}
-
-		/* 洗練された薄型ヘッダー（すりガラス効果） */
-		header {
-			width: 100%;
-			background-color: var(--header-bg);
-			backdrop-filter: blur(12px);
-			-webkit-backdrop-filter: blur(12px);
-			padding: 20px;
-			text-align: center;
-			border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-			position: fixed;
-			top: 0;
-			left: 0;
-			z-index: 100;
-			box-sizing: border-box;
-			transition: opacity 0.3s, transform 0.3s;
-		}
-
-		header h1 {
-			font-size: 24px;
-			font-weight: 800;
-			letter-spacing: 3px;
-			margin: 0 0 4px;
-			text-transform: uppercase;
-		}
-
-		header p {
-			color: var(--text-muted);
-			font-size: 11px;
-			margin: 0;
-			letter-spacing: 0.5px;
-		}
-
-		/* メインスクリーンエリア */
-		.screen-container {
-			width: 100%;
-			height: calc(100vh - 80px);
-			margin-top: 80px;
-			position: relative;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
-
-		.screen {
-			position: absolute;
-			width: 100%;
-			height: 100%;
-			display: none;
-			align-items: center;
-			justify-content: center;
-			transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-			box-sizing: border-box;
-		}
-
-		.screen.active {
-			display: flex;
-			opacity: 1;
-			transform: scale(1);
-		}
-
-		/* ------------------ 1. カルーセル画面 ------------------ */
-		.carousel-wrapper {
-			width: 100%;
-			overflow-x: auto;
-			white-space: nowrap;
-			padding: 50px 0;
-			scrollbar-width: none;
-			-webkit-overflow-scrolling: touch;
-			scroll-snap-type: x mandatory;
-			/* スナップイン効果 */
-		}
-
-		.carousel-wrapper::-webkit-scrollbar {
-			display: none;
-		}
-
-		.carousel {
-			display: inline-flex;
-			gap: 30px;
-			padding: 0 calc(50vw - 110px);
-			/* 最初のカードがぴったり中央に来るようにパディング調整 */
-		}
-
-		.game-icon-card {
-			width: 160px;
-			height: 190px;
-			background-color: var(--card-bg);
-			border-radius: 24px;
-			border: 2px solid var(--card-border);
-			box-shadow: var(--shadow-sm);
-			transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.3s;
-			cursor: pointer;
-			padding: 25px 15px;
-			box-sizing: border-box;
-			display: flex;
-			flex-direction: column;
-			justify-content: center;
-			align-items: center;
-			scroll-snap-align: center;
-			/* 中央にスナップ */
-		}
-
-		.game-icon-card:hover {
-			transform: translateY(-8px);
-			border-color: #cbd5e1;
-			box-shadow: var(--shadow-md);
-		}
-
-		.game-icon-card.selected {
-			border-color: var(--card-selected);
-			box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), var(--shadow-lg);
-			transform: scale(1.06) translateY(-4px);
-		}
-
-		.game-icon {
-			font-size: 54px;
-			margin-bottom: 14px;
-			line-height: 1;
-		}
-
-		.game-title {
-			font-size: 13px;
-			font-weight: 800;
-			color: var(--text-color);
-			margin: 0;
-		}
-
-		.lobby-action-bar {
-			position: fixed;
-			bottom: 40px;
-			width: 100%;
-			text-align: center;
-			z-index: 90;
-		}
-
-		/* ------------------ 2. 設定・説明画面 ------------------ */
-		.setup-panel {
-			background-color: #ffffff;
-			width: 90%;
-			max-width: 820px;
-			height: 85%;
-			max-height: 520px;
-			border-radius: 30px;
-			box-shadow: var(--shadow-lg);
-			border: 1px solid var(--card-border);
-			display: flex;
-			overflow: hidden;
-			animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateY(30px);
-				opacity: 0;
-			}
-
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-
-		.setup-left {
-			width: 50%;
-			background-color: #f8fafc;
-			border-right: 1px solid var(--card-border);
-			padding: 35px 30px;
-			box-sizing: border-box;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-		}
-
-		.illustration-container {
-			width: 100%;
-			height: 180px;
-			background-color: #edf2f7;
-			border-radius: 20px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			margin-bottom: 22px;
-			box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.02);
-			overflow: hidden;
-			padding: 10px;
-			box-sizing: border-box;
-		}
-
-		/* イラストSVGアスペクト比バグ防止 */
-		.illustration-container svg,
-		.tut-visual svg {
-			width: 100%;
-			height: 100%;
-			object-fit: contain;
-		}
-
-		.rule-text-box {
-			width: 100%;
-			text-align: left;
-		}
-
-		.rule-title {
-			font-size: 24px;
-			font-weight: 900;
-			margin: 0 0 10px;
-			color: var(--text-color);
-		}
-
-		.rule-desc {
-			font-size: 13px;
-			line-height: 1.6;
-			color: var(--text-muted);
-			margin: 0;
-			white-space: normal;
-		}
-
-		/* 右側：対戦設定 & スタート */
-		.setup-right {
-			width: 50%;
-			padding: 35px 30px;
-			box-sizing: border-box;
-			display: flex;
-			flex-direction: column;
-			justify-content: space-between;
-		}
-
-		.config-title {
-			font-size: 12px;
-			font-weight: bold;
-			opacity: 0.5;
-			letter-spacing: 2px;
-			margin-bottom: 8px;
-		}
-
-		.row-container {
-			display: flex;
-			flex-direction: column;
-		}
-
-		/* 対戦モード選択ボタン */
-		.mode-btn-group {
-			display: flex;
-			gap: 10px;
-			margin-bottom: 20px;
-		}
-
-		.mode-btn {
-			flex: 1;
-			padding: 12px;
-			font-size: 14px;
-			font-weight: bold;
-			border-radius: 12px;
-			border: 2px solid var(--card-border);
-			background-color: var(--card-bg);
-			color: var(--text-color);
-			cursor: pointer;
-			transition: all 0.2s;
-		}
-
-		.mode-btn:hover:not(:disabled) {
-			background-color: #f1f5f9;
-			border-color: #cbd5e1;
-		}
-
-		.mode-btn.active {
-			background-color: #eff6ff;
-			border-color: var(--accent-color);
-			color: var(--accent-color);
-		}
-
-		.mode-btn:disabled {
-			opacity: 0.35;
-			cursor: not-allowed;
-			background-color: #f8fafc;
-		}
-
-		/* 難易度選択ボタン */
-		.diff-btn-group {
-			display: flex;
-			gap: 8px;
-		}
-
-		.diff-btn {
-			flex: 1;
-			padding: 10px;
-			font-size: 12px;
-			font-weight: 800;
-			border-radius: 10px;
-			border: 2px solid var(--card-border);
-			background-color: var(--card-bg);
-			color: var(--text-color);
-			cursor: pointer;
-			transition: all 0.2s;
-		}
-
-		.diff-btn:hover {
-			background-color: #f1f5f9;
-		}
-
-		.diff-btn.active {
-			background-color: #eff6ff;
-			border-color: var(--accent-color);
-			color: var(--accent-color);
-		}
-
-		.action-group {
-			display: flex;
-			gap: 12px;
-			margin-top: auto;
-		}
-
-		/* ボタン共通 */
-		.btn-primary {
-			background-color: var(--accent-color);
-			color: #ffffff;
-			border: none;
-			padding: 14px 35px;
-			font-size: 15px;
-			font-weight: 800;
-			border-radius: 25px;
-			cursor: pointer;
-			box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
-			transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-		}
-
-		.btn-primary:hover:not(:disabled) {
-			background-color: var(--accent-hover);
-			transform: translateY(-2px);
-			box-shadow: 0 8px 25px rgba(74, 144, 226, 0.35);
-		}
-
-		.btn-primary:disabled {
-			background-color: #cbd5e1;
-			cursor: not-allowed;
-			box-shadow: none;
-		}
-
-		.btn-secondary {
-			background-color: #f1f5f9;
-			color: var(--text-color);
-			border: none;
-			padding: 14px 25px;
-			font-size: 14px;
-			font-weight: 800;
-			border-radius: 25px;
-			cursor: pointer;
-			transition: background 0.2s;
-		}
-
-		.btn-secondary:hover {
-			background-color: #e2e8f0;
-		}
-
-		/* あそびかたを読むボタン */
-		.btn-read-tutorial {
-			background-color: transparent;
-			color: var(--accent-color);
-			border: 1.5px solid var(--accent-color);
-			font-size: 12px;
-			font-weight: 800;
-			padding: 8px 18px;
-			border-radius: 15px;
-			cursor: pointer;
-			transition: all 0.2s;
-			display: inline-flex;
-			align-items: center;
-			gap: 6px;
-			margin-top: 10px;
-		}
-
-		.btn-read-tutorial:hover {
-			background-color: rgba(74, 144, 226, 0.08);
-			transform: translateY(-1px);
-		}
-
-		/* ------------------ 3. あそびかた全画面オーバーレイ ------------------ */
-		#tutorial-overlay {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-color: rgba(255, 255, 255, 0.92);
-			backdrop-filter: blur(15px);
-			-webkit-backdrop-filter: blur(15px);
-			z-index: 3000;
-			display: none;
-			align-items: center;
-			justify-content: center;
-			opacity: 0;
-			transition: opacity 0.3s ease;
-		}
-
-		#tutorial-overlay.active {
-			display: flex;
-			opacity: 1;
-		}
-
-		.tutorial-card {
-			background: #ffffff;
-			width: 90%;
-			max-width: 580px;
-			border-radius: 30px;
-			box-shadow: var(--shadow-lg);
-			border: 1px solid var(--card-border);
-			padding: 35px;
-			box-sizing: border-box;
-			display: flex;
-			flex-direction: column;
-			gap: 20px;
-			position: relative;
-		}
-
-		.close-tut-btn {
-			position: absolute;
-			top: 20px;
-			right: 25px;
-			background: none;
-			border: none;
-			font-size: 28px;
-			color: var(--text-muted);
-			cursor: pointer;
-			line-height: 1;
-		}
-
-		.close-tut-btn:hover {
-			color: var(--text-color);
-		}
-
-		.tut-title {
-			font-size: 22px;
-			font-weight: 900;
-			margin: 0 0 5px;
-			text-align: center;
-		}
-
-		.tut-step-num {
-			font-size: 11px;
-			font-weight: 800;
-			color: var(--accent-color);
-			text-transform: uppercase;
-			letter-spacing: 2px;
-			text-align: center;
-		}
-
-		.tut-visual {
-			width: 100%;
-			height: 160px;
-			background-color: #f8fafc;
-			border-radius: 20px;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.01);
-			padding: 10px;
-			box-sizing: border-box;
-		}
-
-		.tut-desc {
-			font-size: 14px;
-			line-height: 1.7;
-			color: var(--text-color);
-			text-align: center;
-			margin: 0;
-			min-height: 50px;
-			white-space: normal;
-		}
-
-		.tut-footer {
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			margin-top: 15px;
-		}
-
-		.tut-dots {
-			display: flex;
-			gap: 8px;
-		}
-
-		.tut-dot {
-			width: 8px;
-			height: 8px;
-			border-radius: 50%;
-			background-color: #e2e8f0;
-			transition: background-color 0.2s;
-		}
-
-		.tut-dot.active {
-			background-color: var(--accent-color);
-		}
-
-		/* ------------------ 4. ゲームプレイ画面 ------------------ */
-		#game-overlay {
-			position: fixed;
-			top: 0;
-			left: 0;
-			width: 100%;
-			height: 100%;
-			background-color: rgba(0, 0, 0, 0.95);
-			z-index: 2000;
-			display: none;
-			flex-direction: column;
-			opacity: 0;
-			transition: opacity 0.3s ease;
-		}
-
-		#game-overlay.active {
-			display: flex;
-			opacity: 1;
-		}
-
-		.game-bar {
-			background-color: #1a1a1a;
-			height: 50px;
-			display: flex;
-			align-items: center;
-			padding: 0 20px;
-			border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-			justify-content: space-between;
-			color: #ffffff;
-		}
-
-		.back-btn {
-			background: none;
-			border: none;
-			color: #ffffff;
-			font-size: 14px;
-			cursor: pointer;
-			display: flex;
-			align-items: center;
-			gap: 8px;
-			padding: 6px 12px;
-			border-radius: 20px;
-			transition: background-color 0.2s;
-		}
-
-		.back-btn:hover {
-			background-color: rgba(255, 255, 255, 0.1);
-		}
-
-		.game-iframe-container {
-			flex-grow: 1;
-			width: 100%;
-			background-color: #000;
-		}
-
-		iframe {
-			width: 100%;
-			height: 100%;
-			border: none;
-			display: block;
-		}
-
-		body.game-active header {
-			opacity: 0;
-			transform: translateY(-20px);
-			pointer-events: none;
-		}
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clubhouse Games Web - Deluxe Launcher</title>
+    <style>
+        :root {
+            --bg-color: #f5f7fb;
+            --header-bg: rgba(255, 255, 255, 0.9);
+            --card-bg: #ffffff;
+            --card-border: #e8ecef;
+            --card-selected: #4a90e2;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --accent-color: #4a90e2;
+            --accent-hover: #357abd;
+            --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 15px 45px rgba(0, 0, 0, 0.12);
+        }
+
+        body {
+            margin: 0; padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            background-color: var(--header-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: fixed; top: 0; left: 0; z-index: 100;
+            box-sizing: border-box;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        header h1 { font-size: 24px; font-weight: 800; letter-spacing: 3px; margin: 0 0 4px; text-transform: uppercase; }
+        header p { color: var(--text-muted); font-size: 11px; margin: 0; letter-spacing: 0.5px; }
+
+        .screen-container {
+            width: 100%;
+            height: calc(100vh - 80px);
+            margin-top: 80px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+            box-sizing: border-box;
+        }
+
+        .screen.active {
+            display: flex;
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* 1. カルーセル */
+        .carousel-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 50px 0;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            scroll-snap-type: x mandatory;
+        }
+        .carousel-wrapper::-webkit-scrollbar { display: none; }
+
+        .carousel {
+            display: inline-flex;
+            gap: 30px;
+            padding: 0 calc(50vw - 110px);
+        }
+
+        .game-icon-card {
+            width: 160px;
+            height: 190px;
+            background-color: var(--card-bg);
+            border-radius: 24px;
+            border: 2px solid var(--card-border);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s, box-shadow 0.3s;
+            cursor: pointer;
+            padding: 25px 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: center;
+        }
+
+        .game-icon-card:hover {
+            transform: translateY(-8px);
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-md);
+        }
+
+        .game-icon-card.selected {
+            border-color: var(--card-selected);
+            box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.15), var(--shadow-lg);
+            transform: scale(1.06) translateY(-4px);
+        }
+
+        .game-icon { font-size: 54px; margin-bottom: 14px; line-height: 1; }
+        .game-title { font-size: 13px; font-weight: 800; color: var(--text-color); margin: 0; }
+
+        .lobby-action-bar {
+            position: fixed; bottom: 40px; width: 100%; text-align: center; z-index: 90;
+        }
+
+        /* 2. 設定・説明画面 */
+        .setup-panel {
+            background-color: #ffffff;
+            width: 90%;
+            max-width: 820px;
+            height: 85%;
+            max-height: 520px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--card-border);
+            display: flex;
+            overflow: hidden;
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .setup-left {
+            width: 50%;
+            background-color: #f8fafc;
+            border-right: 1px solid var(--card-border);
+            padding: 35px 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .illustration-container {
+            width: 100%;
+            height: 180px;
+            background-color: #edf2f7;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 22px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        .illustration-container svg, .tut-visual svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .rule-text-box { width: 100%; text-align: left; }
+        .rule-title { font-size: 24px; font-weight: 900; margin: 0 0 10px; color: var(--text-color); }
+        .rule-desc { font-size: 13px; line-height: 1.6; color: var(--text-muted); margin: 0; white-space: normal; }
+
+        .btn-read-tutorial {
+            background-color: transparent;
+            color: var(--accent-color);
+            border: 1.5px solid var(--accent-color);
+            font-size: 12px;
+            font-weight: 800;
+            padding: 8px 18px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .btn-read-tutorial:hover {
+            background-color: rgba(74, 144, 226, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .setup-right {
+            width: 50%;
+            padding: 35px 30px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .config-title { font-size: 11px; font-weight: 800; color: var(--text-muted); letter-spacing: 1.5px; margin-bottom: 12px; text-transform: uppercase; }
+        .config-group { margin-bottom: 25px; }
+        .option-buttons { display: flex; gap: 10px; }
+        
+        .opt-btn {
+            flex: 1;
+            background-color: #f1f5f9;
+            border: 2px solid transparent;
+            color: var(--text-color);
+            padding: 12px 10px;
+            font-size: 13px;
+            font-weight: 800;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .opt-btn:hover:not(:disabled) { background-color: #e2e8f0; }
+        .opt-btn.active {
+            background-color: #eff6ff;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        .opt-btn:disabled { opacity: 0.35; cursor: not-allowed; background-color: #f8fafc; }
+
+        .action-group { display: flex; gap: 12px; margin-top: auto; }
+
+        /* ボタン共通 */
+        .btn-primary {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border: none;
+            padding: 14px 35px;
+            font-size: 15px;
+            font-weight: 800;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.25);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(74, 144, 226, 0.35);
+        }
+        .btn-primary:disabled { background-color: #cbd5e1; cursor: not-allowed; box-shadow: none; }
+
+        .btn-secondary {
+            background-color: #f1f5f9;
+            color: var(--text-color);
+            border: none;
+            padding: 14px 25px;
+            font-size: 14px;
+            font-weight: 800;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-secondary:hover { background-color: #e2e8f0; }
+
+        /* ------------------ 3. あそびかた全画面オーバーレイ ------------------ */
+        #tutorial-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255,255,255,0.92);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            z-index: 3000;
+            display: none; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.3s ease;
+        }
+        #tutorial-overlay.active { display: flex; opacity: 1; }
+
+        .tutorial-card {
+            background: #ffffff;
+            width: 90%; max-width: 580px;
+            border-radius: 30px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--card-border);
+            padding: 35px;
+            box-sizing: border-box;
+            display: flex; flex-direction: column;
+            gap: 20px;
+            position: relative;
+        }
+
+        .close-tut-btn {
+            position: absolute; top: 20px; right: 25px;
+            background: none; border: none; font-size: 28px;
+            color: var(--text-muted); cursor: pointer; line-height: 1;
+        }
+        .close-tut-btn:hover { color: var(--text-color); }
+
+        .tut-title { font-size: 22px; font-weight: 900; margin: 0 0 5px; text-align: center; }
+        .tut-step-num { font-size: 11px; font-weight: 800; color: var(--accent-color); text-transform: uppercase; letter-spacing: 2px; text-align: center; }
+
+        .tut-visual {
+            width: 100%; height: 160px;
+            background-color: #f8fafc;
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.01);
+            padding: 10px; box-sizing: border-box;
+        }
+
+        .tut-desc {
+            font-size: 14px; line-height: 1.7; color: var(--text-color);
+            text-align: center; margin: 0; min-height: 50px;
+            white-space: normal;
+        }
+
+        .tut-footer {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-top: 15px;
+        }
+
+        .tut-dots { display: flex; gap: 8px; }
+        .tut-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #e2e8f0; transition: background-color 0.2s; }
+        .tut-dot.active { background-color: var(--accent-color); }
+
+        /* ------------------ 4. ゲームプレイ画面 ------------------ */
+        #game-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.95); z-index: 2000;
+            display: none; flex-direction: column; opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        #game-overlay.active { display: flex; opacity: 1; }
+        
+        .game-bar {
+            background-color: #1a1a1a; height: 50px;
+            display: flex; align-items: center; padding: 0 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            justify-content: space-between; color: #ffffff;
+        }
+
+        .back-btn {
+            background: none; border: none; color: #ffffff;
+            font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 20px; transition: background-color 0.2s;
+        }
+        .back-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .game-iframe-container { flex-grow: 1; width: 100%; background-color: #000; }
+        iframe { width: 100%; height: 100%; border: none; display: block; }
+
+        body.game-active header { opacity: 0; transform: translateY(-20px); pointer-events: none; }
+    </style>
 </head>
-
 <body>
 
-	<header id="lobby-header">
-		<h1>Clubhouse Games</h1>
-		<p>世界のボードゲーム、カードゲーム、カジュアルゲームコレクション</p>
-	</header>
+    <header id="lobby-header">
+        <h1>Clubhouse Games</h1>
+        <p>世界のボードゲーム、カードゲーム、カジュアルゲームコレクション</p>
+    </header>
 
-	<div class="screen-container">
-		<!-- スクリーン1：カルーセル選択画面 -->
-		<div class="screen active" id="screen-carousel">
-			<div class="carousel-wrapper" id="game-carousel-wrapper">
-				<div class="carousel" id="game-carousel">
-					<!-- JSでカードが生成されます -->
-				</div>
-			</div>
-			<div class="lobby-action-bar">
-				<button class="btn-primary" id="select-play-btn" onclick="goToSetup()" disabled>設定に進む</button>
-			</div>
-		</div>
+    <div class="screen-container">
+        <!-- スクリーン1：カルーセル選択画面 -->
+        <div class="screen active" id="screen-carousel">
+            <div class="carousel-wrapper" id="game-carousel-wrapper">
+                <div class="carousel" id="game-carousel">
+                    <!-- JSでカードが生成されます -->
+                </div>
+            </div>
+            <div class="lobby-action-bar">
+                <button class="btn-primary" id="select-play-btn" onclick="goToSetup()" disabled>設定に進む</button>
+            </div>
+        </div>
 
-		<!-- スクリーン2：設定・やり方説明画面 -->
-		<div class="screen" id="screen-setup">
-			<div class="setup-panel">
-				<!-- 左：イラスト & 説明 -->
-				<div class="setup-left">
-					<div class="illustration-container" id="illustration-box">
-						<!-- SVGイラストが動的に挿入されます -->
-					</div>
-					<div class="rule-text-box">
-						<h2 class="rule-title" id="setup-title">ゲーム名</h2>
-						<p class="rule-desc" id="setup-desc">説明文</p>
-						<button class="btn-read-tutorial" onclick="openTutorial()">
+        <!-- スクリーン2：設定・やり方説明画面 -->
+        <div class="screen" id="screen-setup">
+            <div class="setup-panel">
+                <!-- 左：イラスト & 説明 -->
+                <div class="setup-left">
+                    <div class="illustration-container" id="illustration-box">
+                        <!-- SVGイラストが動的に挿入されます -->
+                    </div>
+                    <div class="rule-text-box">
+                        <h2 class="rule-title" id="setup-title">ゲーム名</h2>
+                        <p class="rule-desc" id="setup-desc">説明文</p>
+                        <button class="btn-read-tutorial" onclick="openTutorial()">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                             あそびかたを読む
                         </button>
-					</div>
-				</div>
-				<!-- 右：対戦設定 & スタート -->
-				<div class="setup-right">
-					<div>
-						<div class="config-group">
-							<div class="config-title">対戦モード</div>
-							<div class="mode-btn-group">
-								<button class="mode-btn active" id="mode-cpu-btn" onclick="setMode('vs_cpu')">🤖 CP対戦</button>
-								<button class="mode-btn" id="mode-player-btn" onclick="setMode('vs_player')">👥 2人対戦</button>
-							</div>
-						</div>
+                    </div>
+                </div>
+                <!-- 右：対戦設定 & スタート -->
+                <div class="setup-right">
+                    <div>
+                        <div class="config-group">
+                            <div class="config-title">対戦モード</div>
+                            <div class="option-buttons">
+                                <button class="opt-btn active" id="mode-cpu-btn" onclick="setMode('vs_cpu')">🤖 CP対戦</button>
+                                <button class="opt-btn" id="mode-player-btn" onclick="setMode('vs_player')">👥 2人対戦</button>
+                            </div>
+                        </div>
 
-						<div class="config-group" id="difficulty-group">
-							<div class="config-title">難易度</div>
-							<div class="diff-btn-group">
-								<button class="diff-btn" id="diff-easy-btn" onclick="setDiff('easy')">やさしい</button>
-								<button class="diff-btn active" id="diff-normal-btn" onclick="setDiff('normal')">ふつう</button>
-								<button class="diff-btn" id="diff-hard-btn" onclick="setDiff('hard')">つよい</button>
-							</div>
-						</div>
-					</div>
+                        <div class="config-group" id="difficulty-group">
+                            <div class="config-title">難易度</div>
+                            <div class="option-buttons">
+                                <button class="opt-btn" id="diff-easy-btn" onclick="setDiff('easy')">やさしい</button>
+                                <button class="opt-btn active" id="diff-normal-btn" onclick="setDiff('normal')">ふつう</button>
+                                <button class="opt-btn" id="diff-hard-btn" onclick="setDiff('hard')">つよい</button>
+                            </div>
+                        </div>
+                    </div>
 
-					<div class="action-group">
-						<button class="btn-secondary" style="flex: 1;" onclick="goToCarousel()">戻る</button>
-						<button class="btn-primary" style="flex: 2;" onclick="playGame()">スタート</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+                    <div class="action-group">
+                        <button class="btn-secondary" style="flex: 1;" onclick="goToCarousel()">戻る</button>
+                        <button class="btn-primary" style="flex: 2;" onclick="playGame()">スタート</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-	<!-- あそびかたオーバーレイ（ステップバイステップ） -->
-	<div id="tutorial-overlay">
-		<div class="tutorial-card">
-			<button class="close-tut-btn" onclick="closeTutorial()">×</button>
-			<div class="tut-step-num" id="tut-step-label">STEP 1 / 3</div>
-			<h2 class="tut-title" id="tut-game-title">リバーシ</h2>
+    <!-- あそびかたオーバーレイ（ステップバイステップ） -->
+    <div id="tutorial-overlay">
+        <div class="tutorial-card">
+            <button class="close-tut-btn" onclick="closeTutorial()">×</button>
+            <div class="tut-step-num" id="tut-step-label">STEP 1 / 3</div>
+            <h2 class="tut-title" id="tut-game-title">リバーシ</h2>
+            
+            <div class="tut-visual" id="tut-visual-box">
+                <!-- SVGイラスト -->
+            </div>
+            
+            <p class="tut-desc" id="tut-desc-text">ここに解説のテキストが表示されます。</p>
+            
+            <div class="tut-footer">
+                <div class="tut-dots" id="tut-dots-box">
+                    <div class="tut-dot active"></div>
+                    <div class="tut-dot"></div>
+                    <div class="tut-dot"></div>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn-secondary" id="tut-prev-btn" onclick="changeTutorialStep(-1)" style="padding: 8px 18px; font-size:12px;">前へ</button>
+                    <button class="btn-primary" id="tut-next-btn" onclick="changeTutorialStep(1)" style="padding: 8px 18px; font-size:12px;">次へ</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-			<div class="tut-visual" id="tut-visual-box">
-				<!-- SVGイラスト -->
-			</div>
-
-			<p class="tut-desc" id="tut-desc-text">ここに解説のテキストが表示されます。</p>
-
-			<div class="tut-footer">
-				<div class="tut-dots" id="tut-dots-box">
-					<div class="tut-dot active"></div>
-					<div class="tut-dot"></div>
-					<div class="tut-dot"></div>
-				</div>
-				<div style="display:flex; gap:10px;">
-					<button class="btn-secondary" id="tut-prev-btn" onclick="changeTutorialStep(-1)" style="padding: 8px 18px; font-size:12px;">前へ</button>
-					<button class="btn-primary" id="tut-next-btn" onclick="changeTutorialStep(1)" style="padding: 8px 18px; font-size:12px;">次へ</button>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- ゲームプレイ用フルスクリーンオーバーレイ -->
-	<div id="game-overlay">
-		<div class="game-bar">
-			<button class="back-btn" onclick="closeGame()">
+    <!-- ゲームプレイ用フルスクリーンオーバーレイ -->
+    <div id="game-overlay">
+        <div class="game-bar">
+            <button class="back-btn" onclick="closeGame()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 ロビーに戻る
             </button>
-			<div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="overlay-title">
-				PLAYING</div>
-			<div style="width: 100px;"></div>
-		</div>
-		<div class="game-iframe-container">
-			<iframe id="game-frame" src=""></iframe>
-		</div>
-	</div>
+            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="current-game-title"></div>
+            <div style="width: 100px;"></div>
+        </div>
+        <div class="game-iframe-container">
+            <iframe id="game-frame" src=""></iframe>
+        </div>
+    </div>
 
-	<script>
-		// Web Audio APIによる高品位な「かちっ」という電子クリック音
+    <script {nonce}>
         let audioCtx = null;
         function playTickSound() {
             try {
@@ -726,7 +489,7 @@
                 osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.02);
                 
-                gain.gain.setValueAtTime(0.025, audioCtx.currentTime); // 心地よい小音量
+                gain.gain.setValueAtTime(0.025, audioCtx.currentTime); 
                 gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.02);
                 
                 osc.start();
@@ -736,12 +499,11 @@
             }
         }
 
-        // ゲームの仕様・アスペクト比を完全に調整したベクターイラスト（100x100統一）
         const gamesData = {
             reversi: { 
                 title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
                 desc: 'お互いの石で相手の石を挟んでひっくり返していくボードゲーム。最終的に盤面に自分の色の石が多い方が勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="15" fill="#1b4332"/><circle cx="35" cy="35" r="14" fill="#111"/><circle cx="65" cy="65" r="14" fill="#111"/><circle cx="35" cy="65" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/><circle cx="65" cy="35" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="12" fill="#1b4332"/><circle cx="35" cy="35" r="14" fill="#111"/><circle cx="65" cy="65" r="14" fill="#111"/><circle cx="35" cy="65" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/><circle cx="65" cy="35" r="14" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "盤面の中央にあらかじめ白黒2枚ずつ計4枚を配置した状態でスタート。黒が先手です。",
                     "自分の手札の色の石を、縦・横・斜めのいずれかで相手の石を挟める空いているマスに配置します。",
@@ -761,7 +523,7 @@
             connectfour: { 
                 title: 'コネクトフォー', icon: '🟡🔴', file: 'connectfour.html', supports2P: true, 
                 desc: '格子状のボードに上からチップを交互に落としていき、自分の色のチップを縦・横・斜めのいずれかで「4枚」一直線に並べたプレイヤーの勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="75" cy="30" r="10" fill="#ff4d4d"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/><circle cx="75" cy="60" r="10" fill="#fffb00"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="10" fill="#005f73"/><circle cx="25" cy="30" r="10" fill="#ff4d4d"/><circle cx="50" cy="30" r="10" fill="#f4ede4"/><circle cx="25" cy="60" r="10" fill="#fffb00"/><circle cx="50" cy="60" r="10" fill="#ff4d4d"/></svg>`,
                 steps: [
                     "縦7列・横6行の青いグリッドボードに、イエローとレッドが交互に上からチップをスライドして落とします。",
                     "チップはグリッドの一番下に自重でスライド落下して積み重なっていきます。",
@@ -771,7 +533,7 @@
             hitandblow: { 
                 title: 'ヒット＆ブロー', icon: '🎨🔍', file: 'hitandblow.html', supports2P: false, 
                 desc: '相手が隠した4つの異なる色の配置を推測して当てるパズル。位置と色が合っていれば「ヒット」、色だけが合っていれば「ブロー」としてヒントが得られます。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#2b1d0c" stroke="#482a10" stroke-width="2"/><circle cx="30" cy="35" r="11" fill="#ff4d4d"/><circle cx="70" cy="35" r="11" fill="#3399ff"/><circle cx="30" cy="65" r="6" fill="#d9534f"/><circle cx="50" cy="65" r="6" fill="#f0ad4e"/><circle cx="70" cy="65" r="6" fill="#f0ad4e"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#2b1d0c" stroke="#482a10" stroke-width="2"/><circle cx="30" cy="35" r="11" fill="#ff4d4d"/><circle cx="70" cy="35" r="11" fill="#3399ff"/><circle cx="30" cy="65" r="6" fill="#d9534f"/><circle cx="50" cy="65" r="6" fill="#f0ad4e"/></svg>`,
                 steps: [
                     "コンピュータが背後で重複のない4色のピンを秘密の順序で作成します。プレイヤーはそれを推測します。",
                     "色ピンを予測して配置すると、結果として「Hit（色も位置も正解）」と「Blow（色は正解だが位置が不一致）」の個数が表示されます。",
@@ -781,7 +543,7 @@
             gomoku: { 
                 title: '五目ならべ', icon: '🪵⚫', file: 'gomoku.html', supports2P: true, 
                 desc: '15x15の碁盤の交点に、交互に自分の石を配置。縦・横・斜めのいずれかで先に隙間なく自分の石を「5枚」一直線に並べた方が勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><line x1="50" y1="5" x2="50" y2="95" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "美しい木製の碁盤の上で、黒（先手）と白（後手）が格子状の『線の交点』に交互に石を置きます。",
                     "どこに置くかは制限はありません。お互いに攻撃を組み立てつつ、相手の防御をかいくぐって5並びを狙います。",
@@ -791,9 +553,9 @@
             yacht: { 
                 title: 'ヨット', icon: '🎲🗒️', file: 'yacht.html', supports2P: true, 
                 desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="37" cy="45" r="4" fill="#000"/><rect x="54" y="44" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
                 steps: [
-                    "5個のサイコロを同時に振って開始。キープしたい（確定させたい）目をタップして残りの目のみ振り直せます（計3回まで）。",
+                    "5個のサイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
                     "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
                     "すべてのカテゴリを埋め終えた時点で、合計得点が一番高いプレイヤーが優勝となります。"
                 ]
@@ -840,62 +602,112 @@
             },
             matching: { 
                 title: '神経衰弱', icon: '🃏🎴', file: 'matching.html', supports2P: true, 
-                desc: '伏せられたカードの中から同じ数字のペアを当てる記憶力ゲーム。ペアが成立すると手番を継続でき、最終的に多く獲得した方が勝利です。', 
+                desc: '2枚めくって同じ数字を揃える記憶力ゲーム。ペア成立時に難易度別のCPUによる高品位な対戦が特徴。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="21" y="58" font-size="24" fill="#d4a373">?</text><rect x="56" y="25" width="34" height="50" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><text x="67" y="58" font-size="24" fill="#d4a373">?</text></svg>`,
                 steps: [
-                    "16枚の裏向きに配置されたカードの中から、プレイヤーは自分の番で2枚を選択してフリップ（オープン）させます。",
-                    "めくった2枚の数字が合致すればペア成立となり、その2枚を獲得します。役が揃った場合は再度自分のターンを継続できます。",
-                    "揃わなかったらフリップが戻り、手番交代。最後に最も多くペア（獲得枚数）を所有していた方が勝ちになります。"
+                    "裏向きに配置された16枚のカードの中から、自分の番に2枚めくって表にします。",
+                    "カードの数字が合致すればペア成立として獲得し、もう一度続けてめくることができます。",
+                    "数字が合わなければ手番は交代。すべてのカードがペアとなった時点で、獲得枚数が多いプレイヤーの勝利です。"
                 ]
             },
             slidepuzzle: { 
                 title: 'スライドパズル', icon: '🔢🧩', file: 'slidepuzzle.html', supports2P: false, 
-                desc: '1マスの空き空間を利用してタイルをスライドさせ、ばらばらになった「1から15」の数字タイルを順番に整列させる、スライド式ロジックパズル。', 
+                desc: '空いたスペースを活用して数字をスライドし、1から15まで順番に揃えて並び替える1人専用ロジックパズル。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#0c120f"/><rect x="10" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="34" font-size="20" font-weight="bold" fill="#352110">1</text><rect x="52" y="10" width="36" height="36" rx="4" fill="#d4a373"/><text x="63" y="34" font-size="20" font-weight="bold" fill="#352110">2</text><rect x="10" y="52" width="36" height="36" rx="4" fill="#d4a373"/><text x="21" y="76" font-size="20" font-weight="bold" fill="#352110">3</text></svg>`,
                 steps: [
-                    "4x4の計16マスに、1〜15の番号タイルと『1つの空きスペース（空白マス）』がシャッフルされた状態でスタートします。",
-                    "空きスペースの上下左右に隣接しているタイルのみ、その空きスペースに向けてパタパタとスライドさせることができます。",
-                    "タイルを滑らせて入れ替えていき、最終的に左上から順番に『1, 2, 3... 14, 15』の順番に完全整列させればゲームクリアです。"
+                    "4x4のパネルの中に、1〜15の数字と『空きスペース』がバラバラに配置されています。",
+                    "空きスペースに隣接する数字をスライドさせて移動させます。",
+                    "左上から順番に『1, 2, 3... 15』の形に美しく整列させることができれば、見事パズルクリアです。"
                 ]
             },
             takoyaki: { 
                 title: 'たこやき', icon: '🐙🎴', file: 'takoyaki.html', supports2P: true, 
-                desc: '10枚の伏せられた自分のカードを、山札から引いた数字に対応させて交互にめくっていき、いち早くすべてのカードをオープンした方の勝利です。', 
+                desc: '自分の10マスのカードを、山札から引いた数字に合わせてめくり合いいち早く全オープンを競う運引きカードゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="20" width="36" height="54" rx="5" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><rect x="54" y="20" width="36" height="54" rx="5" fill="#fff" stroke="#ccc" stroke-width="1.5"/><circle cx="72" cy="47" r="11" fill="#ff595e"/></svg>`,
                 steps: [
-                    "各々10マスの伏せられた裏向きカードのレーンを所有。山札から順に1枚カードを引いてオープンします。",
-                    "出た数字が『1（A）から10』だった場合、自陣のその位置のカードをひっくり返せます。新しくめくられたカードがまた1〜10なら連続で展開できます！",
-                    "J,Q,Kが出たら不発で交代。Jokerが出た場合は好きな位置をめくれるラッキー効果です。先に10マスすべてを開けたプレイヤーの勝利となります。"
+                    "お互いに10マスの伏せられたトランプを持ち、自分の手番で山札からカードを1枚引きます。",
+                    "めくった数字が『1（A）から10』かつ、自分の対応する位置が伏せられているならオープン可能。連鎖が始まります。",
+                    "J,Q,Kはハズレで交代。Jokerが出た場合は好きな箇所を開けられます。先に10マスすべて開けたプレイヤーの勝利となります。"
                 ]
             },
             pigstail: { 
                 title: 'ぶたのしっぽ', icon: '🐷🌀', file: 'pigstail.html', supports2P: true, 
-                desc: 'らせん状に配置されたカードを中央に引いていき、直前に出されたカードと同じスート（マーク）を引いた人がそれまでの蓄積をペナルティとして引き取ります。', 
+                desc: '円形に並んだカードを交互に中央に引き合い、同じマークを引いた人がペナルティとなるハラハラ系カードゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="38" fill="none" stroke="#d4a373" stroke-width="2.5" stroke-dasharray="6 4"/><circle cx="50" cy="50" r="18" fill="#ff595e"/><text x="41" y="56" font-size="16" fill="#fff">🐖</text></svg>`,
                 steps: [
-                    "丸く豚のしっぽのように円を描いて置かれた裏向きカードの束から、順番に1枚カードを引いて中央の台座に置きます。",
-                    "自分が引いたカードの『マーク（ハートやクラブなど）』が、現在捨て場の最上部にあるカードと同じだった場合はアウト（バースト）です。",
-                    "アウトになった場合、これまでに中央に溜まったすべての山札を引き取るペナルティを受けます。サークルが尽きた時点でペナルティの最も少ない人の勝ちです。"
+                    "円を描いて配置されたトランプから、自分のターンに1枚カードを引き、中央の捨て場に重ねていきます。",
+                    "引いたカードのマークが、現在中央にあるカードと同じだった場合はアウトです。",
+                    "アウトになった場合、中央に溜まったすべての山札を引き取るペナルティを受けます。サークルが尽きた時点でペナルティの最も少ない人の勝ちです。"
                 ]
             },
             war: { 
                 title: '戦争', icon: '⚔️🃏', file: 'war.html', supports2P: true, 
-                desc: '配られた手札をお互いに1枚ずつ出し合い、純粋に数字の大きさのみで勝負するシンプルなゲーム。相手のすべてのカードを勝ち取ることを目指します。', 
+                desc: '均等に配られた手札を同時に出し合い、数字の絶対的な大きさのみで勝負するシンプルなゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 28 49)"/><rect x="56" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 72 49)"/><text x="36" y="56" font-size="22">⚔️</text></svg>`,
                 steps: [
-                    "52枚のトランプデッキが半分（26枚）ずつ配られ、お互いに見えない山札としてセットします。",
-                    "『カードを引く』を同時に行うと、1枚ずつカードがオープンして対決。トランプの強さはAが最強、2が最弱です。",
-                    "数字の大きい方がその場に出されたすべてのカードを回収（スコア獲得）します。すべての山札を消費し、回収枚数が多かった方の勝利です。"
+                    "トランプ52枚が均等にお互い（各26枚）に配られ、見えない山札としてセットします。",
+                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強、2が最弱です。",
+                    "数字の大きかったプレイヤーが、その勝負で出されたすべてのカード（スコア）を獲得します。最終的に獲得枚数が多い方が勝ちです。"
                 ]
             },
             hareandhounds: { 
                 title: 'ウサギと猟犬', icon: '🐰🐕', file: 'hareandhounds.html', supports2P: true, 
-                desc: '3匹の猟犬（後退不可）と、1匹のウサギ（全方向移動可能）による非対称パズル。猟犬がウサギを動けなくするか、ウサギが左端へ脱出するかで勝負します。', 
+                desc: '3匹の猟犬（前進のみ）と、1匹のウサギによる非対称パズル。猟犬が追い詰めるか、ウサギが逃げ切るか勝負。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="20" width="90" height="60" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><circle cx="25" cy="50" r="12" fill="#ff4d4d"/><circle cx="50" cy="50" r="12" fill="#ff4d4d"/><circle cx="75" cy="50" r="12" fill="#fff" stroke="#ccc" stroke-width="1"/><text x="18" y="55" font-size="14" fill="#fff">🐕</text><text x="68" y="55" font-size="14" fill="#000">🐰</text></svg>`,
                 steps: [
-                    "猟犬3匹（赤）とウサギ1匹（白）に分かれてボードを移動。猟犬は左から右の一方方向へ、ウサギは前後左右すべての線の通りに移動可能。",
-                    "猟犬側はウサギをじわじわと前進で追い詰めていき、最終的に1マスに閉じ込めて『移動不可能な包囲状態』にハメれば勝利です。",
-                    "ウサギ側は猟犬の隙間をすり抜け、猟犬のラインよりも『左端へ脱出（かわす）』することができれば、ウサギの勝利となります。"
+                    "3匹の猟犬（赤）と1匹のウサギ（白）に分かれて移動。猟犬は左から右方向（前進）のみ、ウサギは全方向移動できます。",
+                    "猟犬側はウサギをじわじわと前進で挟み込み、1マスに閉じ込めて移動不能な包囲状態にハメれば勝利です。",
+                    "ウサギ側は猟犬の隙間をすり抜け、猟犬のラインよりも左端へ脱出することができれば勝利です。"
+                ]
+            },
+            dotsandboxes: { 
+                title: 'ドット＆ボックス', icon: '✏️📦', file: 'dotsandboxes.html', supports2P: true, 
+                desc: 'グリッド上の点と点を繋いで線を引き、四角形（ボックス）を完成させて所有権を競う陣取りゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="20" cy="20" r="5" fill="#1e293b"/><circle cx="50" cy="20" r="5" fill="#1e293b"/><circle cx="80" cy="20" r="5" fill="#1e293b"/><circle cx="20" cy="50" r="5" fill="#1e293b"/><circle cx="50" cy="50" r="5" fill="#1e293b"/><circle cx="80" cy="50" r="5" fill="#1e293b"/><circle cx="20" cy="80" r="5" fill="#1e293b"/><circle cx="50" cy="80" r="5" fill="#1e293b"/><circle cx="80" cy="80" r="5" fill="#1e293b"/><line x1="20" y1="20" x2="50" y2="20" stroke="#4a90e2" stroke-width="4"/><line x1="20" y1="20" x2="20" y2="50" stroke="#4a90e2" stroke-width="4"/><rect x="20" y="20" width="30" height="30" fill="rgba(74, 144, 226, 0.15)"/></svg>`,
+                steps: [
+                    "交互に点と点を結ぶ『垂直または水平の線』を引いていきます。",
+                    "自分が引いた線によって1x1の『四角形（ボックス）』が完成した場合、そのボックスを自分の陣地として獲得し、さらに連続でもう1本線を引くことができます。",
+                    "すべてのボックス（計9個）が埋まった時点で、より多くのボックスを所有していた方の勝利となります。"
+                ]
+            },
+            checkers: { 
+                title: 'チェッカー', icon: '🏁🔴', file: 'checkers.html', supports2P: true, 
+                desc: '斜めのみに進むコマを操り、相手のコマをジャンプして飛び越え、すべて奪うか動けなくすることを目指す古典ボードゲーム。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect width="100" height="100" rx="10" fill="#2d1e15"/><rect x="10" y="10" width="80" height="80" fill="#e2ae6c"/><rect x="10" y="10" width="40" height="40" fill="#8b5a2b"/><rect x="50" y="50" width="40" height="40" fill="#8b5a2b"/><circle cx="30" cy="30" r="12" fill="#ff4d4d"/><circle cx="70" cy="70" r="12" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                steps: [
+                    "8x8のマス目の上を、斜め前方に1マスずつ交互に移動します。飛び越えられる敵のコマが斜めに隣接している場合は、必ずジャンプして飛び越えてそのコマを獲得しなければなりません。",
+                    "相手の最深部の行に達したコマは『キング（King）』になり、斜め後方への移動やジャンプも可能になります。",
+                    "相手のすべてのコマを奪い取るか、相手が完全に身動きできない状態（詰み）に追い詰めた方の勝利となります。"
+                ]
+            },
+            hex: { 
+                title: 'ヘックス', icon: '🐝🔗', file: 'hex.html', supports2P: true, 
+                desc: '六角形マスのボード上で、自分の色を繋いで対岸の壁同士を完全に一続きにする対戦型接続パズル。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><polygon points="50,15 80,30 80,60 50,75 20,60 20,30" fill="#fff" stroke="#4a90e2" stroke-width="3"/><polygon points="50,25 70,35 70,55 50,65 30,55 30,35" fill="rgba(74, 144, 226, 0.15)"/></svg>`,
+                steps: [
+                    "六角形のマス目の空いている箇所に、交互に自分のコマを置いていきます。",
+                    "プレイヤー1（赤）は上下の境界を、プレイヤー2（青）は左右の境界を一続きに自分の色で繋げることを目指します。",
+                    "境界同士を完全に途切れなく一本のラインで接続したプレイヤーが勝利となります。引き分けはありません。"
+                ]
+            },
+            shanghai: { 
+                title: '麻雀ソリティア', icon: '🀄🧩', file: 'shanghai.html', supports2P: false, 
+                desc: '積み上げられた麻雀牌の中から、左右や上部が空いている同じ絵柄の牌を2個ずつ選択して消去していく1人専用パズル（上海）。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="20" y="25" width="45" height="50" rx="6" fill="#fff" stroke="#ccc" stroke-width="2"/><rect x="35" y="15" width="45" height="50" rx="6" fill="#fff" stroke="#ccc" stroke-width="2"/><text x="50" y="45" font-family="sans-serif" font-size="22" font-weight="bold" fill="#33cc33">萬</text></svg>`,
+                steps: [
+                    "ピラミッド状に立体的に配置された麻雀牌の中から、同じ絵柄の牌を2個探して選択します。",
+                    "消去できるのは、左右のどちらかが空いており、かつその牌の上に他の牌が重なっていないフリーな牌のみとなります。",
+                    "順番にペアを消去していき、最終的に盤面上にあるすべての牌を綺麗に消し去ることができればクリアとなります。"
+                ]
+            },
+            klondike: { 
+                title: 'クロンダイク', icon: '♠️👑', file: 'klondike.html', supports2P: false, 
+                desc: 'トランプを赤黒交互かつ降順に並び替えながら、最終的に右上の土台へAからKまで順番に揃えていく定番ソリティアパズル。', 
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="15" y="25" width="32" height="48" rx="4" fill="#1f4231" stroke="#d4a373" stroke-width="2"/><rect x="53" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5"/><text x="61" y="55" font-family="sans-serif" font-size="16" font-weight="bold" fill="#d9534f">A♥</text></svg>`,
+                steps: [
+                    "場にあるカードを、赤と黒のマークが交互になるように、かつ数字が小さくなる順（K、Q、J...）に重ねて並び替えます。",
+                    "山札から順にカードを引きながら、空いた列にはKから始まる列を作ることができます。",
+                    "最終的に、右上の4つの土台スロットに、ダイヤ・ハート・スペード・クラブのすべてをAからKまで完全に回収しきればゲームクリアです。"
                 ]
             }
         };
@@ -927,13 +739,10 @@
         const tutDotsBox = document.getElementById('tut-dots-box');
 
         let selectedId = null;
-        let selectedMode = 'vs_cpu'; // 'vs_cpu' or 'vs_player'
-        let selectedDiff = 'normal'; // 'easy', 'normal', 'hard'
-        
-        // チュートリアルの状態管理
+        let selectedMode = 'vs_cpu'; 
+        let selectedDiff = 'normal'; 
         let tutorialCurrentStep = 0;
 
-        // カルーセルカードの生成
         function initCarousel() {
             carouselEl.innerHTML = '';
             Object.keys(gamesData).forEach(id => {
@@ -949,10 +758,9 @@
                 carouselEl.appendChild(card);
             });
 
-            // 物理横スクロールと「かちかち」音の連動
             const scrollWrapper = document.getElementById('game-carousel-wrapper');
             let lastScrollPos = 0;
-            const scrollInterval = 85; // 85pxスクロールごとに微細なカチ音
+            const scrollInterval = 85; 
 
             scrollWrapper.addEventListener('scroll', () => {
                 const currentScroll = scrollWrapper.scrollLeft;
@@ -963,7 +771,6 @@
             });
         }
 
-        // ゲームカード選択処理（自動センタリング機能を追加）
         function selectGame(id) {
             playTickSound();
             document.querySelectorAll('.game-icon-card').forEach(card => {
@@ -972,14 +779,12 @@
             const selectedCard = document.querySelector(`.game-icon-card[data-id="${id}"]`);
             if (selectedCard) {
                 selectedCard.classList.add('selected');
-                // 選択されたカードが中央にスライドインするようにスクロール
                 selectedCard.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
             selectedId = id;
             selectPlayBtn.disabled = false;
         }
 
-        // 設定画面へ移動
         function goToSetup() {
             if (!selectedId) return;
             playTickSound();
@@ -997,7 +802,7 @@
                 modePlayerBtn.disabled = false;
             } else {
                 modePlayerBtn.disabled = true;
-                setMode('vs_cpu'); // 2Pが非対応の場合は強制的にCP対戦
+                setMode('vs_cpu'); 
             }
 
             screenCarousel.classList.remove('active');
@@ -1006,7 +811,6 @@
             }, 150);
         }
 
-        // 設定ボタンUI更新
         function updateConfigButtons() {
             modeCpuBtn.classList.toggle('active', selectedMode === 'vs_cpu');
             modePlayerBtn.classList.toggle('active', selectedMode === 'vs_player');
@@ -1041,7 +845,6 @@
             }, 150);
         }
 
-        // ------------------ あそびかたスライドショー制御 ------------------
         function openTutorial() {
             playTickSound();
             if (!selectedId) return;
@@ -1062,9 +865,8 @@
             const game = gamesData[selectedId];
             tutStepLabel.innerText = `STEP ${tutorialCurrentStep + 1} / 3`;
             tutDescText.innerText = game.steps[tutorialCurrentStep];
-            tutVisualBox.innerHTML = game.illust; // アスペクト比を修正した高品質SVG
+            tutVisualBox.innerHTML = game.illust; 
 
-            // ドットインジケーターの描画
             tutDotsBox.innerHTML = '';
             for (let i = 0; i < 3; i++) {
                 const dot = document.createElement('div');
@@ -1072,7 +874,6 @@
                 tutDotsBox.appendChild(dot);
             }
 
-            // 前へ / 次へ ボタン制御
             document.getElementById('tut-prev-btn').disabled = (tutorialCurrentStep === 0);
             if (tutorialCurrentStep === 2) {
                 document.getElementById('tut-next-btn').innerText = "理解した";
@@ -1099,7 +900,6 @@
             }, 300);
         }
 
-        // ------------------ ゲームの起動 ------------------
         function playGame() {
             if (!selectedId) return;
             playTickSound();
@@ -1134,9 +934,7 @@
             selectPlayBtn.disabled = true;
         }
 
-        // 初期実行
         initCarousel();
-	</script>
+    </script>
 </body>
-
 </html>

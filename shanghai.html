@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>麻雀ソリティア - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+
+        #status { font-size: 16px; color: #b8813a; font-weight: bold; margin-bottom: 20px; height: 24px; }
+        
+        /* 牌を3Dレイヤーで積む3Dエリア */
+        .board-wrapper { background: #e2e8f0; width: 440px; height: 320px; border-radius: 24px; border: 4px solid #cbd5e1; display: flex; align-items: center; justify-content: center; box-shadow: 0 15px 35px rgba(0,0,0,0.06); position: relative; }
+        .board { position: relative; width: 340px; height: 240px; }
+
+        /* 麻雀牌 */
+        .tile {
+            position: absolute; width: 38px; height: 50px;
+            background: #ffffff; color: #111; border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15), 1px 3px 0px #cbd5e1, 2px 5px 0px #94a3b8;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: bold; cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border: 1px solid #e2e8f0; box-sizing: border-box;
+        }
+
+        /* 牌の柄色 */
+        .tile.green { color: #2e7d32; }
+        .tile.red { color: #c62828; }
+        .tile.blue { color: #1565c0; }
+
+        /* 上に乗っている時の3D立体影の強さ調整 */
+        .tile.layer-1 { transform: translate(-3px, -3px); box-shadow: 2px 4px 6px rgba(0,0,0,0.2), 3px 5px 0px #cbd5e1, 4px 7px 0px #94a3b8; }
+        .tile.layer-2 { transform: translate(-6px, -6px); box-shadow: 4px 6px 10px rgba(0,0,0,0.25), 5px 7px 0px #cbd5e1, 6px 9px 0px #94a3b8; }
+
+        .tile.selected {
+            background-color: #ebf8ff !important;
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.6) !important;
+        }
+
+        .tile.blocked { opacity: 0.85; cursor: not-allowed; }
+
+        .controls { margin-top: 25px; }
+
+        /* ダイアログ */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div id="status">同じ絵柄の牌をペアで選択して消去してください</div>
+
+    <div class="board-wrapper">
+        <div class="board" id="board">
+            <!-- JSで3Dレイヤー牌を自動生成 -->
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-modal" onclick="resetGame()">シャッフルして再開</button>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2>🎉 上海パズルクリア！</h2>
+            <p>すべての牌を完璧にペア消去しました！素晴らしい集中力です。</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        // 14種類のペア = 計28牌でピラミッド型に積み上げ
+        const symbols = [
+            { val: '萬', class: 'red' }, { val: '筒', class: 'blue' }, { val: '索', class: 'green' },
+            { val: '東', class: 'green' }, { val: '南', class: 'green' }, { val: '西', class: 'green' }, { val: '北', class: 'green' },
+            { val: '中', class: 'red' }, { val: '發', class: 'green' }, { val: '白', class: 'blue' },
+            { val: '春', class: 'red' }, { val: '夏', class: 'red' }, { val: '秋', class: 'red' }, { val: '冬', class: 'red' }
+        ];
+
+        // 3Dレイヤーの配置設計 (x, y, z)
+        // レイヤー0 (16牌：4x4)
+        // レイヤー1 (8牌：2x4)
+        // レイヤー2 (4牌：2x2)
+        const layouts = [
+            // Layer 0 (Bottom)
+            { x: 0, y: 0, z: 0 }, { x: 1, y: 0, z: 0 }, { x: 2, y: 0, z: 0 }, { x: 3, y: 0, z: 0 },
+            { x: 0, y: 1, z: 0 }, { x: 1, y: 1, z: 0 }, { x: 2, y: 1, z: 0 }, { x: 3, y: 1, z: 0 },
+            { x: 0, y: 2, z: 0 }, { x: 1, y: 2, z: 0 }, { x: 2, y: 2, z: 0 }, { x: 3, y: 2, z: 0 },
+            { x: 0, y: 3, z: 0 }, { x: 1, y: 3, z: 0 }, { x: 2, y: 3, z: 0 }, { x: 3, y: 3, z: 0 },
+
+            // Layer 1 (Middle)
+            { x: 0.5, y: 0.5, z: 1 }, { x: 1.5, y: 0.5, z: 1 }, { x: 2.5, y: 0.5, z: 1 },
+            { x: 0.5, y: 1.5, z: 1 }, { x: 1.5, y: 1.5, z: 1 }, { x: 2.5, y: 1.5, z: 1 },
+            { x: 0.5, y: 2.5, z: 1 }, { x: 1.5, y: 2.5, z: 1 },
+
+            // Layer 2 (Top)
+            { x: 1, y: 1, z: 2 }, { x: 2, y: 1, z: 2 },
+            { x: 1, y: 2, z: 2 }, { x: 2, y: 2, z: 2 }
+        ];
+
+        let activeTiles = []; // 現在場にある牌
+        let selectedTileIdx = null;
+
+        const boardEl = document.getElementById('board');
+        const statusText = document.getElementById('status-text');
+
+        function initGame() {
+            activeTiles = [];
+            selectedTileIdx = null;
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+
+            // 14ペア（計28枚）の牌データを生成
+            let tempPool = [];
+            symbols.forEach(sym => {
+                tempPool.push({ ...sym });
+                tempPool.push({ ...sym });
+            });
+            tempPool.sort(() => Math.random() - 0.5);
+
+            // 座標をバインド
+            layouts.forEach((pos, idx) => {
+                activeTiles.push({
+                    id: idx,
+                    x: pos.x,
+                    y: pos.y,
+                    z: pos.z,
+                    symbol: tempPool[idx].val,
+                    class: tempPool[idx].class,
+                    removed: false
+                });
+            });
+
+            drawBoard();
+        }
+
+        // 牌がフリー（消去可能）か調べる上海判定ロジック
+        function isTileFree(idx) {
+            const tile = activeTiles[idx];
+            if (tile.removed) return false;
+
+            // 1. 上に他の牌が重なっていないか
+            const hasTileOnTop = activeTiles.some((other, oIdx) => {
+                if (other.removed || oIdx === idx) return false;
+                // 自分より1つ以上上のレイヤーで、かつXY座標が重なり合っているか
+                if (other.z > tile.z) {
+                    return Math.abs(other.x - tile.x) < 1.0 && Math.abs(other.y - tile.y) < 1.0;
+                }
+                return false;
+            });
+
+            if (hasTileOnTop) return false;
+
+            // 2. 左右のどちらかが空いているか（同じレイヤーで、真左または真右に隣接牌がないか）
+            let hasLeftNeighbor = activeTiles.some((other, oIdx) => {
+                if (other.removed || oIdx === idx || other.z !== tile.z) return false;
+                return other.y === tile.y && other.x === tile.x - 1;
+            });
+            let hasRightNeighbor = activeTiles.some((other, oIdx) => {
+                if (other.removed || oIdx === idx || other.z !== tile.z) return false;
+                return other.y === tile.y && other.x === tile.x + 1;
+            });
+
+            return !hasLeftNeighbor || !hasRightNeighbor;
+        }
+
+        function drawBoard() {
+            boardEl.innerHTML = '';
+            const cardW = 38;
+            const cardH = 50;
+
+            activeTiles.forEach((tile, idx) => {
+                if (tile.removed) return;
+
+                const tileEl = document.createElement('div');
+                tileEl.className = `tile layer-${tile.z} ${tile.class}`;
+                tileEl.id = `tile-${tile.id}`;
+                
+                // 3Dレイヤー位置のピクセル座標算出
+                const left = tile.x * cardW + (tile.z * 4) + 60;
+                const top = tile.y * cardH + (tile.z * 4) + 15;
+                tileEl.style.left = `${left}px`;
+                tileEl.style.top = `${top}px`;
+                tileEl.style.zIndex = tile.z * 10 + 10; // Zレイヤーオーダー
+
+                tileEl.innerText = tile.symbol;
+
+                // 操作可否によるガイド表示
+                const free = isTileFree(idx);
+                if (!free) {
+                    tileEl.classList.add('blocked');
+                }
+
+                tileEl.addEventListener('click', () => handleTileClick(idx));
+                boardEl.appendChild(tileEl);
+            });
+
+            checkStalemate();
+        }
+
+        function handleTileClick(idx) {
+            if (!isTileFree(idx)) {
+                showCustomAlert("ロック", "この牌は上に重なりがあるか、左右が両方塞がれているため選択できません。");
+                return;
+            }
+
+            if (selectedTileIdx === null) {
+                // 選択
+                selectedTileIdx = idx;
+                document.getElementById(`tile-${idx}`).classList.add('selected');
+            } else if (selectedTileIdx === idx) {
+                // キャンセル
+                document.getElementById(`tile-${idx}`).classList.remove('selected');
+                selectedTileIdx = null;
+            } else {
+                // ペア消去チェック
+                const first = activeTiles[selectedTileIdx];
+                const second = activeTiles[idx];
+
+                if (first.symbol === second.symbol) {
+                    // 消去
+                    first.removed = true;
+                    second.removed = true;
+                    selectedTileIdx = null;
+
+                    drawBoard();
+                    checkWin();
+                } else {
+                    // 選択替え
+                    document.getElementById(`tile-${selectedTileIdx}`).classList.remove('selected');
+                    selectedTileIdx = idx;
+                    document.getElementById(`tile-${idx}`).classList.add('selected');
+                }
+            }
+        }
+
+        function checkWin() {
+            const allRemoved = activeTiles.every(t => t.removed);
+            if (allRemoved) {
+                document.getElementById('result-overlay').style.display = 'flex';
+            }
+        }
+
+        // 手詰まり（手詰まりの際はアラートを出す）
+        function checkStalemate() {
+            const freeTiles = [];
+            activeTiles.forEach((t, idx) => {
+                if (isTileFree(idx)) freeTiles.push(t);
+            });
+
+            // 残っているフリー牌のなかにペアが存在するか確認
+            let hasMove = false;
+            for (let i = 0; i < freeTiles.length; i++) {
+                for (let j = i + 1; j < freeTiles.length; j++) {
+                    if (freeTiles[i].symbol === freeTiles[j].symbol) {
+                        hasMove = true;
+                        break;
+                    }
+                }
+            }
+
+            const allRemoved = activeTiles.every(t => t.removed);
+            if (!hasMove && !allRemoved) {
+                showCustomAlert("手詰まり (Stalemate)", "消去可能なペアがなくなりました。シャッフルボタンを押して再開してください。");
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

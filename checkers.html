@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チェッカー - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --board-wood: #2c1a0c; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+
+        .hud { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score { font-size: 15px; }
+        .turn { color: var(--accent-color); }
+
+        .board-wrapper { background: var(--board-wood); padding: 10px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+        .board { display: grid; grid-template-columns: repeat(8, 48px); grid-template-rows: repeat(8, 48px); background-color: #edd1a3; border-radius: 6px; overflow: hidden; border: 2px solid var(--board-wood); }
+
+        .cell { position: relative; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .cell.dark { background-color: #8b5a2b; }
+        .cell.light { background-color: #edd1a3; }
+        
+        /* 置ける場所ハイライト */
+        .cell.highlight::after {
+            content: ''; width: 12px; height: 12px; background-color: rgba(74, 144, 226, 0.8); border-radius: 50%; z-index: 10;
+        }
+
+        /* 駒 */
+        .piece { width: 84%; height: 84%; border-radius: 50%; box-shadow: 0 3px 6px rgba(0,0,0,0.35); position: absolute; z-index: 5; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; }
+        .piece.p1 { background: radial-gradient(circle at 35% 35%, #ff595e, #c0242a); color: #fff; }
+        .piece.p2 { background: radial-gradient(circle at 35% 35%, #ffffff, #d2d2d2); border: 1.5px solid #ababab; box-sizing: border-box; color: #333; }
+        
+        /* キングの冠マーク */
+        .piece.king::before { content: '👑'; font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+        .controls { margin-top: 25px; }
+
+        /* ダイアログ */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなた残: <span id="p1-count">12</span></div>
+        <div class="turn" id="turn-text">あなたの番</div>
+        <div class="score" id="p2-score-label">相手残: <span id="p2-count">12</span></div>
+    </div>
+
+    <div class="board-wrapper">
+        <div class="board" id="board"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-modal" onclick="resetGame()">リセット</button>
+    </div>
+
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        // 8x8、0: 空, 1: P1(赤通常), 2: P2(白通常), 11: P1キング, 22: P2キング
+        let board = [];
+        let currentPlayer = 1;
+        let selectedIdx = null;
+        let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        const boardEl = document.getElementById('board');
+        const turnText = document.getElementById('turn-text');
+
+        function initGame() {
+            board = Array(8).fill(null).map(() => Array(8).fill(0));
+            // 初期駒配置 (ダークマスのみ)
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if ((r + c) % 2 === 1) {
+                        if (r < 3) board[r][c] = 2; // P2 (上)
+                        else if (r > 4) board[r][c] = 1; // P1 (下)
+                    }
+                }
+            }
+            currentPlayer = 1;
+            selectedIdx = null;
+            gameOver = false;
+
+            document.getElementById('p2-score-label').innerHTML = gameMode === 'vs_cpu' ? `CPU残: <span id="p2-count">12</span>` : `相手残: <span id="p2-count">12</span>`;
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+
+            createBoardDOM();
+            updateUI();
+        }
+
+        function createBoardDOM() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = `cell ${(r+c)%2 === 1 ? 'dark' : 'light'}`;
+                    cell.id = `cell-${r}-${c}`;
+                    cell.addEventListener('click', () => handleCellClick(r, c));
+                    boardEl.appendChild(cell);
+                }
+            }
+        }
+
+        function handleCellClick(r, c) {
+            if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            const val = board[r][c];
+
+            if (selectedIdx === null) {
+                // コマの選択
+                if (val !== 0 && getOwner(val) === currentPlayer) {
+                    const mustJump = hasJumpMoves(currentPlayer);
+                    const moves = getMovesForPiece(r, c);
+                    
+                    if (mustJump && !moves.some(m => m.isJump)) {
+                        showCustomAlert("ジャンプ義務", "敵を飛び越えて獲得できる（ジャンプできる）コマがあります。そのコマを優先して動かさなければなりません。");
+                        return;
+                    }
+
+                    if (moves.length > 0) {
+                        selectedIdx = { r, c };
+                        highlightMoves(moves);
+                    }
+                }
+            } else {
+                // 移動先へのスライド
+                const moves = getMovesForPiece(selectedIdx.r, selectedIdx.c);
+                const targetMove = moves.find(m => m.tr === r && m.tc === c);
+
+                if (targetMove) {
+                    executeMove(selectedIdx.r, selectedIdx.c, r, c, targetMove.isJump, targetMove.jr, targetMove.jc);
+                } else {
+                    // キャンセルまたは再選択
+                    selectedIdx = null;
+                    clearHighlights();
+                    if (val !== 0 && getOwner(val) === currentPlayer) {
+                        handleCellClick(r, c); // 再クリック
+                    }
+                }
+            }
+        }
+
+        function executeMove(fr, fc, tr, tc, isJump, jr, jc) {
+            let val = board[fr][fc];
+
+            // キング成りの判定
+            if (val === 1 && tr === 0) val = 11;
+            if (val === 2 && tr === 7) val = 22;
+
+            board[tr][tc] = val;
+            board[fr][fc] = 0;
+
+            if (isJump) {
+                board[jr][jc] = 0; // 飛び越えた敵を消滅
+            }
+
+            selectedIdx = null;
+            clearHighlights();
+
+            // 連鎖ジャンプチェック（今回はシンプルにするため1手交代とします）
+            endTurn();
+        }
+
+        function getOwner(val) {
+            if (val === 1 || val === 11) return 1;
+            if (val === 2 || val === 22) return 2;
+            return 0;
+        }
+
+        // 自陣全体にジャンプ可能手があるかスキャンする
+        function hasJumpMoves(player) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] !== 0 && getOwner(board[r][c]) === player) {
+                        const moves = getMovesForPiece(r, c);
+                        if (moves.some(m => m.isJump)) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // コマ個別の移動先経路探索
+        function getMovesForPiece(r, c) {
+            const val = board[r][c];
+            const player = getOwner(val);
+            const isKing = (val === 11 || val === 22);
+            const moves = [];
+
+            // 進行方向
+            let dirs = [];
+            if (player === 1) dirs.push([-1, -1], [-1, 1]); // P1は上方向
+            if (player === 2) dirs.push([1, -1], [1, 1]);  // P2は下方向
+            if (isKing) dirs = [[-1,-1], [-1,1], [1,-1], [1,1]]; // キングは全斜め
+
+            dirs.forEach(([dr, dc]) => {
+                const tr = r + dr;
+                const tc = c + dc;
+
+                if (tr >= 0 && tr < 8 && tc >= 0 && tc < 8) {
+                    const tVal = board[tr][tc];
+                    if (tVal === 0) {
+                        moves.push({ tr, tc, isJump: false });
+                    } else if (getOwner(tVal) !== player) {
+                        // 敵コマ発見 -> 飛び越え判定
+                        const jr = tr + dr;
+                        const jc = tc + dc;
+                        if (jr >= 0 && jr < 8 && jc >= 0 && jc < 8 && board[jr][jc] === 0) {
+                            moves.push({ tr: jr, tc: jc, isJump: true, jr: tr, jc: tc });
+                        }
+                    }
+                }
+            });
+
+            // ジャンプが強制であるため、ジャンプ手がある場合はそれのみに絞る
+            const hasJump = moves.some(m => m.isJump);
+            return hasJump ? moves.filter(m => m.isJump) : moves;
+        }
+
+        function highlightMoves(moves) {
+            clearHighlights();
+            moves.forEach(m => {
+                const el = document.getElementById(`cell-${m.tr}-${m.tc}`);
+                if (el) el.classList.add('highlight');
+            });
+        }
+
+        function clearHighlights() {
+            document.querySelectorAll('.cell').forEach(el => el.classList.remove('highlight'));
+        }
+
+        function endTurn() {
+            checkGameOver();
+            if (gameOver) {
+                updateUI();
+                return;
+            }
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            turnText.innerText = currentPlayer === 1 ? "あなたのターン" : (gameMode === 'vs_cpu' ? "CPUの思考中..." : "Player 2 のターン");
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1000);
+            }
+        }
+
+        // CPUの思考ロジック
+        function cpuMove() {
+            if (gameOver) return;
+
+            const moves = [];
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] !== 0 && getOwner(board[r][c]) === 2) {
+                        const pieceMoves = getMovesForPiece(r, c);
+                        pieceMoves.forEach(m => {
+                            moves.push({ fr: r, fc: c, tr: m.tr, tc: m.tc, isJump: m.isJump, jr: m.jr, jc: m.jc });
+                        });
+                    }
+                }
+            }
+
+            if (moves.length === 0) {
+                endGame(1); // 動けないCPUの負け
+                return;
+            }
+
+            // ジャンプ手が強制
+            const jumps = moves.filter(m => m.isJump);
+            let choice = moves[0];
+
+            if (jumps.length > 0) {
+                choice = jumps[Math.floor(Math.random() * jumps.length)];
+            } else if (difficulty === 'easy') {
+                choice = moves[Math.floor(Math.random() * moves.length)];
+            } else {
+                // ふつう以上：キング成りを優先する
+                const kingMoves = moves.filter(m => m.tr === 7);
+                if (kingMoves.length > 0) {
+                    choice = kingMoves[0];
+                } else {
+                    choice = moves[Math.floor(Math.random() * moves.length)];
+                }
+            }
+
+            executeMove(choice.fr, choice.fc, choice.tr, choice.tc, choice.isJump, choice.jr, choice.jc);
+        }
+
+        function checkGameOver() {
+            let p1Count = 0, p2Count = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const p = getOwner(board[r][c]);
+                    if (p === 1) p1Count++;
+                    if (p === 2) p2Count++;
+                }
+            }
+
+            if (p1Count === 0) { endGame(2); return; }
+            if (p2Count === 0) { endGame(1); return; }
+
+            // 手詰まりチェック
+            const nextP = currentPlayer === 1 ? 2 : 1;
+            let hasMoves = false;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (board[r][c] !== 0 && getOwner(board[r][c]) === nextP) {
+                        if (getMovesForPiece(r, c).length > 0) hasMoves = true;
+                    }
+                }
+            }
+            if (!hasMoves) {
+                endGame(currentPlayer); // 動けないプレイヤーの負け
+            }
+        }
+
+        function updateUI() {
+            let p1 = 0, p2 = 0;
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const cell = document.getElementById(`cell-${r}-${c}`);
+                    let piece = cell.querySelector('.piece');
+                    const val = board[r][c];
+
+                    if (val !== 0) {
+                        if (!piece) {
+                            piece = document.createElement('div');
+                            cell.appendChild(piece);
+                        }
+                        piece.className = `piece ${getOwner(val) === 1 ? 'p1' : 'p2'}`;
+                        piece.classList.toggle('king', val === 11 || val === 22);
+
+                        if (getOwner(val) === 1) p1++; else p2++;
+                    } else if (piece) {
+                        cell.removeChild(piece);
+                    }
+                }
+            }
+
+            document.getElementById('p1-count').innerText = p1;
+            document.getElementById('p2-count').innerText = p2;
+        }
+
+        function endGame(winner) {
+            gameOver = true;
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = "CPUのすべてのコマを消滅・包囲しました！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = "すべてのコマを奪われてしまいました。";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "相手のコマをすべて奪い、ボードを制覇しました。";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ヘックス - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        
+        .hud { display: flex; gap: 30px; margin-bottom: 25px; background: #fff; padding: 10px 30px; border-radius: 30px; border: 1px solid #e2e8f0; box-shadow: 0 4px 15px rgba(0,0,0,0.04); font-weight: bold; }
+        .turn-text { color: var(--accent-color); }
+
+        .board-wrapper { position: relative; background: #ffffff; padding: 25px; border-radius: 24px; border: 1px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; }
+        
+        /* Hexボード用のSVGコンテナ */
+        svg { width: 340px; height: 260px; display: block; }
+        polygon.cell { fill: #f1f5f9; stroke: #cbd5e1; stroke-width: 1.5; cursor: pointer; transition: fill 0.2s, stroke 0.2s; }
+        polygon.cell:hover:not(.taken) { fill: #e2e8f0; stroke: #94a3b8; }
+        polygon.cell.taken.p1 { fill: #ff595e; stroke: #c0242a; cursor: default; }
+        polygon.cell.taken.p2 { fill: #4a90e2; stroke: #1962b4; cursor: default; }
+
+        /* 壁のボーダーライン */
+        polygon.border.p1 { fill: rgba(255, 89, 94, 0.15); stroke: #ff595e; stroke-width: 3; }
+        polygon.border.p2 { fill: rgba(74, 144, 226, 0.15); stroke: #4a90e2; stroke-width: 3; }
+
+        .controls { margin-top: 25px; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div style="color: #ff595e;">赤: 上下接続</div>
+        <div class="turn-text" id="status-text">赤の手番 (先手)</div>
+        <div style="color: #4a90e2;">青: 左右接続</div>
+    </div>
+
+    <div class="board-wrapper">
+        <svg id="board-svg">
+            <!-- JSで動的にヘックス盤、境界、マスを構築します -->
+        </svg>
+    </div>
+
+    <div class="controls">
+        <button class="btn-modal" onclick="resetGame()">リセット</button>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        // 6x6の斜めに傾いたHexボード
+        const size = 6;
+        let board = []; // 0:空, 1:赤(P1), 2:青(P2/CPU)
+        let currentPlayer = 1;
+        let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal'; // CPUは青(2)を担当
+
+        const svgEl = document.getElementById('board-svg');
+        const statusText = document.getElementById('status-text');
+
+        // Hex座標定数
+        const radius = 18;
+        const stepX = Math.sqrt(3) * radius; // ~31.17
+        const stepY = 1.5 * radius; // 27
+        const originX = 65;
+        const originY = 55;
+
+        function initGame() {
+            board = Array(size).fill(null).map(() => Array(size).fill(0));
+            currentPlayer = 1;
+            gameOver = false;
+            statusText.innerText = "赤の手番 (先手)";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+
+            buildBoardDOM();
+        }
+
+        function buildBoardDOM() {
+            svgEl.innerHTML = '';
+
+            // 1. 赤陣営（上下）のガイド壁描画
+            const redTopPoints = [];
+            const redBottomPoints = [];
+            for (let c = 0; c < size; c++) {
+                const ptTop = getHexCenter(0, c);
+                redTopPoints.push(`${ptTop.cx},${ptTop.cy - radius - 5}`);
+                const ptBot = getHexCenter(size - 1, c);
+                redBottomPoints.push(`${ptBot.cx},${ptBot.cy + radius + 5}`);
+            }
+
+            // 2. 青陣営（左右）のガイド壁描画
+            // 簡易化のため壁は境界に隣接するマスそのものの外周にラインとして綺麗に配置します。
+
+            // 3. マスのポリゴン描画
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    const center = getHexCenter(r, c);
+                    const poly = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                    poly.setAttribute("class", "cell");
+                    poly.setAttribute("id", `hex-${r}-${c}`);
+                    poly.setAttribute("points", getHexPoints(center.cx, center.cy, radius));
+                    poly.addEventListener('click', () => handleCellClick(r, c));
+                    svgEl.appendChild(poly);
+                }
+            }
+        }
+
+        function getHexCenter(r, c) {
+            // 斜めに傾いたHexグリッドの幾何学中心
+            const cx = originX + c * stepX + r * (stepX / 2);
+            const cy = originY + r * stepY;
+            return { cx, cy };
+        }
+
+        function getHexPoints(cx, cy, r) {
+            const points = [];
+            for (let i = 0; i < 6; i++) {
+                const angleRad = (Math.PI / 180) * (60 * i - 30); // 頂点を上にする回転角
+                const x = cx + r * Math.cos(angleRad);
+                const y = cy + r * Math.sin(angleRad);
+                points.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+            }
+            return points.join(' ');
+        }
+
+        function handleCellClick(r, c) {
+            if (gameOver || board[r][c] !== 0) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            executeMove(r, c, currentPlayer);
+        }
+
+        function executeMove(r, c, player) {
+            board[r][c] = player;
+            const poly = document.getElementById(`hex-${r}-${c}`);
+            poly.classList.add('taken', player === 1 ? 'p1' : 'p2');
+
+            // 勝利接続チェック（赤: 上下接続, 青: 左右接続）
+            if (checkPathConnection(player)) {
+                gameOver = true;
+                showFinalResult(player);
+                return;
+            }
+
+            // プレイヤー交代
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusText.innerText = currentPlayer === 1 ? "赤の手番" : (gameMode === 'vs_cpu' ? "CPUが思考中..." : "青の手番");
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuMove, 1000);
+            }
+        }
+
+        // BFS(幅優先探索)による対岸接続チェック
+        function checkPathConnection(player) {
+            const visited = Array(size).fill(null).map(() => Array(size).fill(false));
+            const queue = [];
+
+            if (player === 1) {
+                // 赤：1行目(r=0)の自駒すべてを開始点にする
+                for (let c = 0; c < size; c++) {
+                    if (board[0][c] === 1) {
+                        queue.push([0, c]);
+                        visited[0][c] = true;
+                    }
+                }
+            } else {
+                // 青：1列目(c=0)の自駒すべてを開始点にする
+                for (let r = 0; r < size; r++) {
+                    if (board[r][0] === 2) {
+                        queue.push([r, 0]);
+                        visited[r][0] = true;
+                    }
+                }
+            }
+
+            // Hexの隣接6方向
+            const dirs = [
+                [-1, 0], [-1, 1],
+                [0, -1],          [0, 1],
+                [1, -1], [1, 0]
+            ];
+
+            while (queue.length > 0) {
+                const [r, c] = queue.shift();
+
+                // 勝利条件：対岸に到達
+                if (player === 1 && r === size - 1) return true;
+                if (player === 2 && c === size - 1) return true;
+
+                for (let [dr, dc] of dirs) {
+                    const nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < size && nc >= 0 && nc < size && !visited[nr][nc] && board[nr][nc] === player) {
+                        visited[nr][nc] = true;
+                        queue.push([nr, nc]);
+                    }
+                }
+            }
+            return false;
+        }
+
+        // CPUのAI思考ロジック
+        function cpuMove() {
+            if (gameOver) return;
+
+            const emptyCells = [];
+            for (let r = 0; r < size; r++) {
+                for (let c = 0; c < size; c++) {
+                    if (board[r][c] === 0) emptyCells.push({ r, c });
+                }
+            }
+
+            if (emptyCells.length === 0) return;
+
+            let choice = emptyCells[0];
+
+            if (difficulty === 'easy') {
+                choice = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            } else {
+                // ふつう以上：相手の接続を遮断するか、自分の最短経路をのばす
+                // 簡易ウェイト評価（中央マスを優先する）
+                let bestScore = -Infinity;
+                emptyCells.forEach(cell => {
+                    let score = 0;
+                    // ボード中央ほど高く評価
+                    const distFromCenter = Math.abs(cell.r - (size-1)/2) + Math.abs(cell.c - (size-1)/2);
+                    score -= distFromCenter * 5;
+
+                    // つよい: 自分の既存の駒に隣接しているならボーナス
+                    if (difficulty === 'hard') {
+                        const dirs = [[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0]];
+                        dirs.forEach(([dr, dc]) => {
+                            const nr = cell.r + dr, nc = cell.c + dc;
+                            if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                                if (board[nr][nc] === 2) score += 20; // 自分の接続
+                                if (board[nr][nc] === 1) score += 15; // 相手の妨害
+                            }
+                        });
+                    }
+
+                    if (score > bestScore) {
+                        bestScore = score;
+                        choice = cell;
+                    }
+                });
+            }
+
+            executeMove(choice.r, choice.c, 2);
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = "上下の境界線を一筆書きで美しく接続しました！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = "CPUに左右を完全に塞がれてしまいました。";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 赤(P1)の勝ち！" : "🎉 青(P2)の勝ち！";
+                descEl.innerText = winner === 1 ? "上下の境界を完全に接続しました。" : "左右の境界を完全に接続しました。";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
