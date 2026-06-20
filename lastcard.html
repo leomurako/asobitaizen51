@@ -3,45 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ラストカード - Premium Clone</title>
+    <title>ラストカード - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; --accent: #d4a373; }
-        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent: #4a90e2; }
+        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
         
-        .status { font-size: 16px; color: var(--accent); font-weight: bold; margin-bottom: 20px; height: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.5); text-align: center; }
-        .table { display: flex; flex-direction: column; gap: 30px; align-items: center; width: 100%; max-width: 500px; }
+        .status { font-size: 15px; color: #b8813a; font-weight: bold; margin-bottom: 20px; height: 20px; text-align: center; }
+        .table { display: flex; flex-direction: column; gap: 25px; align-items: center; width: 100%; max-width: 500px; }
 
-        /* 陣地 */
-        .hand-container { display: flex; flex-direction: column; align-items: center; background: rgba(255,255,255,0.02); padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); width: 100%; box-sizing: border-box; }
-        .hand-label { font-size: 11px; opacity: 0.5; margin-bottom: 6px; letter-spacing: 1px; }
-        .hand { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; min-height: 70px; }
+        .hand-container { display: flex; flex-direction: column; align-items: center; background: #fff; padding: 12px; border-radius: 16px; border: 1px solid #e2e8f0; width: 100%; box-sizing: border-box; }
+        .hand-label { font-size: 11px; opacity: 0.5; margin-bottom: 6px; letter-spacing: 1px; font-weight: bold; }
+        .hand { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; min-height: 65px; }
 
-        /* 中央捨て場 */
-        .center { display: flex; gap: 30px; align-items: center; margin: 15px 0; }
-        .deck-pile { width: 55px; height: 75px; background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1px solid var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.4); color: var(--accent); }
-        .discard-pile { width: 55px; height: 75px; background: #fff; color: #111; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        .center { display: flex; gap: 30px; align-items: center; margin: 10px 0; }
+        .deck-pile { width: 52px; height: 72px; background: linear-gradient(135deg, #1f4231 0%, #0d2117 100%); border: 1.5px solid #d4a373; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.25); color: #d4a373; }
+        .discard-pile { width: 52px; height: 72px; background: #fff; color: #111; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.15); border: 1px solid #cbd5e1; }
         .discard-pile.red { color: #d9534f; }
 
-        /* カードデザイン */
-        .card { width: 45px; height: 65px; background: #fff; color: #111; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.3); box-sizing: border-box; }
+        .card { width: 44px; height: 62px; background: #fff; color: #111; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 2px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.15); box-sizing: border-box; border: 1px solid #cbd5e1; }
         .card.red { color: #d9534f; }
         .card.unplayable { opacity: 0.3; cursor: not-allowed; }
 
         .controls { margin-top: 20px; display: flex; gap: 10px; }
-        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255, 255, 255, 0.1); padding: 10px 24px; font-size: 14px; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
-        button:hover { background-color: #32463b; }
-        button.alert-btn { background-color: #a30000; animation: blink 0.5s infinite alternate; }
-        @keyframes blink { from { box-shadow: 0 0 5px #a30000; } to { box-shadow: 0 0 15px #ff4d4d; } }
+        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent); padding: 8px 24px; font-size: 13px; font-weight: bold; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        button:hover { background-color: rgba(74, 144, 226, 0.08); }
+        button.alert-btn { background-color: #e53e3e; color: #fff; border: none; animation: blink 0.5s infinite alternate; }
+        @keyframes blink { from { box-shadow: 0 0 4px #e53e3e; } to { box-shadow: 0 0 12px #ff4d4d; } }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <div class="status" id="status-text">ラストカード！場と同じマークか数字のカードを出せます</div>
+    <div class="status" id="status-text">場札と同じマークか数字のカードを出せます。</div>
 
     <div class="table">
-        <!-- CPU手札（裏面） -->
+        <!-- 相手手札 -->
         <div class="hand-container">
-            <div class="hand-label">OPPONENT (CPU) HAND</div>
+            <div class="hand-label" id="p2-hand-label">OPPONENT (CPU) HAND</div>
             <div class="hand" id="p2-hand"></div>
         </div>
 
@@ -59,9 +63,26 @@
     </div>
 
     <div class="controls">
-        <!-- ラストカード宣言用（手札1枚のとき光る） -->
-        <button id="lc-btn" class="alert-btn" onclick="declareLastCard()" style="display: none;">「ラストカード！」</button>
+        <button id="lc-btn" class="alert-btn" onclick="declareLastCard()" style="display: none;">ラストカード！</button>
         <button onclick="resetGame()">最初から</button>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">結果</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
     </div>
 
     <script>
@@ -70,22 +91,27 @@
         
         let deck = [];
         let p1Hand = [];
-        let p2Hand = []; // CPU
+        let p2Hand = [];
         let topCard = null;
-        let currentPlayer = 1; // 1: Player, 2: CPU
+        let currentPlayer = 1;
         let gameOver = false;
         
-        let hasDeclaredLastCard = false; // ラストカード宣言フラグ
+        let hasDeclaredLastCard = false;
         let penaltyTimer = null;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
 
         function initGame() {
             p1Hand = []; p2Hand = []; topCard = null; currentPlayer = 1; gameOver = false; hasDeclaredLastCard = false;
             document.getElementById('lc-btn').style.display = 'none';
-            document.getElementById('status-text').innerText = "あなたのターン：出せるカードを置いてください";
+            document.getElementById('status-text').innerText = "Player 1 のターン：カードを置いてください";
+            document.getElementById('p2-hand-label').innerText = gameMode === 'vs_cpu' ? "OPPONENT (CPU)" : "PLAYER 2";
+            document.getElementById('result-overlay').style.display = 'none';
 
             if (penaltyTimer) clearTimeout(penaltyTimer);
+            closeAlert();
 
-            // デッキ作成
             deck = [];
             suits.forEach(s => {
                 values.forEach(v => {
@@ -94,16 +120,13 @@
             });
             deck.sort(() => Math.random() - 0.5);
 
-            // 7枚ずつ配る
             for (let i = 0; i < 7; i++) {
                 p1Hand.push(deck.pop());
                 p2Hand.push(deck.pop());
             }
 
-            // 初期場札
             topCard = deck.pop();
             while (['2', '8', 'A'].includes(topCard.val)) {
-                // 特殊カードが最初に場札にならないようにする
                 deck.unshift(topCard);
                 topCard = deck.pop();
             }
@@ -111,81 +134,88 @@
             updateUI();
         }
 
-        // 置けるか判定
         function canPlay(card) {
-            return card.val === topCard.val || card.suit === topCard.suit || card.val === 'A'; // Aはワイルド扱い
+            return card.val === topCard.val || card.suit === topCard.suit || card.val === 'A';
         }
 
         function playCard(handIdx) {
-            if (gameOver || currentPlayer !== 1) return;
+            if (gameOver) return;
 
-            const card = p1Hand[handIdx];
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+            const card = activeHand[handIdx];
             if (!canPlay(card)) return;
 
-            p1Hand.splice(handIdx, 1);
+            activeHand.splice(handIdx, 1);
             topCard = card;
 
-            // 特殊効果の処理
             let skipTurn = false;
             if (card.val === '8') {
-                skipTurn = true; // 8: スキップ
-                alert("8効果：もう一度あなたのターン！");
+                skipTurn = true;
+                showCustomAlert("スキップ", `効果カード「8」！もう一度 Player ${currentPlayer} の番になります。`);
             } else if (card.val === '2') {
-                alert("2効果：相手に2枚引かせました！");
-                for (let i = 0; i < 2; i++) {
-                    if (deck.length > 0) p2Hand.push(deck.pop());
-                }
+                const nextP = currentPlayer === 1 ? 2 : 1;
+                showCustomAlert("ドロー2", `効果カード「2」！Player ${nextP} は山札から2枚引き取ります。`);
+                drawPenalty(nextP, 2);
             }
 
-            // ラストカード判定（残り手札1枚のとき、2秒間のペナルティタイム計測）
-            if (p1Hand.length === 1) {
-                hasDeclaredLastCard = false;
-                document.getElementById('lc-btn').style.display = 'inline-block';
-                // 2秒以内に宣言しないと+2枚ペナルティ
-                penaltyTimer = setTimeout(() => {
-                    if (!hasDeclaredLastCard) {
-                        alert("ペナルティ！「ラストカード」の宣言が遅れたため2枚引きます！");
-                        drawPenalty(2);
-                    }
-                }, 2000);
+            // ラストカード判定（1枚のみになった瞬間のペナルティ制御）
+            if (activeHand.length === 1) {
+                if (currentPlayer === 1) {
+                    hasDeclaredLastCard = false;
+                    document.getElementById('lc-btn').style.display = 'inline-block';
+                    penaltyTimer = setTimeout(() => {
+                        if (!hasDeclaredLastCard && !gameOver) {
+                            showCustomAlert("ペナルティ", "ラストカード宣言を忘れたため、山札から2枚引き取ります。");
+                            drawPenalty(1, 2);
+                        }
+                    }, 2000);
+                } else if (gameMode === 'vs_player') {
+                    // P2のラストカード処理
+                    hasDeclaredLastCard = false;
+                    document.getElementById('lc-btn').style.display = 'inline-block'; // P2ローカル時もボタン活用
+                    penaltyTimer = setTimeout(() => {
+                        if (!hasDeclaredLastCard && !gameOver) {
+                            showCustomAlert("ペナルティ", "ラストカード宣言を忘れたため、山札から2枚引き取ります。");
+                            drawPenalty(2, 2);
+                        }
+                    }, 2000);
+                } else {
+                    // CPUオート宣言
+                    alert("CPU: 『ラストカード！』");
+                }
             } else {
                 document.getElementById('lc-btn').style.display = 'none';
             }
 
-            if (p1Hand.length === 0) {
-                endGame("あなたの勝ちです！");
+            if (activeHand.length === 0) {
+                showFinalResult(currentPlayer);
                 return;
             }
 
             if (!skipTurn) {
-                currentPlayer = 2;
-                document.getElementById('status-text').innerText = "相手（CPU）が思考中...";
-                setTimeout(cpuTurn, 1000);
+                switchTurn();
             } else {
                 updateUI();
             }
         }
 
         function drawCard() {
-            if (gameOver || currentPlayer !== 1) return;
+            if (gameOver) return;
 
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
             if (deck.length === 0) {
-                alert("山札がなくなったため、引き分けです。");
-                endGame("引き分け");
+                showFinalResult(0);
                 return;
             }
 
-            p1Hand.push(deck.pop());
-            currentPlayer = 2;
-            document.getElementById('status-text').innerText = "カードを引き、相手のターンになります...";
-            updateUI();
-
-            setTimeout(cpuTurn, 1000);
+            activeHand.push(deck.pop());
+            switchTurn();
         }
 
-        function drawPenalty(amount) {
+        function drawPenalty(playerNum, amount) {
+            const activeHand = playerNum === 1 ? p1Hand : p2Hand;
             for (let i = 0; i < amount; i++) {
-                if (deck.length > 0) p1Hand.push(deck.pop());
+                if (deck.length > 0) activeHand.push(deck.pop());
             }
             document.getElementById('lc-btn').style.display = 'none';
             updateUI();
@@ -194,14 +224,27 @@
         function declareLastCard() {
             hasDeclaredLastCard = true;
             document.getElementById('lc-btn').style.display = 'none';
-            alert("「ラストカード！」を宣言しました。");
+            showCustomAlert("ラストカード！", "シングルハンド宣言が成功しました。");
         }
 
-        // CPUターン
+        function switchTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusText.innerText = currentPlayer === 1 ? "Player 1 のターン" : (gameMode === 'vs_cpu' ? "CPUのターン" : "Player 2 のターン");
+
+            if (gameMode === 'vs_player' && !gameOver) {
+                showCustomAlert("ターン交代", `次は Player ${currentPlayer} の手番です。端末を渡してください。`);
+            }
+
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuTurn, 1000);
+            }
+        }
+
         function cpuTurn() {
             if (gameOver) return;
 
-            // 出せるカードを探す
             const playableIdx = p2Hand.findIndex(c => canPlay(c));
 
             if (playableIdx !== -1) {
@@ -211,18 +254,18 @@
                 let skipTurn = false;
                 if (card.val === '8') {
                     skipTurn = true;
-                    alert("相手が8(スキップ)を出したため、再び相手のターンです。");
+                    showCustomAlert("CPUスキップ", "CPUが8を置いたため、再びCPUのターンになります。");
                 } else if (card.val === '2') {
-                    alert("相手が2を出したため、あなたは2枚引きます！");
-                    drawPenalty(2);
+                    showCustomAlert("CPUアタック", "CPUが2を置きました！2枚引き取ります。");
+                    drawPenalty(1, 2);
                 }
 
                 if (p2Hand.length === 1) {
-                    alert("相手：『ラストカード！』");
+                    showCustomAlert("CPU宣言", "CPU: 『ラストカード！』");
                 }
 
                 if (p2Hand.length === 0) {
-                    endGame("相手（CPU）の勝ちです。");
+                    showFinalResult(2);
                     return;
                 }
 
@@ -231,67 +274,121 @@
                     return;
                 }
             } else {
-                // 引く
                 if (deck.length > 0) {
                     p2Hand.push(deck.pop());
-                    alert("相手が山札から1枚引きました。");
+                    showCustomAlert("CPUパス", "CPUが場に出せるカードがなく、山札から1枚引きました。");
                 }
             }
 
             currentPlayer = 1;
-            document.getElementById('status-text').innerText = "あなたのターンです";
+            statusText.innerText = "あなたのターンです";
             updateUI();
         }
 
-        function endGame(msg) {
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
             gameOver = true;
             if (penaltyTimer) clearTimeout(penaltyTimer);
-            document.getElementById('status-text').innerText = `ゲーム終了！ ${msg}`;
-            updateUI();
+
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (winner === 0) {
+                titleEl.innerText = "🤝 引き分け";
+                descEl.innerText = "山札切れとなりました。";
+            } else if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = "CPUよりも早くすべての手札を処理しました！";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = "CPUが先にすべての手札を処理しました。";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "すべての手札を先出し完了しました。";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
         }
 
         function updateUI() {
-            // 捨て場中央
             const disc = document.getElementById('discard');
             disc.className = `discard-pile ${topCard.isRed ? 'red' : ''}`;
             disc.innerText = `${topCard.val}${topCard.suit}`;
 
-            // あなたの手札
             const p1HandEl = document.getElementById('p1-hand');
             p1HandEl.innerHTML = '';
-            p1Hand.forEach((card, idx) => {
-                const playable = canPlay(card) && currentPlayer === 1 && !gameOver;
-                const cardEl = document.createElement('div');
-                cardEl.className = `card ${card.isRed ? 'red' : ''}`;
-                if (!playable) cardEl.classList.add('unplayable');
+            
+            // 2P対戦中、非アクティブプレイヤーの手札を隠す仕様（対面プライバシー機能）
+            if (gameMode === 'vs_player' && currentPlayer === 2 && !gameOver) {
+                p1HandEl.innerHTML = '<div style="opacity:0.5; font-size:12px;">P1の手札は伏せられています</div>';
+            } else {
+                p1Hand.forEach((card, idx) => {
+                    const playable = canPlay(card) && currentPlayer === 1 && !gameOver;
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `card ${card.isRed ? 'red' : ''}`;
+                    if (!playable) cardEl.classList.add('unplayable');
 
-                cardEl.innerHTML = `
-                    <div>${card.val}</div>
-                    <div style="font-size:16px; text-align:center;">${card.suit}</div>
-                    <div style="text-align:right; transform:rotate(180deg);">${card.val}</div>
-                `;
+                    cardEl.innerHTML = `
+                        <div>${card.val}</div>
+                        <div style="font-size:15px; text-align:center;">${card.suit}</div>
+                        <div style="text-align:right; transform:rotate(180deg);">${card.val}</div>
+                    `;
 
-                if (playable) {
-                    cardEl.addEventListener('click', () => playCard(idx));
-                }
-                p1HandEl.appendChild(cardEl);
-            });
+                    if (playable) {
+                        cardEl.addEventListener('click', () => playCard(idx));
+                    }
+                    p1HandEl.appendChild(cardEl);
+                });
+            }
 
-            // 相手の手札（枚数分、裏面表示）
             const p2HandEl = document.getElementById('p2-hand');
             p2HandEl.innerHTML = '';
-            p2Hand.forEach(() => {
-                const cardEl = document.createElement('div');
-                cardEl.className = 'card';
-                cardEl.style.background = 'linear-gradient(135deg, #1f4231 0%, #0d2117 100%)';
-                cardEl.style.border = '1px solid #d4a373';
-                cardEl.innerText = '🎴';
-                cardEl.style.color = '#d4a373';
-                cardEl.style.display = 'flex';
-                cardEl.style.alignItems = 'center';
-                cardEl.style.justifyContent = 'center';
-                p2HandEl.appendChild(cardEl);
-            });
+
+            if (gameMode === 'vs_player' && currentPlayer === 1 && !gameOver) {
+                p2HandEl.innerHTML = '<div style="opacity:0.5; font-size:12px;">P2の手札は伏せられています</div>';
+            } else if (gameMode === 'vs_cpu') {
+                p2Hand.forEach(() => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'card';
+                    cardEl.style.background = 'linear-gradient(135deg, #1f4231 0%, #0d2117 100%)';
+                    cardEl.style.border = '1px solid #d4a373';
+                    cardEl.innerText = '🎴';
+                    cardEl.style.color = '#d4a373';
+                    cardEl.style.display = 'flex';
+                    cardEl.style.alignItems = 'center';
+                    cardEl.style.justifyContent = 'center';
+                    p2HandEl.appendChild(cardEl);
+                });
+            } else {
+                p2Hand.forEach((card, idx) => {
+                    const playable = canPlay(card) && currentPlayer === 2 && !gameOver;
+                    const cardEl = document.createElement('div');
+                    cardEl.className = `card ${card.isRed ? 'red' : ''}`;
+                    if (!playable) cardEl.classList.add('unplayable');
+
+                    cardEl.innerHTML = `
+                        <div>${card.val}</div>
+                        <div style="font-size:15px; text-align:center;">${card.suit}</div>
+                        <div style="text-align:right; transform:rotate(180deg);">${card.val}</div>
+                    `;
+
+                    if (playable) {
+                        cardEl.addEventListener('click', () => playCard(idx));
+                    }
+                    p2HandEl.appendChild(cardEl);
+                });
+            }
         }
 
         function resetGame() { initGame(); }

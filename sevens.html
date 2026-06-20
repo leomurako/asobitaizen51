@@ -3,58 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>7ならべ - Premium Clone</title>
+    <title>7ならべ - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --board-color: #163a2c; --accent: #d4a373; --text-color: #f4ede4; }
-        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        :root { --bg-color: #f5f7fb; --board-color: #1e3a2b; --board-border: #563313; --accent: #4a90e2; --text-color: #2d3748; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
         
-        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: rgba(255,255,255,0.03); padding: 8px 30px; border-radius: 20px; font-weight: bold; }
+        .hud { display: flex; gap: 30px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; }
         .turn-text { color: var(--accent); }
 
-        /* 13x4 グリッドボード */
-        .board-wrapper { background: #0c120f; padding: 12px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
-        .board { display: grid; grid-template-rows: repeat(4, 55px); gap: 4px; }
-        .row { display: grid; grid-template-columns: repeat(13, 40px); gap: 4px; }
+        .board-wrapper { background: var(--board-border); padding: 10px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .board { display: grid; grid-template-rows: repeat(4, 52px); gap: 4px; background: #0f2319; padding: 8px; border-radius: 6px; }
+        .row { display: grid; grid-template-columns: repeat(13, 38px); gap: 4px; }
         
-        /* 盤面上のカードスロット */
-        .slot { background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255,255,255,0.08); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; position: relative; box-sizing: border-box; }
-        .slot.has-card { background: #fff; color: #111; border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.3); }
+        .slot { background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255,255,255,0.1); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; box-sizing: border-box; }
+        .slot.has-card { background: #fff; color: #111; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.25); }
         .slot.has-card.red { color: #d9534f; }
 
-        /* 手札エリア */
-        .hand-wrapper { width: 100%; max-width: 600px; margin-top: 20px; display: flex; flex-direction: column; align-items: center; }
-        .hand-label { font-size: 11px; opacity: 0.5; margin-bottom: 8px; letter-spacing: 2px; }
-        .hand { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 80px; }
+        .hand-wrapper { width: 100%; max-width: 580px; margin-top: 20px; display: flex; flex-direction: column; align-items: center; }
+        .hand { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 70px; }
         
-        /* 手札用カードデザイン */
-        .card { width: 40px; height: 55px; background: #fff; color: #111; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 3px; font-size: 12px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.3); box-sizing: border-box; transition: transform 0.1s; }
-        .card:hover { transform: translateY(-8px); }
+        .card { width: 38px; height: 52px; background: #fff; color: #111; border-radius: 4px; display: flex; flex-direction: column; justify-content: space-between; padding: 2px; font-size: 11px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); box-sizing: border-box; transition: transform 0.1s; border: 1px solid #cbd5e1; }
+        .card:hover { transform: translateY(-6px); }
         .card.red { color: #d9534f; }
-        .card.unplayable { opacity: 0.4; cursor: not-allowed; }
+        .card.unplayable { opacity: 0.3; cursor: not-allowed; }
         .card.unplayable:hover { transform: none; }
 
-        .controls { margin-top: 15px; display: flex; gap: 15px; }
-        button { background-color: #26352d; color: var(--text-color); border: 1px solid rgba(255, 255, 255, 0.1); padding: 8px 20px; font-size: 13px; font-weight: 600; border-radius: 20px; cursor: pointer; transition: background 0.2s; }
-        button:hover { background-color: #32463b; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        button { background-color: #ffffff; color: var(--text-color); border: 1.5px solid var(--accent); padding: 8px 20px; font-size: 13px; font-weight: 700; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+        button:hover { background-color: rgba(74, 144, 226, 0.08); }
         button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="hud">
-        <div>あなたパス: <span id="p1-pass">0</span> / 3</div>
-        <div class="turn-text" id="status-text">あなた（Player 1）の番です</div>
-        <div>相手パス: <span id="p2-pass">0</span> / 3</div>
+        <div>P1 パス: <span id="p1-pass">0</span>/3</div>
+        <div class="turn-text" id="status-text">Player 1 の手番です</div>
+        <div id="p2-pass-hud">P2 パス: <span id="p2-pass">0</span>/3</div>
     </div>
 
-    <!-- 4スート x 13の場 -->
     <div class="board-wrapper">
         <div class="board" id="board"></div>
     </div>
 
-    <!-- 手札 -->
     <div class="hand-wrapper">
-        <div class="hand-label">YOUR HAND (出せるカードが光っています)</div>
         <div class="hand" id="hand"></div>
     </div>
 
@@ -63,17 +62,38 @@
         <button onclick="resetGame()">リセット</button>
     </div>
 
+    <!-- 交代告知用モーダル -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
     <script>
-        const suits = ['❤️', '♦️', '♠️', '♣️']; // H(0), D(1), S(2), C(3)
+        const suits = ['❤️', '♦️', '♠️', '♣️'];
         const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
         
         let boardState = Array(4).fill(null).map(() => Array(13).fill(false));
         let p1Hand = [];
-        let p2Hand = []; // CPU
-        let p1Pass = 0;
-        let p2Pass = 0;
-        let currentPlayer = 1; // 1: Player, 2: CPU
+        let p2Hand = []; 
+        let passes = [0, 0];
+        let currentPlayer = 1; 
         let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
 
         const boardEl = document.getElementById('board');
         const handEl = document.getElementById('hand');
@@ -81,18 +101,20 @@
 
         function initGame() {
             boardState = Array(4).fill(null).map(() => Array(13).fill(false));
-            p1Hand = []; p2Hand = []; p1Pass = 0; p2Pass = 0; currentPlayer = 1; gameOver = false;
+            p1Hand = []; p2Hand = []; passes = [0, 0]; currentPlayer = 1; gameOver = false;
 
             document.getElementById('p1-pass').innerText = 0;
             document.getElementById('p2-pass').innerText = 0;
-            statusText.innerText = "あなた（Player 1）の番です";
+            document.getElementById('p2-pass-hud').style.display = 'block';
+            statusText.innerText = "Player 1 の手番";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
 
-            // 全カード生成して「7」以外をシャッフル
             let pool = [];
             for (let s = 0; s < 4; s++) {
                 for (let v = 0; v < 13; v++) {
                     if (v === 6) {
-                        boardState[s][v] = true; // 7は自動設置
+                        boardState[s][v] = true; // 7
                     } else {
                         pool.push({ s, v, isRed: (s < 2) });
                     }
@@ -100,7 +122,6 @@
             }
             pool.sort(() => Math.random() - 0.5);
 
-            // 24枚ずつ配る
             p1Hand = pool.slice(0, 24).sort((a,b) => a.s - b.s || a.v - b.v);
             p2Hand = pool.slice(24, 48).sort((a,b) => a.s - b.s || a.v - b.v);
 
@@ -123,7 +144,6 @@
             }
         }
 
-        // カードが場に出せるか確認
         function isPlayable(s, v) {
             if (v > 0 && boardState[s][v - 1]) return true;
             if (v < 12 && boardState[s][v + 1]) return true;
@@ -131,7 +151,6 @@
         }
 
         function updateUI() {
-            // 盤面の描画更新
             for (let s = 0; s < 4; s++) {
                 for (let v = 0; v < 13; v++) {
                     const slot = document.getElementById(`slot-${s}-${v}`);
@@ -145,21 +164,27 @@
                 }
             }
 
-            // 手札の描画
             handEl.innerHTML = '';
-            const p1HasPlayable = p1Hand.some(c => isPlayable(c.s, c.v));
-            document.getElementById('pass-btn').disabled = p1HasPlayable || gameOver || currentPlayer !== 1;
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+            const hasPlayable = activeHand.some(c => isPlayable(c.s, c.v));
+            document.getElementById('pass-btn').disabled = hasPlayable || gameOver;
 
-            p1Hand.forEach((card, idx) => {
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) {
+                // CPUターン中は手札描画をスキップ
+                handEl.innerHTML = '<div style="opacity:0.5; font-size:12px;">CPUの思考中...</div>';
+                return;
+            }
+
+            activeHand.forEach((card, idx) => {
                 const cardEl = document.createElement('div');
-                const playable = isPlayable(card.s, card.v) && currentPlayer === 1 && !gameOver;
+                const playable = isPlayable(card.s, card.v) && !gameOver;
                 
                 cardEl.className = `card ${card.isRed ? 'red' : ''}`;
                 if (!playable) cardEl.classList.add('unplayable');
                 
                 cardEl.innerHTML = `
                     <div>${values[card.v]}</div>
-                    <div style="font-size:16px; text-align:center;">${suits[card.s]}</div>
+                    <div style="font-size:14px; text-align:center;">${suits[card.s]}</div>
                     <div style="text-align:right; transform:rotate(180deg);">${values[card.v]}</div>
                 `;
 
@@ -171,88 +196,135 @@
         }
 
         function playCard(handIdx) {
-            if (gameOver || currentPlayer !== 1) return;
+            if (gameOver) return;
 
-            const card = p1Hand.splice(handIdx, 1)[0];
+            const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+            const card = activeHand.splice(handIdx, 1)[0];
             boardState[card.s][card.v] = true;
 
-            if (p1Hand.length === 0) {
-                endGame("あなたの勝ち！手札がなくなりました！");
+            if (activeHand.length === 0) {
+                showFinalResult(currentPlayer);
                 return;
             }
 
-            currentPlayer = 2;
-            statusText.innerText = "相手（CPU）が思考中...";
-            updateUI();
-
-            setTimeout(cpuTurn, 800);
+            switchTurn();
         }
 
         function playerPass() {
-            if (gameOver || currentPlayer !== 1) return;
-            p1Pass++;
-            document.getElementById('p1-pass').innerText = p1Pass;
+            if (gameOver) return;
+            
+            passes[currentPlayer - 1]++;
+            document.getElementById(`p${currentPlayer}-pass`).innerText = passes[currentPlayer - 1];
 
-            if (p1Pass > 3) {
-                // 4回パスで脱落 -> 全カードを場に強制放出
-                alert("パス制限（3回）を超えたため、脱落しました。手札をすべて場に放出します。");
-                p1Hand.forEach(c => boardState[c.s][c.v] = true);
-                p1Hand = [];
-                endGame("相手（CPU）の不戦勝です...");
+            if (passes[currentPlayer - 1] > 3) {
+                showCustomAlert("脱落", `Player ${currentPlayer} はパス制限（3回）を超えたため脱落しました。手札をすべて場に放出します。`);
+                const activeHand = currentPlayer === 1 ? p1Hand : p2Hand;
+                activeHand.forEach(c => boardState[c.s][c.v] = true);
+                if (currentPlayer === 1) p1Hand = []; else p2Hand = [];
+                
+                showFinalResult(currentPlayer === 1 ? 2 : 1);
                 return;
             }
 
-            currentPlayer = 2;
-            statusText.innerText = "相手（CPU）が思考中...";
-            updateUI();
-
-            setTimeout(cpuTurn, 800);
+            switchTurn();
         }
 
-        // 簡易CPUロジック
+        function switchTurn() {
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusText.innerText = currentPlayer === 1 ? "Player 1 の手番" : (gameMode === 'vs_cpu' ? "CPUのターン" : "Player 2 の手番");
+
+            if (gameMode === 'vs_player' && !gameOver) {
+                // 対面2人対戦時は手札を見せないように交代アラートを出す
+                showCustomAlert("プレイヤー交代", `次は Player ${currentPlayer} の手番です。端末を渡してください。`);
+            }
+
+            updateUI();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuTurn, 1000);
+            }
+        }
+
         function cpuTurn() {
             if (gameOver) return;
 
-            // 出せるカードを抽出
             const playableIndices = [];
             p2Hand.forEach((c, idx) => {
                 if (isPlayable(c.s, c.v)) playableIndices.push(idx);
             });
 
             if (playableIndices.length > 0) {
-                // 出せる中から適当に1枚出す（戦略的にAやKを出すAIに拡張も可能）
-                const choice = playableIndices[Math.floor(Math.random() * playableIndices.length)];
+                let choice = playableIndices[0];
+                if (difficulty === 'easy') {
+                    choice = playableIndices[Math.floor(Math.random() * playableIndices.length)];
+                } else {
+                    // AやKに近い端のカードを抱える（出さない）戦略
+                    let bestIdx = playableIndices[0];
+                    let maxDist = -1;
+                    playableIndices.forEach(idx => {
+                        const dist = Math.abs(p2Hand[idx].v - 6); // 7(インデックス6)からの距離
+                        if (dist > maxDist) {
+                            maxDist = dist;
+                            bestIdx = idx;
+                        }
+                    });
+                    choice = bestIdx;
+                }
+
                 const card = p2Hand.splice(choice, 1)[0];
                 boardState[card.s][card.v] = true;
 
                 if (p2Hand.length === 0) {
-                    endGame("相手（CPU）の勝ちです。手札がなくなりました。");
+                    showFinalResult(2);
                     return;
                 }
+                switchTurn();
             } else {
-                // パス
-                p2Pass++;
-                document.getElementById('p2-pass').innerText = p2Pass;
-                alert(`相手（CPU）がパスしました。 (相手パス数: ${p2Pass}/3)`);
+                passes[1]++;
+                document.getElementById('p2-pass').innerText = passes[1];
+                showCustomAlert("CPUパス", `CPUがパスしました。 (パス: ${passes[1]}/3)`);
 
-                if (p2Pass > 3) {
-                    alert("相手（CPU）が脱落したため、あなたの勝ちです！");
+                if (passes[1] > 3) {
                     p2Hand.forEach(c => boardState[c.s][c.v] = true);
                     p2Hand = [];
-                    endGame("あなたの不戦勝です！");
+                    showFinalResult(1);
                     return;
                 }
+                switchTurn();
             }
-
-            currentPlayer = 1;
-            statusText.innerText = "あなた（Player 1）の番です";
-            updateUI();
         }
 
-        function endGame(msg) {
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
             gameOver = true;
-            statusText.innerText = `ゲーム終了！ ${msg}`;
             updateUI();
+
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = "すべての手札を出し切りました。";
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = "CPUが先に手札を使い切りました。";
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                descEl.innerText = "すべての手札を綺麗に並び終えました。";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
         }
 
         function resetGame() { initGame(); }

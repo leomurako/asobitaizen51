@@ -3,46 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ヨット - Premium Clone</title>
+    <title>ヨット - Deluxe Edition</title>
     <style>
-        :root { --bg-color: #121915; --text-color: #f4ede4; --accent: #d4a373; }
-        body { margin: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; user-select: none; }
         
-        .game-container { display: flex; gap: 30px; background: rgba(255,255,255,0.02); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 15px 35px rgba(0,0,0,0.5); max-width: 800px; width: 95%; }
+        .game-container { display: flex; gap: 20px; background: #ffffff; padding: 20px; border-radius: 24px; border: 1px solid #e2e8f0; box-shadow: 0 15px 35px rgba(0,0,0,0.06); max-width: 820px; width: 95%; box-sizing: border-box; }
         
-        /* プレイエリア（サイコロ） */
-        .play-side { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 45%; }
-        .dice-container { display: flex; gap: 10px; margin-bottom: 25px; min-height: 80px; align-items: center; }
-        .die { width: 50px; height: 50px; background: #fff; color: #111; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.15s, box-shadow 0.15s; position: relative; }
-        .die.kept { transform: translateY(-10px); box-shadow: 0 10px 15px rgba(212,163,115,0.4); border: 2px solid var(--accent); }
-        .die.rolling { animation: shuffle 0.2s infinite; }
-        @keyframes shuffle { 0% { transform: rotate(0deg) scale(0.9); } 50% { transform: rotate(15deg) scale(1.1); } 100% { transform: rotate(-15deg) scale(0.9); } }
+        /* プレイエリア */
+        .play-side { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 40%; border-right: 1px solid #e2e8f0; padding-right: 20px; }
+        .dice-container { display: flex; gap: 8px; margin-bottom: 20px; min-height: 70px; align-items: center; }
+        .die { width: 44px; height: 44px; background: #fff; color: #111; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; cursor: pointer; box-shadow: 0 3px 6px rgba(0,0,0,0.15); border: 1.5px solid #cbd5e1; transition: transform 0.15s, box-shadow 0.15s; }
+        .die.kept { transform: translateY(-8px); box-shadow: 0 8px 12px rgba(74,144,226,0.3); border-color: var(--accent-color); }
+        .die.rolling { animation: shuffle 0.15s infinite; }
+        @keyframes shuffle { 0% { transform: rotate(0deg) scale(0.95); } 50% { transform: rotate(10deg) scale(1.05); } 100% { transform: rotate(-10deg) scale(0.95); } }
 
-        .btn-roll { background: var(--accent); color: #352110; border: none; font-size: 16px; font-weight: bold; padding: 12px 30px; border-radius: 25px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin-bottom: 10px; }
-        .btn-roll:hover { background: #e6ccb2; }
+        .btn-roll { background: var(--accent-color); color: #fff; border: none; font-size: 15px; font-weight: bold; padding: 10px 24px; border-radius: 20px; cursor: pointer; box-shadow: 0 4px 10px rgba(74,144,226,0.2); }
+        .btn-roll:hover:not(:disabled) { background: var(--accent-hover); }
         .btn-roll:disabled { opacity: 0.3; cursor: not-allowed; }
-        .roll-count { font-size: 13px; opacity: 0.6; }
+        .roll-count { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 
-        /* スコア表 */
-        .score-side { width: 55%; background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; border: 1px solid rgba(255,255,255,0.03); }
+        /* スコア表（2列設計） */
+        .score-side { width: 60%; }
         .score-table { width: 100%; border-collapse: collapse; }
-        .score-row { border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; transition: background 0.15s; }
+        .score-row { border-bottom: 1px solid #f1f5f9; cursor: pointer; }
         .score-row.fixed { cursor: default; }
-        .score-row:hover:not(.fixed):not(.summary-row) { background: rgba(255,255,255,0.04); }
-        .score-row.summary-row { background: rgba(212,163,115,0.08); font-weight: bold; cursor: default; }
-        .score-table td { padding: 8px 12px; font-size: 13px; }
-        .score-val { text-align: right; font-weight: bold; font-size: 14px; }
-        .score-val.preview { color: #d4a373; opacity: 0.7; }
-        .score-val.confirmed { color: #8ac926; }
+        .score-row:hover:not(.fixed):not(.summary-row) { background: #f8fafc; }
+        .score-row.summary-row { background: rgba(74, 144, 226, 0.05); font-weight: bold; cursor: default; }
+        .score-table td { padding: 6px 10px; font-size: 12px; }
+        .score-val { text-align: right; font-weight: bold; font-size: 13px; width: 45px; }
+        .score-val.preview { color: var(--accent-color); opacity: 0.6; }
+        .score-val.confirmed { color: #2d3748; }
+        .score-val.empty { color: #cbd5e1; }
+        .current-turn-col { background-color: rgba(74,144,226,0.03); }
+
+        /* モーダル */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="game-container">
-        <!-- ダイスエリア -->
+        <!-- ダイス操作 -->
         <div class="play-side">
-            <h3 style="margin-top: 0; color: var(--accent);">DICE AREA</h3>
-            <p style="font-size: 12px; opacity: 0.6; text-align: center; margin-bottom: 20px;">キープしたいダイスをタップしてください</p>
+            <h3 style="margin: 0 0 5px; color: var(--accent-color); font-size: 18px;" id="turn-title">Player 1 の番</h3>
+            <p style="font-size: 11px; color: #64748b; text-align: center; margin-bottom: 15px;" id="game-sub-title">ダイスをキープして役を作りましょう</p>
             <div class="dice-container" id="dice-box">
                 <div class="die" onclick="toggleKeep(0)">⚀</div>
                 <div class="die" onclick="toggleKeep(1)">⚁</div>
@@ -50,71 +60,111 @@
                 <div class="die" onclick="toggleKeep(3)">⚃</div>
                 <div class="die" onclick="toggleKeep(4)">⚄</div>
             </div>
-            <button class="btn-roll" id="roll-btn" onclick="rollDice()">ダイスを振る</button>
+            <button class="btn-roll" id="roll-btn" onclick="rollDice()">ロールする</button>
             <div class="roll-count" id="roll-count-text">残り回数: 3</div>
         </div>
 
-        <!-- スコア表エリア -->
+        <!-- スコア表 -->
         <div class="score-side">
             <table class="score-table">
-                <tr class="score-row" id="row-aces" onclick="confirmScore('aces')">
-                    <td>1 (Aces)</td>
-                    <td class="score-val preview" id="score-aces">-</td>
-                </tr>
-                <tr class="score-row" id="row-deuces" onclick="confirmScore('deuces')">
-                    <td>2 (Deuces)</td>
-                    <td class="score-val preview" id="score-deuces">-</td>
-                </tr>
-                <tr class="score-row" id="row-threes" onclick="confirmScore('threes')">
-                    <td>3 (Threes)</td>
-                    <td class="score-val preview" id="score-threes">-</td>
-                </tr>
-                <tr class="score-row" id="row-fours" onclick="confirmScore('fours')">
-                    <td>4 (Fours)</td>
-                    <td class="score-val preview" id="score-fours">-</td>
-                </tr>
-                <tr class="score-row" id="row-fives" onclick="confirmScore('fives')">
-                    <td>5 (Fives)</td>
-                    <td class="score-val preview" id="score-fives">-</td>
-                </tr>
-                <tr class="score-row" id="row-sixes" onclick="confirmScore('sixes')">
-                    <td>6 (Sixes)</td>
-                    <td class="score-val preview" id="score-sixes">-</td>
-                </tr>
-                <!-- ボーナス行 -->
-                <tr class="score-row summary-row">
-                    <td>ボーナス (+35点 / 63点以上)</td>
-                    <td class="score-val" id="score-bonus">0 / 63</td>
-                </tr>
-                <tr class="score-row" id="row-choice" onclick="confirmScore('choice')">
-                    <td>選択 (Choice)</td>
-                    <td class="score-val preview" id="score-choice">-</td>
-                </tr>
-                <tr class="score-row" id="row-four_of_a_kind" onclick="confirmScore('four_of_a_kind')">
-                    <td>フォーカード (4 of a Kind)</td>
-                    <td class="score-val preview" id="score-four_of_a_kind">-</td>
-                </tr>
-                <tr class="score-row" id="row-full_house" onclick="confirmScore('full_house')">
-                    <td>フルハウス (Full House)</td>
-                    <td class="score-val preview" id="score-full_house">-</td>
-                </tr>
-                <tr class="score-row" id="row-s_straight" onclick="confirmScore('s_straight')">
-                    <td>S. ストレート (S. Straight)</td>
-                    <td class="score-val preview" id="score-s_straight">-</td>
-                </tr>
-                <tr class="score-row" id="row-l_straight" onclick="confirmScore('l_straight')">
-                    <td>L. ストレート (L. Straight)</td>
-                    <td class="score-val preview" id="score-l_straight">-</td>
-                </tr>
-                <tr class="score-row" id="row-yacht" onclick="confirmScore('yacht')">
-                    <td>ヨット (Yacht)</td>
-                    <td class="score-val preview" id="score-yacht">-</td>
-                </tr>
-                <tr class="score-row summary-row" style="background: var(--accent); color: #352110;">
-                    <td>合計点数 (TOTAL)</td>
-                    <td class="score-val" id="score-total" style="font-size: 16px;">0</td>
-                </tr>
+                <thead>
+                    <tr style="border-bottom: 2px solid #cbd5e1; font-weight: bold;">
+                        <td>役名 (Categories)</td>
+                        <td style="text-align: right; width:45px;" id="col-p1-title">P1</td>
+                        <td style="text-align: right; width:45px;" id="col-p2-title">P2</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="score-row" id="row-aces" onclick="confirmScore('aces')">
+                        <td>1 (Aces)</td>
+                        <td class="score-val empty" id="p1-aces">-</td>
+                        <td class="score-val empty" id="p2-aces">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-deuces" onclick="confirmScore('deuces')">
+                        <td>2 (Deuces)</td>
+                        <td class="score-val empty" id="p1-deuces">-</td>
+                        <td class="score-val empty" id="p2-deuces">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-threes" onclick="confirmScore('threes')">
+                        <td>3 (Threes)</td>
+                        <td class="score-val empty" id="p1-threes">-</td>
+                        <td class="score-val empty" id="p2-threes">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-fours" onclick="confirmScore('fours')">
+                        <td>4 (Fours)</td>
+                        <td class="score-val empty" id="p1-fours">-</td>
+                        <td class="score-val empty" id="p2-fours">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-fives" onclick="confirmScore('fives')">
+                        <td>5 (Fives)</td>
+                        <td class="score-val empty" id="p1-fives">-</td>
+                        <td class="score-val empty" id="p2-fives">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-sixes" onclick="confirmScore('sixes')">
+                        <td>6 (Sixes)</td>
+                        <td class="score-val empty" id="p1-sixes">-</td>
+                        <td class="score-val empty" id="p2-sixes">-</td>
+                    </tr>
+                    <tr class="score-row summary-row">
+                        <td>ボーナス (上段計63点以上で+35)</td>
+                        <td class="score-val" id="p1-bonus">0</td>
+                        <td class="score-val" id="p2-bonus">0</td>
+                    </tr>
+                    <tr class="score-row" id="row-choice" onclick="confirmScore('choice')">
+                        <td>選択 (Choice)</td>
+                        <td class="score-val empty" id="p1-choice">-</td>
+                        <td class="score-val empty" id="p2-choice">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-four_of_a_kind" onclick="confirmScore('four_of_a_kind')">
+                        <td>フォーカード (4 of a Kind)</td>
+                        <td class="score-val empty" id="p1-four_of_a_kind">-</td>
+                        <td class="score-val empty" id="p2-four_of_a_kind">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-full_house" onclick="confirmScore('full_house')">
+                        <td>フルハウス (Full House)</td>
+                        <td class="score-val empty" id="p1-full_house">-</td>
+                        <td class="score-val empty" id="p2-full_house">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-s_straight" onclick="confirmScore('s_straight')">
+                        <td>S. ストレート (S. Straight)</td>
+                        <td class="score-val empty" id="p1-s_straight">-</td>
+                        <td class="score-val empty" id="p2-s_straight">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-l_straight" onclick="confirmScore('l_straight')">
+                        <td>L. ストレート (L. Straight)</td>
+                        <td class="score-val empty" id="p1-l_straight">-</td>
+                        <td class="score-val empty" id="p2-l_straight">-</td>
+                    </tr>
+                    <tr class="score-row" id="row-yacht" onclick="confirmScore('yacht')">
+                        <td>ヨット (Yacht)</td>
+                        <td class="score-val empty" id="p1-yacht">-</td>
+                        <td class="score-val empty" id="p2-yacht">-</td>
+                    </tr>
+                    <tr class="score-row summary-row" style="background: var(--accent-color); color: #fff;">
+                        <td>合計点数 (TOTAL)</td>
+                        <td class="score-val" id="p1-total">0</td>
+                        <td class="score-val" id="p2-total">0</td>
+                    </tr>
+                </tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
         </div>
     </div>
 
@@ -126,9 +176,29 @@
         let hasRolledThisTurn = false;
 
         let scores = {
-            aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null,
-            choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null
+            p1: { aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null, choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null },
+            p2: { aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null, choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null }
         };
+
+        let currentPlayer = 1; // 1: P1, 2: P2/CPU
+        let gameOver = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player'; 
+        const difficulty = urlParams.get('diff') || 'normal';  
+
+        function initGame() {
+            scores = {
+                p1: { aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null, choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null },
+                p2: { aces: null, deuces: null, threes: null, fours: null, fives: null, sixes: null, choice: null, four_of_a_kind: null, full_house: null, s_straight: null, l_straight: null, yacht: null }
+            };
+            currentPlayer = 1;
+            gameOver = false;
+            document.getElementById('p2-title').innerText = gameMode === 'vs_cpu' ? "CPU" : "P2";
+            document.getElementById('result-overlay').style.display = 'none';
+            closeAlert();
+            resetTurn();
+        }
 
         function resetTurn() {
             rollsLeft = 3;
@@ -136,6 +206,7 @@
             kept = [false, false, false, false, false];
             document.getElementById('roll-btn').disabled = false;
             document.getElementById('roll-count-text').innerText = `残り回数: ${rollsLeft}`;
+            document.getElementById('turn-title').innerText = currentPlayer === 1 ? "あなたの番" : (gameMode === 'vs_cpu' ? "CPUの番" : "Player 2 の番");
             updateDiceUI();
             updateScoresPreview();
         }
@@ -145,29 +216,34 @@
             for (let i = 0; i < 5; i++) {
                 const dieEl = diceBox.children[i];
                 dieEl.innerText = diceGlyphs[dice[i]];
-                if (kept[i]) dieEl.classList.add('kept');
-                else dieEl.classList.remove('kept');
+                dieEl.className = kept[i] ? 'die kept' : 'die';
             }
         }
 
         function toggleKeep(idx) {
+            if (gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
             if (!hasRolledThisTurn || rollsLeft === 0) return;
+
             kept[idx] = !kept[idx];
             updateDiceUI();
         }
 
         function rollDice() {
-            if (rollsLeft === 0) return;
+            if (rollsLeft === 0 || gameOver) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            executeRoll();
+        }
+
+        function executeRoll() {
             rollsLeft--;
             hasRolledThisTurn = true;
             document.getElementById('roll-count-text').innerText = `残り回数: ${rollsLeft}`;
 
             const diceBox = document.getElementById('dice-box');
-            // シャッフル中アニメーション
             for (let i = 0; i < 5; i++) {
-                if (!kept[i]) {
-                    diceBox.children[i].classList.add('rolling');
-                }
+                if (!kept[i]) diceBox.children[i].classList.add('rolling');
             }
 
             setTimeout(() => {
@@ -186,7 +262,6 @@
             }, 400);
         }
 
-        // 各役の計算ロジック
         function calculateScore(category, currentDice) {
             const counts = Array(7).fill(0);
             currentDice.forEach(d => counts[d]++);
@@ -218,68 +293,167 @@
             }
         }
 
-        // スコア表のプレビュー更新
         function updateScoresPreview() {
-            let subtotal = 0;
-            for (let cat in scores) {
-                const el = document.getElementById(`score-${cat}`);
-                if (scores[cat] !== null) {
-                    el.innerText = scores[cat];
-                    el.className = "score-val confirmed";
-                    document.getElementById(`row-${cat}`).classList.add('fixed');
-                    if (['aces','deuces','threes','fours','fives','sixes'].includes(cat)) {
-                        subtotal += scores[cat];
-                    }
-                } else {
-                    if (hasRolledThisTurn) {
-                        el.innerText = calculateScore(cat, dice);
-                        el.className = "score-val preview";
+            // 列のハイライト
+            document.getElementById('col-p1-title').className = currentPlayer === 1 ? 'current-turn-col' : '';
+            document.getElementById('col-p2-title').className = currentPlayer === 2 ? 'current-turn-col' : '';
+
+            // 各セルの書き換え
+            ['p1', 'p2'].forEach((pKey, pIdx) => {
+                const pNum = pIdx + 1;
+                let subtotal = 0;
+
+                for (let cat in scores[pKey]) {
+                    const el = document.getElementById(`${pKey}-${cat}`);
+                    const score = scores[pKey][cat];
+
+                    if (score !== null) {
+                        el.innerText = score;
+                        el.className = "score-val confirmed";
+                        if (['aces','deuces','threes','fours','fives','sixes'].includes(cat)) {
+                            subtotal += score;
+                        }
                     } else {
-                        el.innerText = "-";
-                        el.className = "score-val preview";
+                        if (hasRolledThisTurn && currentPlayer === pNum) {
+                            el.innerText = calculateScore(cat, dice);
+                            el.className = "score-val preview";
+                        } else {
+                            el.innerText = "-";
+                            el.className = "score-val empty";
+                        }
                     }
-                    document.getElementById(`row-${cat}`).classList.remove('fixed');
                 }
-            }
 
-            // 上段ボーナス処理
-            const bonusEl = document.getElementById('score-bonus');
-            if (subtotal >= 63) {
-                bonusEl.innerText = `+35 (${subtotal}/63)`;
-                bonusEl.style.color = "#8ac926";
-            } else {
-                bonusEl.innerText = `${subtotal} / 63`;
-                bonusEl.style.color = "";
-            }
+                // ボーナス
+                const bonusEl = document.getElementById(`${pKey}-bonus`);
+                bonusEl.innerText = subtotal >= 63 ? "+35" : `${subtotal}/63`;
+                bonusEl.style.color = subtotal >= 63 ? "#8ac926" : "";
 
-            // 合計値算出
-            let total = 0;
-            for (let cat in scores) {
-                if (scores[cat] !== null) total += scores[cat];
-            }
-            if (subtotal >= 63) total += 35;
-            document.getElementById('score-total').innerText = total;
+                // 合計
+                let total = 0;
+                for (let cat in scores[pKey]) {
+                    if (scores[pKey][cat] !== null) total += scores[pKey][cat];
+                }
+                if (subtotal >= 63) total += 35;
+                document.getElementById(`${pKey}-total`).innerText = total;
+            });
         }
 
-        // スコア決定
         function confirmScore(category) {
-            if (!hasRolledThisTurn || scores[category] !== null) return;
+            if (gameOver || !hasRolledThisTurn) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
 
-            scores[category] = calculateScore(category, dice);
+            const pKey = currentPlayer === 1 ? 'p1' : 'p2';
+            if (scores[pKey][category] !== null) return; // 既に記入済み
+
+            scores[pKey][category] = calculateScore(category, dice);
+            endTurn();
+        }
+
+        function endTurn() {
             updateScoresPreview();
 
-            // 最終終局判定
-            const isFinished = Object.values(scores).every(s => s !== null);
-            if (isFinished) {
-                setTimeout(() => {
-                    alert(`すべてのラウンドが終了しました！ 合計点数: ${document.getElementById('score-total').innerText}点`);
-                }, 100);
-            } else {
-                resetTurn();
+            // 終局判定
+            const isP1Finished = Object.values(scores.p1).every(s => s !== null);
+            const isP2Finished = Object.values(scores.p2).every(s => s !== null);
+
+            if (isP1Finished && isP2Finished) {
+                gameOver = true;
+                showFinalResult();
+                return;
+            }
+
+            // 手番交代
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            resetTurn();
+
+            if (!gameOver && gameMode === 'vs_cpu' && currentPlayer === 2) {
+                setTimeout(cpuTurn, 1000);
             }
         }
 
-        resetTurn();
+        // CPUの自動思考アルゴリズム
+        function cpuTurn() {
+            if (gameOver) return;
+            executeRoll(); // 1回目振る
+
+            setTimeout(() => {
+                // 役作りのための簡単なサイコロキープ戦略（ふつう以上はペアやストレートをキープする）
+                if (difficulty !== 'easy') {
+                    const counts = Array(7).fill(0);
+                    dice.forEach(d => counts[d]++);
+                    const maxCount = Math.max(...counts);
+                    const targetVal = counts.indexOf(maxCount);
+
+                    // ペア・3つ揃いがあればキープ
+                    if (maxCount >= 2 && targetVal > 0) {
+                        for (let i = 0; i < 5; i++) {
+                            if (dice[i] === targetVal) kept[i] = true;
+                        }
+                    }
+                    updateDiceUI();
+                }
+
+                executeRoll(); // 2回目振る
+
+                setTimeout(() => {
+                    // スコアに最も高い役を自動選択して確定する
+                    const validCats = [];
+                    for (let cat in scores.p2) {
+                        if (scores.p2[cat] === null) validCats.push(cat);
+                    }
+
+                    if (validCats.length > 0) {
+                        // 出せる中から最高得点のものに記入
+                        let bestCat = validCats[0];
+                        let maxVal = -1;
+                        validCats.forEach(cat => {
+                            const val = calculateScore(cat, dice);
+                            if (val > maxVal) {
+                                maxVal = val;
+                                bestCat = cat;
+                            }
+                        });
+
+                        scores.p2[bestCat] = maxVal;
+                        endTurn();
+                    }
+                }, 1000);
+            }, 1000);
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult() {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            const p1Total = parseInt(document.getElementById('p1-total').innerText);
+            const p2Total = parseInt(document.getElementById('p2-total').innerText);
+
+            descEl.innerText = `あなた ${p1Total}点 - ${p2Total}点 ${gameMode === 'vs_cpu' ? 'CPU' : 'Player 2'}`;
+
+            if (p1Total === p2Total) {
+                titleEl.innerText = "🤝 引き分け";
+                titleEl.style.color = "#718096";
+            } else if (p1Total > p2Total) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
     </script>
 </body>
 </html>
