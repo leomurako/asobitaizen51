@@ -75,7 +75,7 @@
             transform: scale(1);
         }
 
-        /* カルーセル */
+        /* 1. カルーセル */
         .carousel-wrapper {
             width: 100%;
             overflow-x: auto;
@@ -439,7 +439,7 @@
                 <!-- SVGイラスト -->
             </div>
             
-            <p class="tut-desc" id="tut-desc-text">ここに解説のテキストが表示されます。</p>
+            <p class="tut-desc" id="tut-desc-text">ここに解説 of a kind! のテキストが表示されます。</p>
             
             <div class="tut-footer">
                 <div class="tut-dots" id="tut-dots-box">
@@ -499,7 +499,7 @@
             }
         }
 
-        // 全36ゲームのメタデータ。一切の省略なしの完全動作仕様
+        // 全30ゲームの完全メタデータ配列（表示漏れのあったスパイダー、モリス、ドミノ、および新ゲーム3作を完全統合）
         const gamesData = {
             reversi: { 
                 title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
@@ -544,7 +544,7 @@
             gomoku: { 
                 title: '五目ならべ', icon: '🪵⚫', file: 'gomoku.html', supports2P: true, 
                 desc: '15x15の碁盤の交点に、交互に自分の石を配置。縦・横・斜めのいずれかで先に隙間なく自分の石を「5枚」一直線に並べた方が勝利となります。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c" stroke="#b8813a" stroke-width="2"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#e2ae6c"/><line x1="5" y1="50" x2="95" y2="50" stroke="#000" stroke-width="2"/><line x1="50" y1="5" x2="50" y2="95" stroke="#000" stroke-width="2"/><circle cx="50" cy="50" r="16" fill="#111"/><circle cx="50" cy="20" r="16" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "美しい木製の碁盤の上で、黒（先手）と白（後手）が格子状の『線の交点』に交互に石を置きます。",
                     "どこに置くかは制限はありません。お互いに攻撃を組み立てつつ、相手の防御をかいくぐって5並びを狙います。",
@@ -554,7 +554,7 @@
             yacht: { 
                 title: 'ヨット', icon: '🎲🗒️', file: 'yacht.html', supports2P: true, 
                 desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="37" cy="45" r="4" fill="#000"/><rect x="54" y="44" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
                 steps: [
                     "サイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
                     "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
@@ -753,7 +753,7 @@
             },
             ninemensmorris: { 
                 title: 'ナインメンズモリス', icon: '⚙️🏷️', file: 'ninemensmorris.html', supports2P: true, 
-                desc: '同心円状 of a kind! の線の上に交互にコマを配置・移動させ、3つのコマを直線上に並べて敵のコマを削り取る世界最古の戦略ボードゲーム。', 
+                desc: '同心円状の線の上に交互にコマを配置・移動させ、3つのコマを直線上に並べて敵のコマを削り取る世界最古の戦略ボードゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="#6d4218" stroke-width="3"/><rect x="25" y="25" width="50" height="50" fill="none" stroke="#6d4218" stroke-width="3"/><rect x="40" y="40" width="20" height="20" fill="none" stroke="#6d4218" stroke-width="3"/><circle cx="50" cy="10" r="4" fill="#ff4d4d"/><circle cx="50" cy="25" r="4" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "手持ちの9個のコマを、空いている交点に1個ずつ交互に置いていきます（配置フェーズ）。",
@@ -777,13 +777,13 @@
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#2d3748"/><rect x="25" y="40" width="30" height="20" rx="4" fill="#4a90e2"/><rect x="35" y="30" width="10" height="15" fill="#4a90e2"/><line x1="40" y1="30" x2="40" y2="15" stroke="#4a90e2" stroke-width="4"/><circle cx="40" cy="15" r="3" fill="#ff595e"/></svg>`,
                 steps: [
                     "方向キー（WASD）で自車戦車を操縦し、画面をクリック（タップ）して砲弾を放ちます。",
-                    "砲弾は壁や障害物に当たると、入射角と同じ角度で1度だけリアルに『跳ね返り（反射）』をします。この反射を利用して死角 of a kind! の敵を狙撃します。",
+                    "砲弾は壁や障害物に当たると、入射角と同じ角度で1度だけリアルに『跳ね返り（反射）』をします。この反射を利用して死角の敵を狙撃します。",
                     "被弾するとライフ減少（または一撃大破）。相手の戦車をすべて破壊することに成功したプレイヤーの勝利です。障害物に隠れる立ち回りが重要です。"
                 ]
             },
             sixball: { 
-                title: '6ボールパズル', icon: '🔵✨', file: 'sixball.html', supports2P: false, 
-                desc: '上から落ちてくるカラーボールを積み重ねていき、同じ色のボールを6個隣接させて消去する2D物理落ちものパズル。', 
+                title: '6ボールパズル', icon: '🔵✨', file: 'sixball.html', supports2P: true, 
+                desc: '3枚のカラーボールが連結したピースを落とし、本家と同様に「ストレート・ピラミッド・ヘキサゴン」の特殊技で相手にお邪魔を降らせる2D対戦パズル。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#1e293b"/><circle cx="35" cy="35" r="10" fill="#ff595e"/><circle cx="65" cy="35" r="10" fill="#4a90e2"/><circle cx="50" cy="65" r="10" fill="#ffca28"/></svg>`,
                 steps: [
                     "上部から落下してくる異なる色のカラーボールを、重力に逆らわずにスタックして積み重ねていきます。",
@@ -811,8 +811,6 @@
                     "制限時間（30秒）以内に的を多く仕留め、合計得点を競い合います。素早く正確なエイムが攻略のポイントです。"
                 ]
             },
-            
-            // --- 今回リクエスト：5つの新規ゲームメタデータ。省略なしの完全書き下し ---
             fishing: { 
                 title: 'フィッシング', icon: '🎣🐠', file: 'fishing.html', supports2P: true, 
                 desc: '水中で自律移動する魚の群れを見極め、釣り糸を垂らして大物を釣り上げるタイミングアクション。', 
@@ -835,7 +833,7 @@
             },
             carrom: { 
                 title: 'キャロム', icon: '🪙🏁', file: 'carrom.html', supports2P: true, 
-                desc: '（準備中）木製の正方形ボード上で、ディスクを指で弾いて四隅のポケットに落とし合う『盤上のビリヤード』。', 
+                desc: '木製の正方形ボード上で、ディスクを指で弾いて四隅のポケットに落とし合う『盤上のビリヤード』。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" rx="12" fill="#e2ae6c" stroke="#8b5a2b" stroke-width="4"/><circle cx="18" cy="18" r="6" fill="#3c2009"/><circle cx="82" cy="18" r="6" fill="#3c2009"/><circle cx="18" cy="82" r="6" fill="#3c2009"/><circle cx="82" cy="82" r="6" fill="#3c2009"/><circle cx="50" cy="50" r="10" fill="none" stroke="#8b5a2b" stroke-width="2"/></svg>`,
                 steps: [
                     "フリック操作（引いて離す）で、ストライカー（親駒）を任意の強さ・角度で弾きます。",
@@ -845,7 +843,7 @@
             },
             billiards: { 
                 title: 'ビリヤード', icon: '🎱🎱', file: 'billiards.html', supports2P: true, 
-                desc: '（準備中）キューを引く強さと角度を調整して手球を撞き、テーブル上の的球をクッション反射等を利用してポケットに落とす定番ゲーム。', 
+                desc: 'キューを引く強さと角度を調整して手球を撞き、テーブル上の的球をクッション反射等を利用してポケットに落とす定番ゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="15" width="90" height="70" rx="8" fill="#1b4332" stroke="#563313" stroke-width="3"/><circle cx="35" cy="50" r="10" fill="#fff" stroke="#ccc"/><circle cx="65" cy="50" r="10" fill="#111"/></svg>`,
                 steps: [
                     "マウスドラッグでキュー（棒）の角度と引く強さを微調整して、白い手球を撞（つ）きます。",
@@ -855,7 +853,7 @@
             },
             darts: { 
                 title: 'ダーツ', icon: '🎯✨', file: 'darts.html', supports2P: true, 
-                desc: '（準備中）一定のリズムでスライドするメーターのタイミングを見極め、ダーツを投げて得点エリアを射抜くダーツゲーム。', 
+                desc: '一定のリズムでスライドするメーターのタイミングを見極め、ダーツを投げて得点エリアを射抜くダーツゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="44" fill="none" stroke="#222" stroke-width="12" stroke-dasharray="14 10"/><circle cx="50" cy="50" r="28" fill="none" stroke="#e53e3e" stroke-width="4"/><circle cx="50" cy="50" r="14" fill="none" stroke="#4a90e2" stroke-width="4"/><circle cx="50" cy="50" r="4" fill="#ffca28"/></svg>`,
                 steps: [
                     "画面上を左右・上下に激しくスライド移動するパワーと角度のゲージを見極めます。",
@@ -990,7 +988,6 @@
             updateConfigButtons();
         }
 
-        // カルーセル選択画面へ戻る
         function goToCarousel() {
             playTickSound();
             screenSetup.classList.remove('active');
