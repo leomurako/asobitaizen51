@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ダーツ - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; }
+        .score-val { color: var(--accent-color); font-size: 18px; }
+
+        .canvas-container { background: #1a202c; padding: 10px; border-radius: 24px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background-color: #2d3748; cursor: pointer; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; line-height: 1.5; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">SCORE: <span id="score" class="score-val">0</span></div>
+        <div style="color:var(--accent-color);" id="status-text">矢をタップで投射！</div>
+        <div class="score">残り投数: <span id="darts-left" class="score-val">3</span>本</div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="320" height="320"></canvas>
+    </div>
+
+    <div class="instructions">
+        投射：ボード上を不規則に揺れ動く「手ブレ照準（青）」を見極め、画面内を任意のタイミングでクリックします。<br>
+        ※赤い中心（ブル）に近いほど高得点（インナーブル：50点）。全3本の合計点を競います！
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">ゲーム終了！</h2>
+            <p id="result-desc">最終スコア: 0点</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ボード中心
+        const boardX = 160;
+        const boardY = 160;
+
+        // ダーツ情報
+        let score = 0;
+        let dartsLeft = 3;
+        let gameOver = false;
+        
+        // 手ブレ照準の自律移動パラメータ（リサージュ曲線）
+        let aim = { x: 160, y: 160, t: 0 };
+        let thrownDarts = []; // 刺さったダーツの位置 { x, y, score }
+
+        function initGame() {
+            score = 0;
+            dartsLeft = 3;
+            gameOver = false;
+            thrownDarts = [];
+            aim = { x: 160, y: 160, t: Math.random() * 100 };
+
+            document.getElementById('score').innerText = 0;
+            document.getElementById('darts-left').innerText = 3;
+            document.getElementById('status-text').innerText = "狙いをすましてください";
+            document.getElementById('result-overlay').style.display = 'none';
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 画面クリックで矢を投擲
+        canvas.addEventListener('mousedown', () => {
+            if (gameOver || dartsLeft <= 0) return;
+
+            throwDart();
+        });
+
+        function throwDart() {
+            dartsLeft--;
+            document.getElementById('darts-left').innerText = dartsLeft;
+
+            // 刺さった場所の得点計算
+            const dist = Math.hypot(aim.x - boardX, aim.y - boardY);
+            let p = 0;
+
+            if (dist < 10) {
+                p = 50; // インナーブル（赤中央）
+                document.getElementById('status-text').innerText = "🎯 INNER BULL!! (50点)";
+            } else if (dist < 25) {
+                p = 25; // アウターブル（緑環）
+                document.getElementById('status-text').innerText = "🎯 OUTER BULL! (25点)";
+            } else if (dist < 60) {
+                p = 15; // 通常シングル内
+                document.getElementById('status-text').innerText = "HIT (15点)";
+            } else if (dist < 110) {
+                p = 10; // シングル外
+                document.getElementById('status-text').innerText = "HIT (10点)";
+            } else {
+                p = 0; // アウト
+                document.getElementById('status-text').innerText = "MISS (0点)";
+            }
+
+            score += p;
+            document.getElementById('score').innerText = score;
+
+            // 刺さった矢を記録
+            thrownDarts.push({ x: aim.x, y: aim.y, score: p });
+
+            if (dartsLeft <= 0) {
+                setTimeout(endGame, 1200);
+            }
+        }
+
+        function gameLoop() {
+            if (gameOver) return;
+
+            updateAimPhysics();
+            drawDartsGame();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // リサージュ関数による不規則な手ブレ軌道の再現
+        function updateAimPhysics() {
+            aim.t += 0.04;
+            // 振幅幅を段階的に揺らし、照準が滑らかに揺れるように計算
+            aim.x = boardX + Math.sin(aim.t) * 45 + Math.cos(aim.t * 2.2) * 20;
+            aim.y = boardY + Math.cos(aim.t * 1.5) * 45 + Math.sin(aim.t * 1.8) * 15;
+        }
+
+        function drawDartsGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. ダーツボードの同心円描画
+            // 外側ダブル枠（黒・赤交互に見せるビジュアル）
+            ctx.fillStyle = '#1a202c';
+            ctx.strokeStyle = '#2d3748';
+            ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.arc(boardX, boardY, 120, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            // トリプル環（緑・赤のギザギザ模様は同心円カラーグラデーションでデフォルメ表現）
+            ctx.strokeStyle = '#2b8a3e';
+            ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(boardX, boardY, 95, 0, Math.PI*2); ctx.stroke();
+
+            // 内側シングル部
+            ctx.fillStyle = '#111';
+            ctx.beginPath(); ctx.arc(boardX, boardY, 80, 0, Math.PI*2); ctx.fill();
+
+            // アウターブル（緑環）
+            ctx.fillStyle = '#2b8a3e';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(boardX, boardY, 25, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            // インナーブル（赤中央）
+            ctx.fillStyle = '#e53e3e';
+            ctx.beginPath(); ctx.arc(boardX, boardY, 10, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            // 2. 刺さっているすべての矢を描画
+            thrownDarts.forEach(dart => {
+                ctx.save();
+                // 刺さった矢のフライト（ハネ：黄）
+                ctx.fillStyle = '#ffca28';
+                ctx.strokeStyle = '#111';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(dart.x, dart.y, 5, 0, Math.PI * 2);
+                ctx.fill(); ctx.stroke();
+                
+                // フライトクロス
+                ctx.strokeStyle = '#111';
+                ctx.beginPath();
+                ctx.moveTo(dart.x - 7, dart.y); ctx.lineTo(dart.x + 7, dart.y);
+                ctx.moveTo(dart.x, dart.y - 7); ctx.lineTo(dart.x, dart.y + 7);
+                ctx.stroke();
+                ctx.restore();
+            });
+
+            // 3. 自律手ブレ照準クロスヘアの描画
+            ctx.strokeStyle = '#4a90e2';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(aim.x, aim.y, 8, 0, Math.PI*2);
+            ctx.moveTo(aim.x - 12, aim.y); ctx.lineTo(aim.x + 12, aim.y);
+            ctx.moveTo(aim.x, aim.y - 12); ctx.lineTo(aim.x, aim.y + 12);
+            ctx.stroke();
+        }
+
+        function endGame() {
+            gameOver = true;
+            document.getElementById('result-desc').innerText = `最終合計獲得スコア: ${score}点`;
+            document.getElementById('result-overlay').style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>キャロム - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --board-wood: #6d4218; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .hud span { font-size: 14px; }
+
+        .canvas-container { background: var(--board-wood); padding: 10px; border-radius: 24px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background-color: #f5d19a; cursor: pointer; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; line-height: 1.5; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなた残: <span id="p1-stock" style="color:#ff595e;">6</span>球</div>
+        <div style="color:var(--accent-color);" id="status-text">キャロム</div>
+        <div class="score" id="p2-hud">CPU残: <span id="p2-stock" style="color:#4a90e2;">6</span>球</div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="340" height="340"></canvas>
+    </div>
+
+    <div class="instructions">
+        投射：手前のストライカーを長押しし、「手前側に引っ張って」方向と強さを調整し、離して発射します！<br>
+        ※四隅のポケットに、自分の色のディスクを相手より一足早くすべて落としきった方の勝利です。
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 四隅のポケット座標
+        const pockets = [
+            { x: 22, y: 22, r: 16 },
+            { x: 318, y: 22, r: 16 },
+            { x: 22, y: 318, r: 16 },
+            { x: 318, y: 318, r: 16 }
+        ];
+
+        // ディスク配列 { x, y, vx, vy, r, owner, isStriker }
+        let disks = [];
+        let p1Stock = 6;
+        let p2Stock = 6;
+        let currentPlayer = 1;
+
+        let isAiming = false;
+        let dragX = 0, dragY = 0;
+        let gameOver = false;
+        let physicalLock = false; // ディスク運動中の操作ロック
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        function initGame() {
+            disks = [];
+            p1Stock = 6;
+            p2Stock = 6;
+            currentPlayer = 1;
+            gameOver = false;
+            isAiming = false;
+            physicalLock = false;
+
+            document.getElementById('p2-hud').innerHTML = gameMode === 'vs_cpu' ? `CPU残: <span id="p2-stock" style="color:#4a90e2;">6</span>球` : `相手残: <span id="p2-stock" style="color:#4a90e2;">6</span>球`;
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('status-text').innerText = "あなたのターン：狙いを定めてください";
+            closeAlert();
+
+            // 中央にターゲットディスクを円形に配置 (赤6個、青6個)
+            const centerY = 170;
+            const centerX = 170;
+            const dist = 32;
+            for (let i = 0; i < 6; i++) {
+                const angle = (i / 6) * Math.PI * 2;
+                disks.push({ x: centerX + Math.cos(angle) * dist, y: centerY + Math.sin(angle) * dist, vx: 0, vy: 0, r: 10, owner: 1, isStriker: false });
+                disks.push({ x: centerX + Math.cos(angle + 0.5) * (dist + 15), y: centerY + Math.sin(angle + 0.5) * (dist + 15), vx: 0, vy: 0, r: 10, owner: 2, isStriker: false });
+            }
+
+            updateStockUI();
+            requestAnimationFrame(physicsLoop);
+        }
+
+        // 操作リスナー
+        canvas.addEventListener('mousedown', e => {
+            if (gameOver || physicalLock) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // ストライカー初期位置（下部の射出ライン：170, 280）
+            const strikerY = currentPlayer === 1 ? 280 : 60;
+            const dist = Math.hypot(clickX - 170, clickY - strikerY);
+            if (dist < 22) {
+                isAiming = true;
+                dragX = clickX;
+                dragY = clickY;
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!isAiming) return;
+            const rect = canvas.getBoundingClientRect();
+            dragX = e.clientX - rect.left;
+            dragY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (!isAiming) return;
+            isAiming = false;
+
+            const strikerY = currentPlayer === 1 ? 280 : 60;
+            const dx = 170 - dragX;
+            const dy = strikerY - dragY;
+
+            launchStriker(dx * 0.15, dy * 0.15);
+        });
+
+        function launchStriker(vx, vy) {
+            physicalLock = true;
+            const strikerY = currentPlayer === 1 ? 280 : 60;
+            disks.push({
+                x: 170,
+                y: strikerY,
+                vx: vx,
+                vy: vy,
+                r: 13, // ストライカーは少し大きい
+                owner: currentPlayer,
+                isStriker: true
+            });
+        }
+
+        function physicsLoop() {
+            if (gameOver) return;
+
+            updatePhysics();
+            drawBoard();
+
+            requestAnimationFrame(physicsLoop);
+        }
+
+        function updatePhysics() {
+            let anyMoving = false;
+
+            // 1. 移動・摩擦減衰
+            disks.forEach((s, idx) => {
+                if (Math.hypot(s.vx, s.vy) > 0.05) {
+                    s.x += s.vx;
+                    s.y += s.vy;
+                    s.vx *= 0.98;
+                    s.vy *= 0.98;
+                    anyMoving = true;
+                } else {
+                    s.vx = 0; s.vy = 0;
+                }
+
+                // 壁衝突反射
+                if (s.x < s.r || s.x > canvas.width - s.r) { s.vx = -s.vx * 0.7; s.x = s.x < s.r ? s.r : canvas.width - s.r; }
+                if (s.y < s.r || s.y > canvas.height - s.r) { s.vy = -s.vy * 0.7; s.y = s.y < s.r ? s.r : canvas.height - s.r; }
+
+                // 四隅のポケット落下判定
+                pockets.forEach(pocket => {
+                    const distToPocket = Math.hypot(s.x - pocket.x, s.y - pocket.y);
+                    if (distToPocket < pocket.r) {
+                        // 落下消滅
+                        if (s.isStriker) {
+                            // ストライカーが落ちた場合はファウル（ペナルティとしてストーンを1枚場に戻すなどの拡張も可能）
+                            disks.splice(idx, 1);
+                            showCustomAlert("ファウル！", "ストライカーがポケットに落ちてしまいました！");
+                        } else {
+                            disks.splice(idx, 1);
+                            if (s.owner === 1) p1Stock--; else p2Stock--;
+                            updateStockUI();
+                            showCustomAlert("ナイスイン！", `${s.owner === 1 ? 'あなた' : 'CPU'}がディスクをポケットに沈めました！`);
+                            checkGameResult();
+                        }
+                    }
+                });
+            });
+
+            // 2. ディスク同士の弾性衝突物理
+            for (let i = 0; i < disks.length; i++) {
+                for (let j = i + 1; j < disks.length; j++) {
+                    const s1 = disks[i];
+                    const s2 = disks[j];
+                    const dist = Math.hypot(s1.x - s2.x, s1.y - s2.y);
+                    const minDist = s1.r + s2.r;
+
+                    if (dist < minDist) {
+                        const overlap = minDist - dist;
+                        const nx = (s2.x - s1.x) / dist;
+                        const ny = (s2.y - s1.y) / dist;
+                        s1.x -= nx * overlap * 0.5;
+                        s1.y -= ny * overlap * 0.5;
+                        s2.x += nx * overlap * 0.5;
+                        s2.y += ny * overlap * 0.5;
+
+                        const kx = s1.vx - s2.vx;
+                        const ky = s1.vy - s2.vy;
+                        const p = 2 * (nx * kx + ny * ky) / 2;
+
+                        s1.vx -= p * nx;
+                        s1.vy -= p * ny;
+                        s2.vx += p * nx;
+                        s2.vy += p * ny;
+
+                        anyMoving = true;
+                    }
+                }
+            }
+
+            // 静止時のターン交代
+            if (physicalLock && !anyMoving) {
+                physicalLock = false;
+                
+                // 動いていたストライカーを消去
+                disks = disks.filter(d => !d.isStriker);
+
+                nextTurn();
+            }
+        }
+
+        function nextTurn() {
+            if (gameOver) return;
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            document.getElementById('status-text').innerText = currentPlayer === 1 ? "あなたのターン" : "相手のターン...";
+
+            if (gameMode === 'vs_cpu' && currentPlayer === 2 && !gameOver) {
+                setTimeout(cpuCarromMove, 1000);
+            }
+        }
+
+        // 自律型CPUキャロムAI
+        function cpuCarromMove() {
+            if (gameOver || physicalLock) return;
+
+            // 相手（CPU：青）のターゲットの中で、最もポケットに近いものを狙って撃ち抜く
+            const myDisks = disks.filter(d => d.owner === 2 && !d.isStriker);
+            if (myDisks.length === 0) return;
+
+            // 簡易的に一番最初のディスクをターゲットにする
+            const target = myDisks[0];
+
+            // 射出位置（170, 60）からターゲットへの角度算出
+            const dx = target.x - 170;
+            const dy = target.y - 60;
+            const dist = Math.hypot(dx, dy);
+
+            // 難易度別に応じたエイムのブレ誤差
+            let errorX = 0, errorY = 0;
+            if (difficulty === 'easy') {
+                errorX = (Math.random() - 0.5) * 50;
+                errorY = (Math.random() - 0.5) * 50;
+            } else if (difficulty === 'normal') {
+                errorX = (Math.random() - 0.5) * 20;
+                errorY = (Math.random() - 0.5) * 20;
+            }
+
+            const targetVX = ((dx + errorX) / dist) * 7.0;
+            const targetVY = ((dy + errorY) / dist) * 7.0;
+
+            launchStriker(targetVX, targetVY);
+        }
+
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. ボード盤面の白木ガイドライン
+            ctx.strokeStyle = 'rgba(139, 90, 43, 0.2)';
+            ctx.lineWidth = 2.5;
+            ctx.strokeRect(15, 15, canvas.width - 30, canvas.height - 30);
+            ctx.beginPath(); ctx.arc(170, 170, 45, 0, Math.PI * 2); ctx.stroke();
+
+            // 2. 四隅のポケット
+            ctx.fillStyle = '#111111';
+            pockets.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 3. エイムガイドライン
+            if (isAiming) {
+                const strikerY = currentPlayer === 1 ? 280 : 60;
+                ctx.strokeStyle = 'rgba(74, 144, 226, 0.5)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(170, strikerY);
+                ctx.lineTo(170 + (170 - dragX), strikerY + (strikerY - dragY));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 4. 発射台待機中のストライカー
+            if (!physicalLock && !gameOver && (gameMode !== 'vs_cpu' || currentPlayer === 1)) {
+                const strikerY = currentPlayer === 1 ? 280 : 60;
+                ctx.fillStyle = currentPlayer === 1 ? '#ff595e' : '#ffffff';
+                ctx.strokeStyle = currentPlayer === 1 ? '#c0242a' : '#b2b2b2';
+                ctx.beginPath(); ctx.arc(170, strikerY, 13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+            }
+
+            // 5. ディスク群の描画
+            disks.forEach(d => {
+                ctx.save();
+                ctx.shadowBlur = 3;
+                ctx.shadowColor = 'rgba(0,0,0,0.2)';
+
+                ctx.fillStyle = d.owner === 1 ? '#ff595e' : '#ffffff';
+                ctx.strokeStyle = d.owner === 1 ? '#c0242a' : '#b2b2b2';
+                if (d.isStriker) {
+                    ctx.fillStyle = d.owner === 1 ? '#ff4d4d' : '#fff';
+                }
+
+                ctx.beginPath();
+                ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.restore();
+            });
+        }
+
+        function updateStockUI() {
+            document.getElementById('p1-stock').innerText = p1Stock;
+            document.getElementById('p2-stock').innerText = p2Stock;
+        }
+
+        function checkGameResult() {
+            if (p1Stock === 0 || p2Stock === 0) {
+                gameOver = true;
+                showFinalResult(p1Stock === 0 ? 1 : 2);
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = winner === 1 ? "あなたの全ディスクをポケットに収めました！" : "相手が一足早く全ディスクを沈めました。";
+
+            if (winner === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

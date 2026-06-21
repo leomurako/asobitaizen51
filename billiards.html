@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ビリヤード - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --board-color: radial-gradient(circle, #38b000 50%, #1b4332 100%); --board-border: #5a3825; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+
+        .hud { display: flex; gap: 40px; margin-bottom: 20px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; }
+        .turn-text { color: var(--accent-color); }
+
+        /* ビリヤード台 */
+        .board-container { position: relative; width: 420px; height: 260px; background: var(--board-color); border: 8px solid var(--board-border); border-radius: 24px; box-shadow: 0 12px 30px rgba(0,0,0,0.15); }
+        canvas { display: block; border-radius: 12px; }
+
+        .controls { margin-top: 25px; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; line-height: 1.5; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなた残: <span id="p1-score">3</span>枚</div>
+        <div class="turn-text" id="status-text">あなたの番です：球を突いてください</div>
+        <div id="p2-hud">CPU残: <span id="p2-score">3</span>枚</div>
+    </div>
+
+    <div class="board-container" id="board-container">
+        <canvas id="gameCanvas" width="420" height="260"></canvas>
+    </div>
+
+    <div class="controls">
+        <button class="btn-modal" onclick="resetGame()">リセット</button>
+    </div>
+
+    <!-- カスタム通知ダイアログ -->
+    <div class="modal" id="alert-modal">
+        <div class="modal-card">
+            <h2 id="alert-title">通知</h2>
+            <p id="alert-desc">メッセージ</p>
+            <button class="btn-modal" onclick="closeAlert()">閉じる</button>
+        </div>
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">おめでとうございます！</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 6箇所のポケット
+        const pockets = [
+            { x: 10, y: 10, r: 14 }, { x: 210, y: 8, r: 12 }, { x: 410, y: 10, r: 14 },
+            { x: 10, y: 250, r: 14 }, { x: 210, y: 252, r: 12 }, { x: 410, y: 250, r: 14 }
+        ];
+
+        // ボール配列 { x, y, vx, vy, r, color, owner, isCue }
+        let balls = [];
+        let p1Stock = 3;
+        let p2Stock = 3;
+        let currentPlayer = 1;
+
+        let isAiming = false;
+        let dragX = 0, dragY = 0;
+        let gameOver = false;
+        let physicalLock = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        function initGame() {
+            balls = [];
+            p1Stock = 3;
+            p2Stock = 3;
+            currentPlayer = 1;
+            gameOver = false;
+            isAiming = false;
+            physicalLock = false;
+
+            document.getElementById('p2-hud').innerHTML = gameMode === 'vs_cpu' ? `CPU残: <span id="p2-score">3</span>枚` : `相手残: <span id="p2-score">3</span>枚`;
+            document.getElementById('result-overlay').style.display = 'none';
+            document.getElementById('status-text').innerText = "あなたのターン：キューの強さを引いてください";
+            closeAlert();
+
+            // 1. 白い手球（Cue Ball）
+            balls.push({ x: 110, y: 130, vx: 0, vy: 0, r: 9, color: '#ffffff', owner: 0, isCue: true });
+
+            // 2. カラー的球をピラミッド状に配置（P1:赤3個、P2:黄3個、最後に黒8番球）
+            balls.push({ x: 290, y: 130, vx: 0, vy: 0, r: 9, color: '#ff595e', owner: 1, isCue: false }); // 赤
+
+            balls.push({ x: 310, y: 118, vx: 0, vy: 0, r: 9, color: '#ffd43b', owner: 2, isCue: false }); // 黄
+            balls.push({ x: 310, y: 142, vx: 0, vy: 0, r: 9, color: '#ff595e', owner: 1, isCue: false });
+
+            balls.push({ x: 330, y: 106, vx: 0, vy: 0, r: 9, color: '#ffd43b', owner: 2, isCue: false });
+            // 中央は8番黒ボール
+            balls.push({ x: 330, y: 130, vx: 0, vy: 0, r: 9, color: '#111111', owner: 8, isCue: false }); // 8番
+            balls.push({ x: 330, y: 154, vx: 0, vy: 0, r: 9, color: '#ff595e', owner: 1, isCue: false });
+
+            balls.push({ x: 350, y: 130, vx: 0, vy: 0, r: 9, color: '#ffd43b', owner: 2, isCue: false });
+
+            updateStockUI();
+            requestAnimationFrame(physicsLoop);
+        }
+
+        // あなたのショット操作
+        canvas.addEventListener('mousedown', e => {
+            if (gameOver || physicalLock) return;
+            if (gameMode === 'vs_cpu' && currentPlayer === 2) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            const cueBall = balls.find(b => b.isCue);
+            if (!cueBall) return;
+
+            const dist = Math.hypot(clickX - cueBall.x, clickY - cueBall.y);
+            if (dist < 20) {
+                isAiming = true;
+                dragX = clickX;
+                dragY = clickY;
+            }
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            if (!isAiming) return;
+            const rect = canvas.getBoundingClientRect();
+            dragX = e.clientX - rect.left;
+            dragY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (!isAiming) return;
+            isAiming = false;
+
+            const cueBall = balls.find(b => b.isCue);
+            if (!cueBall) return;
+
+            const dx = cueBall.x - dragX;
+            const dy = cueBall.y - dragY;
+
+            launchCue(dx * 0.16, dy * 0.16);
+        });
+
+        function launchCue(vx, vy) {
+            const cueBall = balls.find(b => b.isCue);
+            if (cueBall) {
+                physicalLock = true;
+                cueBall.vx = vx;
+                cueBall.vy = vy;
+            }
+        }
+
+        function physicsLoop() {
+            if (gameOver) return;
+
+            updatePhysics();
+            drawTable();
+
+            requestAnimationFrame(physicsLoop);
+        }
+
+        function updatePhysics() {
+            let anyMoving = false;
+
+            // 1. 移動と摩擦減衰
+            balls.forEach((b, idx) => {
+                if (Math.hypot(b.vx, b.vy) > 0.05) {
+                    b.x += b.vx;
+                    b.y += b.vy;
+                    b.vx *= 0.985;
+                    b.vy *= 0.985;
+                    anyMoving = true;
+                } else {
+                    b.vx = 0; b.vy = 0;
+                }
+
+                // クッション（壁反射）
+                if (b.x < b.r + 8 || b.x > canvas.width - b.r - 8) { b.vx = -b.vx * 0.8; b.x = b.x < b.r + 8 ? b.r + 8 : canvas.width - b.r - 8; }
+                if (b.y < b.r + 8 || b.y > canvas.height - b.r - 8) { b.vy = -b.vy * 0.8; b.y = b.y < b.r + 8 ? b.r + 8 : canvas.height - b.r - 8; }
+
+                // ポケットイン判定
+                pockets.forEach(pocket => {
+                    const distToPocket = Math.hypot(b.x - pocket.x, b.y - pocket.y);
+                    if (distToPocket < pocket.r) {
+                        if (b.isCue) {
+                            // 手球が落ちた場合（ファウルスクラッチ、再配置）
+                            b.x = 110; b.y = 130; b.vx = 0; b.vy = 0;
+                            showCustomAlert("スクラッチ！", "白い手球が落ちてしまいました！ペナルティとして初期位置に戻ります。");
+                        } else if (b.owner === 8) {
+                            // 8番黒球が落ちた時の処理
+                            balls.splice(idx, 1);
+                            checkGameResult(true);
+                        } else {
+                            balls.splice(idx, 1);
+                            if (b.owner === 1) p1Stock--; else p2Stock--;
+                            updateStockUI();
+                            showCustomAlert("ポケットイン！", `${b.owner === 1 ? 'あなた' : 'CPU'}の的球を落としました！`);
+                        }
+                    }
+                });
+            });
+
+            // 2. ボール同士の弾性衝突物理（2重ループ）
+            for (let i = 0; i < balls.length; i++) {
+                for (let j = i + 1; j < balls.length; j++) {
+                    const s1 = balls[i];
+                    const s2 = balls[j];
+                    const dist = Math.hypot(s1.x - s2.x, s1.y - s2.y);
+                    const minDist = s1.r + s2.r;
+
+                    if (dist < minDist) {
+                        const overlap = minDist - dist;
+                        const nx = (s2.x - s1.x) / dist;
+                        const ny = (s2.y - s1.y) / dist;
+                        s1.x -= nx * overlap * 0.5;
+                        s1.y -= ny * overlap * 0.5;
+                        s2.x += nx * overlap * 0.5;
+                        s2.y += ny * overlap * 0.5;
+
+                        const kx = s1.vx - s2.vx;
+                        const ky = s1.vy - s2.vy;
+                        const p = 2 * (nx * kx + ny * ky) / 2;
+
+                        s1.vx -= p * nx;
+                        s1.vy -= p * ny;
+                        s2.vx += p * nx;
+                        s2.vy += p * ny;
+
+                        anyMoving = true;
+                    }
+                }
+            }
+
+            if (physicalLock && !anyMoving) {
+                physicalLock = false;
+                nextTurn();
+            }
+        }
+
+        function nextTurn() {
+            if (gameOver) return;
+
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            statusText.innerText = currentPlayer === 1 ? "あなたのターン" : "相手のターン...";
+
+            if (gameMode === 'vs_cpu' && currentPlayer === 2 && !gameOver) {
+                setTimeout(cpuBilliardMove, 1000);
+            }
+        }
+
+        // CPUのビリヤードAI
+        function cpuBilliardMove() {
+            if (gameOver || physicalLock) return;
+
+            const cueBall = balls.find(b => b.isCue);
+            if (!cueBall) return;
+
+            // CPU（黄色）の的球をターゲットとしてロックオンする
+            const targets = balls.filter(b => b.owner === 2);
+            let target = targets.length > 0 ? targets[0] : balls.find(b => b.owner === 8); // なければ8番狙い
+
+            if (!target) return;
+
+            const dx = target.x - cueBall.x;
+            const dy = target.y - cueBall.y;
+            const dist = Math.hypot(dx, dy);
+
+            // 誤差
+            let errX = (Math.random() - 0.5) * (difficulty === 'easy' ? 40 : 15);
+            let errY = (Math.random() - 0.5) * (difficulty === 'easy' ? 40 : 15);
+
+            const vx = ((dx + errX) / dist) * 7.5;
+            const vy = ((dy + errY) / dist) * 7.5;
+
+            launchCue(vx, vy);
+        }
+
+        function drawTable() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 6つのポケット
+            ctx.fillStyle = '#0f172a';
+            pockets.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // 2. エイム補助線
+            const cueBall = balls.find(b => b.isCue);
+            if (isAiming && cueBall) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 2.0;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(cueBall.x, cueBall.y);
+                ctx.lineTo(cueBall.x + (cueBall.x - dragX), cueBall.y + (cueBall.y - dragY));
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 3. ボール群
+            balls.forEach(b => {
+                ctx.save();
+                ctx.shadowBlur = 3;
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                // ボールの表面光沢ハイライト
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.beginPath();
+                ctx.arc(b.x - 3, b.y - 3, 3, 0, Math.PI*2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+        }
+
+        function updateStockUI() {
+            document.getElementById('p1-score').innerText = p1Stock;
+            document.getElementById('p2-score').innerText = p2Stock;
+        }
+
+        function checkGameResult(eightBallFelled) {
+            if (eightBallFelled) {
+                gameOver = true;
+                // 全的球を落としきる前に8番球を落としたら反則負け！
+                if (currentPlayer === 1 && p1Stock > 0) {
+                    showFinalResult(2, "8番ボールをすべて落としきる前に落としたため、反則負けです。");
+                } else if (currentPlayer === 2 && p2Stock > 0) {
+                    showFinalResult(1, "CPUが8番ボールをフライング落とししたため、あなたの勝ちです！");
+                } else {
+                    showFinalResult(currentPlayer, "8番ボールを見事に沈めて勝利しました！");
+                }
+            }
+        }
+
+        function showCustomAlert(title, desc) {
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-desc').innerText = desc;
+            document.getElementById('alert-modal').style.display = 'flex';
+        }
+        function closeAlert() { document.getElementById('alert-modal').style.display = 'none'; }
+
+        function showFinalResult(winner, detail = "") {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = detail || (winner === 1 ? "手球から的球へ美しく反射させて制覇しました！" : "相手がすべての球をポケットに沈めました。");
+
+            if (winner === 1) {
+                titleEl.innerText = "🎉 あなたの勝ち！";
+                titleEl.style.color = "#4a90e2";
+            } else {
+                titleEl.innerText = gameMode === 'vs_cpu' ? "💻 CPUの勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#e53e3e";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
