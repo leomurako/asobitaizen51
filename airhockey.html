@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>エアホッケー - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .score-val { color: var(--accent-color); font-size: 18px; }
+
+        /* ホッケー盤面 */
+        .canvas-container { background: #1a202c; padding: 10px; border-radius: 24px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background-color: #2d3748; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; line-height: 1.5; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">あなた: <span id="p1-score" class="score-val">0</span></div>
+        <div style="color:var(--accent-color);" id="status-text">5点先取で勝利！</div>
+        <div class="score" id="p2-hud">CPU: <span id="p2-score" class="score-val">0</span></div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="300" height="420"></canvas>
+    </div>
+
+    <div class="instructions">
+        ラケット操作：マウスドラッグ（画面タップ）でマレットを動かします。<br>
+        ※エアーで浮いた赤いパックを跳ね返し、上下のゴールへ叩き込みましょう！
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">勝ち！</h2>
+            <p id="result-desc">結果</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script {nonce}>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // テーブルサイズ定義
+        const goalW = 100;
+        const goalH = 10;
+
+        // パック、マレットオブジェクト
+        // マレット { x, y, r, color }
+        let p1 = { x: 150, y: 350, r: 18, color: '#4a90e2', stroke: '#1962b4' };
+        let p2 = { x: 150, y: 70, r: 18, color: '#ff595e', stroke: '#c0242a' }; // CPU
+        let puck = { x: 150, y: 210, vx: 0, vy: 0, r: 10, color: '#ffca28' };
+
+        let scores = [0, 0];
+        let gameOver = false;
+        let isAiming = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameMode = urlParams.get('mode') || 'vs_player';
+        const difficulty = urlParams.get('diff') || 'normal';
+
+        function initGame() {
+            scores = [0, 0];
+            puck = { x: 150, y: 210, vx: 0, vy: 4, r: 10, color: '#ffca28' }; // パック射出
+            p1 = { x: 150, y: 350, r: 18, color: '#4a90e2', stroke: '#1962b4' };
+            p2 = { x: 150, y: 70, r: 18, color: '#ff595e', stroke: '#c0242a' };
+            gameOver = false;
+
+            document.getElementById('p1-score').innerText = 0;
+            document.getElementById('p2-score').innerText = 0;
+            document.getElementById('p2-hud').innerHTML = gameMode === 'vs_cpu' ? `CPU: <span id="p2-score" class="score-val">0</span>` : `相手: <span id="p2-score" class="score-val">0</span>`;
+            document.getElementById('result-overlay').style.display = 'none';
+
+            canvas.addEventListener('mousemove', handleMouseMove);
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // あなたのラケットドラッグ移動
+        function handleMouseMove(e) {
+            if (gameOver) return;
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+
+            // 自陣（下半分：y >= 210）に制限
+            p1.x = Math.max(p1.r + 6, Math.min(canvas.width - p1.r - 6, mx));
+            p1.y = Math.max(210 + p1.r, Math.min(canvas.height - p1.r - 6, my));
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (gameOver || e.touches.length === 0) return;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const mx = touch.clientX - rect.left;
+            const my = touch.clientY - rect.top;
+
+            p1.x = Math.max(p1.r + 6, Math.min(canvas.width - p1.r - 6, mx));
+            p1.y = Math.max(210 + p1.r, Math.min(canvas.height - p1.r - 6, my));
+        }
+
+        function gameLoop() {
+            if (gameOver) return;
+
+            updatePhysics();
+            drawTable();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePhysics() {
+            // 1. パック移動と減速（摩擦）
+            puck.x += puck.vx;
+            puck.y += puck.vy;
+            puck.vx *= 0.99;
+            puck.vy *= 0.99;
+
+            // 2. CPU（P2）自律ホッケーAI
+            if (gameMode === 'vs_cpu') {
+                cpuTick();
+            }
+
+            // 3. マレットとパックの弾性衝突物理
+            resolveCollision(p1);
+            resolveCollision(p2);
+
+            // 4. 壁反射（左右の壁）
+            if (puck.x < puck.r + 6 || puck.x > canvas.width - puck.r - 6) {
+                puck.vx = -puck.vx;
+                puck.x = puck.x < puck.r + 6 ? puck.r + 6 : canvas.width - puck.r - 6;
+            }
+
+            // 上下の壁（ゴール以外は跳ね返る）
+            const isInsideGoalX = puck.x > (canvas.width - goalW)/2 && puck.x < (canvas.width + goalW)/2;
+
+            if (puck.y < puck.r + 6) {
+                if (isInsideGoalX) {
+                    // あなたのゴール！（P1得点）
+                    scoreGoal(1);
+                } else {
+                    puck.vy = -puck.vy;
+                    puck.y = puck.r + 6;
+                }
+            } else if (puck.y > canvas.height - puck.r - 6) {
+                if (isInsideGoalX) {
+                    // 相手のゴール（P2/CPU得点）
+                    scoreGoal(2);
+                } else {
+                    puck.vy = -puck.vy;
+                    puck.y = canvas.height - puck.r - 6;
+                }
+            }
+        }
+
+        // 完全弾性衝突判定
+        function resolveCollision(mallet) {
+            const dist = Math.hypot(puck.x - mallet.x, puck.y - mallet.y);
+            const minDist = puck.r + mallet.r;
+
+            if (dist < minDist) {
+                // めり込み防止
+                const overlap = minDist - dist;
+                const nx = (puck.x - mallet.x) / dist;
+                const ny = (puck.y - mallet.y) / dist;
+                puck.x += nx * overlap;
+                puck.y += ny * overlap;
+
+                // 速度交換
+                const kx = puck.vx;
+                const ky = puck.vy;
+                
+                // 押し出しの力をスピードに反映（マレットの速度成分を付与）
+                puck.vx = nx * 5 + (Math.random() - 0.5) * 2;
+                puck.vy = ny * 5 + (Math.random() - 0.5) * 2;
+            }
+        }
+
+        // 自陣をガッチリ守る自律型CPUホッケーAI
+        function cpuTick() {
+            // パックの座標、速度から自律迎撃
+            let targetX = puck.x;
+            let targetY = p2.y;
+
+            // パックが敵陣（上半分）にあるときは積極的にアタック
+            if (puck.y < 210) {
+                const diffX = puck.x - p2.x;
+                const diffY = puck.y - p2.y;
+                const distance = Math.hypot(diffX, diffY);
+                
+                // 難易度別の突進追従スピード調整
+                const followSpeed = difficulty === 'easy' ? 1.5 : (difficulty === 'hard' ? 4.5 : 3.0);
+                
+                p2.x += (diffX / distance) * followSpeed;
+                p2.y += (diffY / distance) * followSpeed;
+            } else {
+                // 自陣にいないときはゴール前に戻って守る
+                const homeX = 150;
+                const homeY = 70;
+                const diffX = homeX - p2.x;
+                const diffY = homeY - p2.y;
+                p2.x += diffX * 0.1;
+                p2.y += diffY * 0.1;
+            }
+
+            // エリア境界制限（上半分のみに制限）
+            p2.x = Math.max(p2.r + 6, Math.min(canvas.width - p2.r - 6, p2.x));
+            p2.y = Math.max(p2.r + 6, Math.min(210 - p2.r, p2.y));
+        }
+
+        function scoreGoal(winner) {
+            scores[winner - 1]++;
+            document.getElementById('p1-score').innerText = scores[0];
+            document.getElementById('p2-score').innerText = scores[1];
+
+            // パックリセット
+            puck = { x: 150, y: 210, vx: 0, vy: winner === 1 ? -4 : 4, r: 10, color: '#ffca28' };
+            p1.x = 150; p1.y = 350;
+            p2.x = 150; p2.y = 70;
+
+            if (scores[0] >= 5 || scores[1] >= 5) {
+                gameOver = true;
+                showFinalResult(scores[0] >= 5 ? 1 : 2);
+            }
+        }
+
+        function drawTable() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 外壁枠
+            ctx.strokeStyle = '#cbd5e1';
+            ctx.lineWidth = 6;
+            ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+
+            // センターライン
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(6, 210); ctx.lineTo(canvas.width - 6, 210); ctx.stroke();
+            ctx.beginPath(); ctx.arc(150, 210, 40, 0, Math.PI * 2); ctx.stroke();
+
+            // ゴール(上下)のペイント
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect((canvas.width - goalW)/2, 0, goalW, goalH);
+            ctx.fillRect((canvas.width - goalW)/2, canvas.height - goalH, goalW, goalH);
+
+            // パック描画
+            ctx.fillStyle = puck.color;
+            ctx.beginPath(); ctx.arc(puck.x, puck.y, puck.r, 0, Math.PI * 2); ctx.fill();
+
+            // P1ラケット（青）
+            drawMallet(p1);
+            // P2ラケット（赤）
+            drawMallet(p2);
+        }
+
+        function drawMallet(m) {
+            ctx.save();
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'rgba(0,0,0,0.3)';
+            ctx.fillStyle = m.color;
+            ctx.strokeStyle = m.stroke;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 取っ手
+            ctx.fillStyle = m.stroke;
+            ctx.beginPath();
+            ctx.arc(m.x, m.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function showFinalResult(winner) {
+            const overlay = document.getElementById('result-overlay');
+            const titleEl = document.getElementById('result-title');
+            const descEl = document.getElementById('result-desc');
+
+            descEl.innerText = `${scores[0]} 対 ${scores[1]}`;
+
+            if (gameMode === 'vs_cpu') {
+                if (winner === 1) {
+                    titleEl.innerText = "🎉 あなたの勝ち！";
+                    descEl.innerText = `見事なスマッシュで5点を先取しました！`;
+                    titleEl.style.color = "#4a90e2";
+                } else {
+                    titleEl.innerText = "💻 CPUの勝ち！";
+                    descEl.innerText = `CPUの堅いディフェンスに阻まれてしまいました。`;
+                    titleEl.style.color = "#e53e3e";
+                }
+            } else {
+                titleEl.innerText = winner === 1 ? "🎉 Player 1 の勝ち！" : "🎉 Player 2 の勝ち！";
+                titleEl.style.color = "#4a90e2";
+            }
+            overlay.style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>

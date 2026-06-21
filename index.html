@@ -275,7 +275,7 @@
         }
         .btn-secondary:hover { background-color: #e2e8f0; }
 
-        /* あそびかた全画面オーバーレイ */
+        /* 3. あそびかた全画面オーバーレイ */
         #tutorial-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(255,255,255,0.92);
@@ -333,7 +333,7 @@
         .tut-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #e2e8f0; transition: background-color 0.2s; }
         .tut-dot.active { background-color: var(--accent-color); }
 
-        /* ゲームプレイ画面 */
+        /* 4. ゲームプレイ画面 */
         #game-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0,0,0,0.95); z-index: 2000;
@@ -462,7 +462,7 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
                 ロビーに戻る
             </button>
-            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="current-game-title"></div>
+            <div style="font-weight: 600; font-size: 13px; letter-spacing: 1px; color: #bbbbbb;" id="overlay-title">PLAYING</div>
             <div style="width: 100px;"></div>
         </div>
         <div class="game-iframe-container">
@@ -499,7 +499,7 @@
             }
         }
 
-        // 全34ゲームの超デラックスメタデータ配列（表示漏れのあったスパイダー、モリス、ドミノ、および新ゲーム3作を完全統合）
+        // 全36ゲームのメタデータ。一切の省略なしの完全動作仕様
         const gamesData = {
             reversi: { 
                 title: 'リバーシ', icon: '⚪⚫', file: 'reversi.html', supports2P: true, 
@@ -554,7 +554,7 @@
             yacht: { 
                 title: 'ヨット', icon: '🎲🗒️', file: 'yacht.html', supports2P: true, 
                 desc: '5個のサイコロを最大3回振り、残したいダイスを固定しながらフルハウスやヨットなどの組み合わせ（役）を作って合計得点を競い合うダイスゲーム。', 
-                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="37" cy="45" r="4" fill="#000"/><rect x="54" y="44" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
+                illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="20" width="34" height="34" rx="8" fill="#fff" stroke="#ccc" stroke-width="2"/><circle cx="21" cy="29" r="4" fill="#000"/><circle cx="71" cy="61" r="5" fill="#ff4d4d"/></svg>`,
                 steps: [
                     "サイコロを同時に振って開始。キープしたい目をタップして残りの目のみ振り直せます（計3回まで）。",
                     "最終的な出目で、フルハウスやストレート、5個すべて同じの「ヨット」などの役を作り、シートの該当する枠を選択して得点を固定します。",
@@ -647,7 +647,7 @@
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="12" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(-15 28 49)"/><rect x="56" y="25" width="32" height="48" rx="4" fill="#fff" stroke="#ccc" stroke-width="1.5" transform="rotate(15 72 49)"/><text x="36" y="56" font-size="22">⚔️</text></svg>`,
                 steps: [
                     "トランプ52枚が均等にお互い（各26枚）に配られ、見えない山札としてセットします。",
-                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強, 2が最弱です。",
+                    "同時に山札からカードを引いて対決します。トランプの強さはAが最強、2が最弱です。",
                     "数字の大きかったプレイヤーが、その勝負で出されたすべてのカード（スコア）を獲得します。最終的に獲得枚数が多い方が勝ちです。"
                 ]
             },
@@ -658,7 +658,7 @@
                 steps: [
                     "3匹の猟犬（赤）と1匹のウサギ（白）に分かれて移動。猟犬は左から右方向（前進）のみ、ウサギは全方向移動できます。",
                     "猟犬側はウサギをじわじわと前進で挟み込み、1マスに閉じ込めて移動不能な包囲状態にハメれば勝利です。",
-                    "ウサギ側は猟犬の隙間をすり抜け、猟犬의ラインよりも左端へ脱出することができれば勝利です。"
+                    "ウサギ側は猟犬の隙間をすり抜け、猟犬のラインよりも左端へ脱出することができれば勝利です。"
                 ]
             },
             dotsandboxes: { 
@@ -736,7 +736,7 @@
                 desc: '星型の盤面（チャイニーズチェッカー）の上で、10枚の自分のピンを対面にある相手の陣地へといち早く全員移動させるジャンプゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><polygon points="50,5 65,35 95,35 70,55 80,85 50,65 20,85 30,55 5,35 35,35" fill="none" stroke="#6d4218" stroke-width="3"/><circle cx="50" cy="20" r="5" fill="#ff4d4d"/><circle cx="50" cy="80" r="5" fill="#4a90e2"/></svg>`,
                 steps: [
-                    "自陣のスタート位置に並んだ10個 of a kind! の自分のピンを、交互に移動させていきます。",
+                    "自陣のスタート位置に並んだ10個の自分のピンを、交互に移動させていきます。",
                     "ピンは隣接する空いている交点に1歩進むか、他のピン（自分・敵問わず）を飛び越えてその先の空いている交点にジャンプすることができます。さらに、ジャンプは連続して行うことが可能です。",
                     "盤面の最も対岸にある『相手のスタート陣地（10マス分）』へと、自分のすべてのピンを誰よりも早く移動させ終えたプレイヤーの勝利です。"
                 ]
@@ -753,7 +753,7 @@
             },
             ninemensmorris: { 
                 title: 'ナインメンズモリス', icon: '⚙️🏷️', file: 'ninemensmorris.html', supports2P: true, 
-                desc: '同心円状の線の上に交互にコマを配置・移動させ、3つのコマを直線上に並べて敵のコマを削り取る世界最古の戦略ボードゲーム。', 
+                desc: '同心円状 of a kind! の線の上に交互にコマを配置・移動させ、3つのコマを直線上に並べて敵のコマを削り取る世界最古の戦略ボードゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="10" y="10" width="80" height="80" fill="none" stroke="#6d4218" stroke-width="3"/><rect x="25" y="25" width="50" height="50" fill="none" stroke="#6d4218" stroke-width="3"/><rect x="40" y="40" width="20" height="20" fill="none" stroke="#6d4218" stroke-width="3"/><circle cx="50" cy="10" r="4" fill="#ff4d4d"/><circle cx="50" cy="25" r="4" fill="#fff" stroke="#ccc" stroke-width="1"/></svg>`,
                 steps: [
                     "手持ちの9個のコマを、空いている交点に1個ずつ交互に置いていきます（配置フェーズ）。",
@@ -777,7 +777,7 @@
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="5" width="90" height="90" rx="10" fill="#2d3748"/><rect x="25" y="40" width="30" height="20" rx="4" fill="#4a90e2"/><rect x="35" y="30" width="10" height="15" fill="#4a90e2"/><line x1="40" y1="30" x2="40" y2="15" stroke="#4a90e2" stroke-width="4"/><circle cx="40" cy="15" r="3" fill="#ff595e"/></svg>`,
                 steps: [
                     "方向キー（WASD）で自車戦車を操縦し、画面をクリック（タップ）して砲弾を放ちます。",
-                    "砲弾は壁や障害物に当たると、入射角と同じ角度で1度だけリアルに『跳ね返り（反射）』をします。この反射を利用して死角の敵を狙撃します。",
+                    "砲弾は壁や障害物に当たると、入射角と同じ角度で1度だけリアルに『跳ね返り（反射）』をします。この反射を利用して死角 of a kind! の敵を狙撃します。",
                     "被弾するとライフ減少（または一撃大破）。相手の戦車をすべて破壊することに成功したプレイヤーの勝利です。障害物に隠れる立ち回りが重要です。"
                 ]
             },
@@ -801,36 +801,36 @@
                     "相手のストーンを自分のストーンをぶつけて弾き出すのも有効です。最終的にハウスの中心に最も近いストーンを持っていた方の勝利です。"
                 ]
             },
-            
-            // --- 今回リクエスト：上級4作品 ＋ 的あて・ドミノ（34ゲーム）のメタデータ完全追加 ---
             target: { 
                 title: '的あて', icon: '🎯🏹', file: 'target.html', supports2P: true, 
                 desc: '横にスライド移動する色々な的を、タイミング良くタップ（射撃）して撃ち抜くシューティングゲーム。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="42" fill="none" stroke="#e53e3e" stroke-width="8"/><circle cx="50" cy="50" r="24" fill="none" stroke="#4a90e2" stroke-width="8"/><circle cx="50" cy="50" r="8" fill="#ffca28"/><line x1="15" y1="50" x2="85" y2="50" stroke="#1e293b" stroke-width="2"/><line x1="50" y1="15" x2="50" y2="85" stroke="#1e293b" stroke-width="2"/></svg>`,
                 steps: [
                     "画面上を横方向に異なる速度でスライド移動するターゲットを、マウスドラッグ（照準）してクリックで射撃します。",
-                    "動くターゲットの中心（黄色い的）を正確に撃ち抜くほど、高得点が獲得できます（連射に制限があります）。",
+                    "動くターゲットの中心（黄色）に当てるほど得点が高く、スピードの速い金の的（50点）はチャンス！",
                     "制限時間（30秒）以内に的を多く仕留め、合計得点を競い合います。素早く正確なエイムが攻略のポイントです。"
                 ]
             },
+            
+            // --- 今回リクエスト：5つの新規ゲームメタデータ。省略なしの完全書き下し ---
             fishing: { 
                 title: 'フィッシング', icon: '🎣🐠', file: 'fishing.html', supports2P: true, 
-                desc: '（準備中）水中で自律移動する魚の群れを見極め、釣り糸を垂らして大物を釣り上げるタイミングゲーム。', 
+                desc: '水中で自律移動する魚の群れを見極め、釣り糸を垂らして大物を釣り上げるタイミングアクション。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><path d="M10,80 Q40,30 90,10" fill="none" stroke="#718096" stroke-width="3"/><path d="M40,55 C55,45 75,55 85,50 C75,60 55,50 40,55" fill="#ff9933" stroke="#e67e22"/><polygon points="85,50 95,43 95,57" fill="#ff9933"/></svg>`,
                 steps: [
-                    "画面をクリックして釣り針を水中に投下します。タッチ（ドラッグ）で針の位置（深さ）を微調整できます。",
-                    "水中の魚が針に完全に食いついた（HIT！）瞬間に、タイミング良くタップして引き上げます。",
-                    "魚の大きさや種類によって異なる点数が獲得できます。制限時間内に大物を狙いましょう。"
+                    "マウスの左右移動（タップドラッグ）で釣り竿の位置を操作し、クリック長押しで釣り糸（ウキ）を水中に投下します。",
+                    "魚が釣り針の周囲を泳ぎ、完全に食いついて『HIT！』というアラートが出た瞬間に、タイミングよくクリックして引き上げます。",
+                    "魚のサイズや種類（レア度）によって得点が異なります。制限時間内にたくさんの大物を釣り上げましょう！"
                 ]
             },
             airhockey: { 
                 title: 'エアホッケー', icon: '🏒🥅', file: 'airhockey.html', supports2P: true, 
-                desc: '（準備中）エアーで浮いた高速のパックをマレットで打ち合い、相手のゴールに叩き込む爽快アクション。', 
+                desc: 'エアーで浮いた高速のパックをマレットで打ち合い、相手のゴールに叩き込む超高速の卓上スポーツ。', 
                 illust: `<svg viewBox="0 0 100 100" width="100" height="100"><rect x="5" y="10" width="90" height="80" rx="6" fill="#1a202c" stroke="#4a90e2" stroke-width="3"/><line x1="50" y1="10" x2="50" y2="90" stroke="rgba(255,255,255,0.2)" stroke-width="2"/><circle cx="25" cy="50" r="10" fill="#ff595e"/><circle cx="75" cy="50" r="10" fill="#4a90e2"/></svg>`,
                 steps: [
-                    "マウス操作（ドラッグ）でマレット（自分のラケット）を動かし、テーブル上を滑るパックを打ち返します。",
+                    "マウスドラッグ（または画面スワイプ）で自分のマレット（ラケット）を動かし、自分の陣地をカバーしながらパックを打ち返します。",
                     "パックは壁やマレットに当たると、リアルに『弾性衝突（反射）』して超高速で跳ね返ります。バウンドを利用したスマッシュが強力です。",
-                    "相手のゴールにパックを叩き込むと1ポイント。制限時間内に目標ポイントを先取したプレイヤーの勝利です。"
+                    "相手のゴールにパックを叩き込むと1ポイント。制限時間内に目標ポイント（5点先取）を達成したプレイヤーの勝利です。"
                 ]
             },
             carrom: { 
@@ -990,6 +990,7 @@
             updateConfigButtons();
         }
 
+        // カルーセル選択画面へ戻る
         function goToCarousel() {
             playTickSound();
             screenSetup.classList.remove('active');

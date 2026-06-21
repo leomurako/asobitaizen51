@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フィッシング - Deluxe Edition</title>
+    <style>
+        :root { --bg-color: #f5f7fb; --text-color: #2d3748; --accent-color: #4a90e2; }
+        body { margin: 0; padding: 0; background-color: var(--bg-color); color: var(--text-color); font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; user-select: none; }
+        
+        .hud { display: flex; gap: 40px; margin-bottom: 15px; background: #fff; padding: 10px 30px; border-radius: 20px; font-weight: bold; border: 1px solid #e2e8f0; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
+        .timer-text { color: #e53e3e; }
+
+        /* 水槽 Canvas */
+        .canvas-container { background: #1a365d; padding: 10px; border-radius: 24px; border: 4px solid #cbd5e1; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        canvas { display: block; border-radius: 12px; background: linear-gradient(180deg, #3182ce 0%, #1a365d 100%); cursor: crosshair; }
+
+        .instructions { font-size: 11px; opacity: 0.6; margin-top: 15px; text-align: center; font-weight: bold; line-height: 1.5; }
+
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-card { background: #ffffff; padding: 25px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 320px; width: 85%; animation: popUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes popUp { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .modal-card h2 { margin: 0 0 10px; font-size: 20px; color: var(--accent-color); }
+        .modal-card p { margin: 0 0 20px; font-size: 14px; color: #64748b; }
+        .btn-modal { background: var(--accent-color); color: #fff; border: none; padding: 10px 24px; font-size: 14px; font-weight: bold; border-radius: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="hud">
+        <div class="score">SCORE: <span id="score">0</span></div>
+        <div style="color:var(--accent-color);" id="status-text">釣り開始！</div>
+        <div class="timer-text">TIME: <span id="timer">30</span>s</div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="gameCanvas" width="480" height="320"></canvas>
+    </div>
+
+    <div class="instructions">
+        竿操作：マウスを左右に動かします ｜ 投下：画面をクリックするとウキが降下します。<br>
+        ※魚が完全に食いついてウキが沈んだ『HIT!』の瞬間に再度クリックして一気に釣り上げます！
+    </div>
+
+    <!-- 勝敗リザルト -->
+    <div class="modal" id="result-overlay">
+        <div class="modal-card">
+            <h2 id="result-title">タイムアップ！</h2>
+            <p id="result-desc">スコア: 0点</p>
+            <button class="btn-modal" onclick="resetGame()">もう一度遊ぶ</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 魚オブジェクト { x, y, size, speed, type(カラー), active, hooked }
+        let fishes = [];
+        let score = 0;
+        let timeLeft = 30;
+        let gameOver = false;
+        let gameTimer = null;
+
+        // 釣り針パラメータ
+        let hook = { x: 240, y: 30, targetY: 30, speed: 4.5, isDropping: false, isReeling: false, hookedFish: null };
+        let mouseX = 240;
+
+        const fishConfig = {
+            1: { color: '#fc8181', points: 10, speedMult: 1.0, size: 10 },  // 赤コイ
+            2: { color: '#63b3ed', points: 20, speedMult: 1.4, size: 8 },   // 青サバ
+            3: { color: '#f6e05e', points: 50, speedMult: 2.2, size: 6 }    // 金のマグロ
+        };
+
+        function initGame() {
+            fishes = [];
+            score = 0;
+            timeLeft = 30;
+            gameOver = false;
+            hook = { x: 240, y: 30, targetY: 30, speed: 5.0, isDropping: false, isReeling: false, hookedFish: null };
+
+            document.getElementById('score').innerText = 0;
+            document.getElementById('timer').innerText = 30;
+            document.getElementById('status-text').innerText = "ウキを降下させましょう";
+            document.getElementById('result-overlay').style.display = 'none';
+
+            // 初期魚生成
+            for (let i = 0; i < 6; i++) {
+                spawnFish();
+            }
+
+            if (gameTimer) clearInterval(gameTimer);
+            gameTimer = setInterval(() => {
+                if (gameOver) return;
+                timeLeft--;
+                document.getElementById('timer').innerText = timeLeft;
+                if (timeLeft <= 0) endGame();
+            }, 1000);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('mousemove', e => {
+            if (gameOver || hook.isDropping || hook.isReeling) return;
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            hook.x = mouseX; // 竿とウキの同期
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            if (gameOver) return;
+
+            if (!hook.isDropping && !hook.isReeling) {
+                // 投下
+                hook.isDropping = true;
+                hook.targetY = 280; // 最大深度
+                document.getElementById('status-text').innerText = "ウキ降下中...";
+            } else if (hook.isDropping && !hook.isReeling) {
+                // 途中での引き戻し、または食いつき（HIT）瞬間の合わせ引き上げ
+                if (hook.hookedFish) {
+                    // 釣り上げフェーズへ移行
+                    hook.isDropping = false;
+                    hook.isReeling = true;
+                    hook.targetY = 30; // 水面へ回収
+                    document.getElementById('status-text').innerText = "ヒット！釣り上げています！";
+                } else {
+                    // 何もかかっていない状態でリール回収
+                    hook.isDropping = false;
+                    hook.isReeling = true;
+                    hook.targetY = 30;
+                    document.getElementById('status-text').innerText = "回収中...";
+                }
+            }
+        });
+
+        function spawnFish() {
+            const type = Math.random() < 0.15 ? 3 : (Math.random() < 0.4 ? 2 : 1); // 15%金、30%青
+            const config = fishConfig[type];
+            const size = config.size * 1.5;
+            const speed = (Math.random() * 1.0 + 0.5) * config.speedMult * (Math.random() < 0.5 ? 1 : -1);
+            const x = speed > 0 ? -40 : canvas.width + 40;
+            const y = 80 + Math.random() * 180; // 釣り可能深度
+
+            fishes.push({
+                x, y, r: size, speed, type, config, active: true, hooked: false
+            });
+        }
+
+        function gameLoop() {
+            if (gameOver) return;
+
+            updatePhysics();
+            drawAquarium();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updatePhysics() {
+            // 1. 魚の移動
+            fishes.forEach((f, idx) => {
+                if (!f.active) return;
+
+                if (f.hooked) {
+                    // 針にかかっている場合は針と完全同期
+                    f.x = hook.x;
+                    f.y = hook.y + 10;
+                    return;
+                }
+
+                f.x += f.speed;
+
+                // 画面外リスポーン
+                if (f.speed > 0 && f.x > canvas.width + 50) {
+                    fishes.splice(idx, 1); spawnFish();
+                } else if (f.speed < 0 && f.x < -50) {
+                    fishes.splice(idx, 1); spawnFish();
+                }
+
+                // 2. 釣り針との接触（食いつき）判定
+                if (hook.isDropping && !hook.hookedFish) {
+                    const dist = Math.hypot(hook.x - f.x, hook.y - f.y);
+                    if (dist < f.r + 6) {
+                        // 食いつき成立（HIT！）
+                        f.hooked = true;
+                        hook.hookedFish = f;
+                        document.getElementById('status-text').innerText = "⚠️ HIT!! タップして引き上げろ！";
+                    }
+                }
+            });
+
+            // 3. 釣り針の昇降運動
+            if (hook.isDropping) {
+                if (hook.y < hook.targetY) {
+                    hook.y += hook.speed;
+                } else {
+                    // 最大深度に達したら自動で引き上げる
+                    hook.isDropping = false;
+                    hook.isReeling = true;
+                    hook.targetY = 30;
+                    document.getElementById('status-text').innerText = "最大深度。回収中...";
+                }
+            } else if (hook.isReeling) {
+                if (hook.y > hook.targetY) {
+                    hook.y -= hook.speed;
+                } else {
+                    // 水面に到達（回収完了）
+                    hook.isReeling = false;
+                    if (hook.hookedFish) {
+                        // 釣り上げスコア獲得！
+                        score += hook.hookedFish.config.points;
+                        document.getElementById('score').innerText = score;
+                        document.getElementById('status-text').innerText = `🎉 ゲット！ +${hook.hookedFish.config.points}点`;
+                        
+                        // 魚を消去して次をスポーン
+                        fishes = fishes.filter(f => !f.hooked);
+                        spawnFish();
+                    } else {
+                        document.getElementById('status-text').innerText = "ウキを降下させましょう";
+                    }
+                    hook.hookedFish = null;
+                }
+            }
+        }
+
+        function drawAquarium() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. 釣り糸（ウキからの黒い垂直糸）の描画
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(hook.x, 0);
+            ctx.lineTo(hook.x, hook.y);
+            ctx.stroke();
+
+            // 2. 釣り針（J型）の描画
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(hook.x - 3, hook.y, 4, 0, Math.PI); // Jカーブ
+            ctx.stroke();
+
+            // 3. ウキの描画（水面部分）
+            ctx.fillStyle = '#ff595e';
+            ctx.beginPath();
+            ctx.arc(hook.x, hook.y - 4, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. 魚たちの描画
+            fishes.forEach(f => {
+                if (!f.active) return;
+
+                ctx.save();
+                ctx.fillStyle = f.config.color;
+                
+                // 魚の体
+                ctx.beginPath();
+                ctx.ellipse(f.x, f.y, f.r, f.r * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 尾ひれ
+                const tailDir = f.speed > 0 ? -1 : 1;
+                ctx.beginPath();
+                ctx.moveTo(f.x + f.r * tailDir * 0.9, f.y);
+                ctx.lineTo(f.x + f.r * tailDir * 1.5, f.y - f.r * 0.5);
+                ctx.lineTo(f.x + f.r * tailDir * 1.5, f.y + f.r * 0.5);
+                ctx.closePath();
+                ctx.fill();
+
+                // 目
+                ctx.fillStyle = '#000000';
+                const eyeDir = f.speed > 0 ? 1 : -1;
+                ctx.beginPath();
+                ctx.arc(f.x + f.r * eyeDir * 0.5, f.y - f.r * 0.15, 2.5, 0, Math.PI*2);
+                ctx.fill();
+
+                ctx.restore();
+            });
+
+            // 水面ライン
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.moveTo(0, 30); ctx.lineTo(canvas.width, 30); ctx.stroke();
+        }
+
+        function endGame() {
+            gameOver = true;
+            if (gameTimer) clearInterval(gameTimer);
+            document.getElementById('result-desc').innerText = `最終獲得スコア: ${score}点`;
+            document.getElementById('result-overlay').style.display = 'flex';
+        }
+
+        function resetGame() { initGame(); }
+        initGame();
+    </script>
+</body>
+</html>
